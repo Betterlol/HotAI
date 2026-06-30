@@ -2,7 +2,22 @@
 
 基于 [QuantumNous/new-api](https://github.com/QuantumNous/new-api) 二次开发的 AI 模型 API 聚合平台。
 
+## 🚀 Quick Start
+
+### Using Docker Compose (Recommended)
+
+```bash
+# Clone the project
+git clone https://github.com/Betterlol/HotAI.git
+cd HotAI
+
+# Start service
+docker-compose up -d
+# Access the service at http://localhost:3000
+```
+
 ## 预计实现的功能
+
 - HotAI 品牌 UI
 - 智能路由
 - 成本优化
