@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turing Intelligent Computing - 首页</title>
+    <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+
+<!-- 左侧边栏 -->
+<aside class="sidebar">
+    <!-- 1. 顶部：功能拓展区域 -->
+    <div class="sidebar-top">
+        <div class="section-label">功能拓展</div>
+        <button class="sidebar-btn">
+            <span style="display:inline-block; width:6px; height:6px; background:currentColor; border-radius:50%; margin-right:10px;"></span>
+            模型管理
+        </button>
+    </div>
+
+    <!-- 2. 中间：历史对话与占位符 -->
+    <div class="sidebar-middle">
+        <div class="section-label">历史记录</div>
+        <!-- To do : 对话记录通过用户加载 -->
+        <button class="sidebar-btn">如何优化 API 调用？</button>
+        <button class="sidebar-btn">Claude 3.5 性能对比</button>
+        <button class="sidebar-btn">DeepSeek 模型接入</button>
+        <div class="placeholder-text">暂无更多对话记录</div>
+    </div>
+
+    <!-- 3. 底部：User栏 -->
+    <div class="sidebar-bottom">
+        <button class="sidebar-btn">
+            <div class="user-avatar">U</div>
+            <span>User</span>
+        </button>
+    </div>
+</aside>
+
+<!-- 右侧主体 -->
+<main class="main-content">
+    <h1 class="brand-logo">Turing Intelligent Computing</h1>
+
+    <!-- 聊天输入框 -->
+    <div class="input-container">
+        <input type="text" placeholder="输入您的问题..." id="chatInput">
+
+        <!-- 模型选择器 -->
+        <button class="model-selector" id="modelSelector">
+            <span id="selectedModelText">加载中...</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <path d="M6 9l6 6 6-6"/>
+            </svg>
+            <div class="dropdown-menu" id="modelDropdown">
+                <!-- 模型列表将通过 API 动态加载 -->
+            </div>
+        </button>
+
+        <!-- 发送按钮 -->
+        <button class="send-btn">
+            <svg viewBox="0 0 24 24">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+        </button>
+    </div>
+
+    <p class="subtitle">国内外 AI api 智能聚合平台，众多合作模型供您选择</p>
+
+    <!-- 合作平台图标 -->
+    <div class="platform-area">
+        <div class="platform-icon" title="Claude">Cl</div>
+        <div class="platform-icon" title="ChatGPT">Ch</div>
+        <div class="platform-icon" title="Gemini">Ge</div>
+        <div class="platform-icon" title="DeepSeek">De</div>
+        <div class="platform-icon" title="OpenAI">Op</div>
+        <div class="platform-icon" title="Azure">Az</div>
+        <div class="platform-icon" title="更多">+</div>
+    </div>
+</main>
+
+<!-- 引入 JavaScript -->
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/index.js"></script>
+</body>
+</html>
