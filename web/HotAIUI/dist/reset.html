@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密码重置 - HotAI</title>
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+<div class="auth-wrapper">
+    <!-- 左侧：轮播图区域 -->
+    <div class="auth-left">
+        <div class="carousel">
+            <div class="slide">
+                <div class="slide-content"><h2 style="color:var(--c-primary);">安全可靠</h2>
+                    <p style="font-weight:normal; font-size:14px; color:var(--c-text-secondary);">
+                        企业级数据保护与加密</p></div>
+            </div>
+            <div class="slide">
+                <div class="slide-content"><h2 style="color:var(--c-primary);">快速响应</h2>
+                    <p style="font-weight:normal; font-size:14px; color:var(--c-text-secondary);">
+                        密码重置邮件秒级送达</p></div>
+            </div>
+            <div class="slide">
+                <div class="slide-content"><h2 style="color:var(--c-primary);">体验优化</h2>
+                    <p style="font-weight:normal; font-size:14px; color:var(--c-text-secondary);">
+                        极简流程，快速恢复访问</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧：固定宽度、居中显示的卡片 -->
+    <div class="auth-right">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>密码重置</h1>
+                <p>输入您的邮箱以重置密码</p>
+            </div>
+            <form>
+                <div class="form-group">
+                    <label>邮箱</label>
+                    <div class="input-wrapper">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                        </svg>
+                        <input type="email" placeholder="请输入您的邮箱地址">
+                    </div>
+                </div>
+                <button type="button" class="btn-submit">提交</button>
+                <div class="auth-footer">
+                    想起来了？ <a href="login.html">登录</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- 引入 API 和认证脚本 -->
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/reset.js"></script>
+</body>
+</html>
