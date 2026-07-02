@@ -3,26 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录 - HotAI</title>
+    <link rel="icon" href="picture/favicon.ico" />
+    <link rel="icon" type="image/png" href="picture/logo.png" />
+    <title>登录</title>
+    <link rel="stylesheet" href="css/head.css">
     <link rel="stylesheet" href="css/login.css">
 </head>
 <body>
+
+<!-- 顶部导航栏 -->
+<header class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo">
+            <img src="picture/logo.png" alt="图灵智算" style="width: 36px; height: 36px; object-fit: contain;">
+            图灵智算</a>
+        <div class="nav-links"><a href="index.html">首页</a><a href="console.html">控制台</a><a href="model.html">模型广场</a><a href="docs.html">文档</a><a href="#">关于</a></div>
+    </div>
+    <div class="nav-right">
+        <button class="icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+        </button>
+        <button class="icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+        </button>
+        <button class="icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+        </button>
+        <a href="login.html" class="btn-login">登录</a>
+        <a href="register.html" class="btn-signup">注册</a>
+    </div>
+</header>
+
 <div class="auth-wrapper">
     <div class="auth-left">
         <div class="carousel">
             <div class="slide">
-                <div class="slide-content"><h2 style="color:var(--c-primary);">AI 算力聚合</h2>
-                    <p style="font-weight:normal; font-size:14px; color:var(--c-text-secondary);">汇聚全球顶尖模型
-                        API</p></div>
+                <div class="slide-content"><h2>AI 算力聚合</h2>
+                    <p>汇聚全球顶尖模型 API</p></div>
             </div>
             <div class="slide">
-                <div class="slide-content"><h2 style="color:var(--c-primary);">极速稳定</h2>
-                    <p style="font-weight:normal; font-size:14px; color:var(--c-text-secondary);">企业级高可用 API
-                        服务</p></div>
+                <div class="slide-content"><h2>极速稳定</h2>
+                    <p>企业级高可用 API 服务</p></div>
             </div>
             <div class="slide">
-                <div class="slide-content"><h2 style="color:var(--c-primary);">开发者友好</h2>
-                    <p style="font-weight:normal; font-size:14px; color:var(--c-text-secondary);">智能运维与弹性计费</p>
+                <div class="slide-content"><h2>开发者友好</h2>
+                    <p>智能运维与弹性计费</p>
                 </div>
             </div>
         </div>

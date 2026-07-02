@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="picture/favicon.ico" />
+    <link rel="icon" type="image/png" href="picture/logo.png" />
+    <title>控制台</title>
+    <link rel="stylesheet" href="css/head.css">
+    <link rel="stylesheet" href="css/console.css">
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<header class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo">
+            <img src="picture/logo.png" alt="图灵智算" style="width: 36px; height: 36px; object-fit: contain;">
+            图灵智算
+        </a>
+        <div class="nav-links">
+            <a href="index.html">首页</a>
+            <a href="console.html" class="active">控制台</a>
+            <a href="model.html">模型广场</a>
+            <a href="docs.html">文档</a>
+            <a href="#">关于</a>
+        </div>
+    </div>
+    <div class="nav-right">
+        <button class="icon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+        <button class="icon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
+        <button class="icon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></button>
+        
+        <!-- 未登录时显示登录/注册按钮，已登录时显示用户菜单，由 auth.js 动态控制 -->
+        <a href="login.html" class="btn-login" id="navLoginBtn">登录</a>
+        <a href="register.html" class="btn-signup" id="navSignupBtn">注册</a>
+        
+        <!-- 用户菜单（已登录时显示） -->
+        <div class="user-menu hidden" id="navUserMenu">
+            <div class="user-trigger">
+                <div class="user-avatar-top" id="navUserAvatar">U</div>
+                <span id="navUsername">User</span>
+            </div>
+            <div class="user-dropdown" id="navUserDropdown">
+                <a href="profile.html" class="user-dropdown-item">个人设置</a>
+                <div class="user-dropdown-divider"></div>
+                <button id="navLogoutBtn" class="user-dropdown-item">退出登录</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- 主体容器 -->
+<div class="app-wrapper">
+
+    <!-- 左侧菜单栏 -->
+    <aside class="sidebar">
+        <div class="menu-group">
+            <div class="menu-group-title">聊天</div>
+            <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 操练场</a>
+            <a href="index.html" class="menu-item"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg> 聊天</a>
+        </div>
+
+        <div class="menu-group">
+            <div class="menu-group-title">控制台</div>
+            <a href="console.html" class="menu-item active"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg> 数据看板</a>
+            <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg> 令牌管理</a>
+            <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg> 使用日志</a>
+            <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg> 绘图日志</a>
+            <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg> 任务日志</a>
+        </div>
+
+        <div class="menu-group">
+            <div class="menu-group-title">管理员</div>
+            <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> 渠道管理</a>
+            <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg> 兑换码管理</a>
+            <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg> 用户管理</a>
+            <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L6.16 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg> 系统设置</a>
+        </div>
+
+        <div class="menu-group">
+            <div class="menu-group-title">个人中心</div>
+            <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> 钱包</a>
+            <a href="profile.html" class="menu-item"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> 个人设置</a>
+        </div>
+
+    </aside>
+
+    <!-- 右侧主内容 -->
+    <main class="main-content">
+
+        <!-- 欢迎语 -->
+        <h1 class="welcome-header">👋 下午好，admin</h1>
+
+        <!-- 数据统计卡片 -->
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-card-header"><svg viewBox="0 0 24 24"><path d="M4 10h3v7H4v-7zm6.5 0h3v7h-3v-7zM2 19h20v3H2v-3zm15-9h3v7h-3v-7zM4 5h16v3H4V5z"/></svg> 账户数据</div>
+                <div class="stat-list">
+                    <div class="stat-item"><span class="icon-circle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></span> 当前余额 <span class="val" id="statBalance">$200.00</span></div>
+                    <div class="stat-item"><span class="icon-circle" style="background:#f3e8ff; color:#7e22ce;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> 历史消耗 <span class="val" id="statUsedQuota">$0.00</span></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg> 使用统计</div>
+                <div class="stat-list">
+                    <div class="stat-item"><span class="icon-circle" style="background:#dcfce7; color:#16a34a;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9-4-18-3 9H2"/></svg></span> 请求次数 <span class="val" id="statRequestCount">0</span></div>
+                    <div class="stat-item"><span class="icon-circle" style="background:#e0f2fe; color:#0284c7;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9-4-18-3 9H2"/></svg></span> 统计次数 <span class="val" id="statStatCount">0</span></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg> 资源消耗</div>
+                <div class="stat-list">
+                    <div class="stat-item"><span class="icon-circle" style="background:#fef9c3; color:#a16207;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></span> 统计额度 <span class="val" id="statStatQuota">$0.00</span></div>
+                    <div class="stat-item"><span class="icon-circle" style="background:#fce7f3; color:#be185d;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> 统计Tokens <span class="val" id="statStatTokens">0</span></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg> 性能指标</div>
+                <div class="stat-list">
+                    <div class="stat-item"><span class="icon-circle" style="background:#e0f2fe; color:#0284c7;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span> 平均RPM <span class="val" id="statAvgRPM">0.000</span></div>
+                    <div class="stat-item"><span class="icon-circle" style="background:#fef3c7; color:#b45309;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span> 平均TPM <span class="val" id="statAvgTPM">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主面板双栏区域 -->
+        <div class="dashboard-main">
+
+            <!-- 左侧：图表数据 -->
+            <div class="chart-area">
+                <div class="chart-header">
+                    <div class="chart-title">模型数据分析</div>
+                    <div class="chart-tabs">
+                        <button class="chart-tab active" data-chart="consumption-distribution">消耗分布</button>
+                        <button class="chart-tab" data-chart="consumption-trend">消耗趋势</button>
+                        <button class="chart-tab" data-chart="call-distribution">调用次数分布</button>
+                        <button class="chart-tab" data-chart="call-ranking">调用次数排行</button>
+                    </div>
+                </div>
+
+                <div class="chart-body">
+                    <div class="chart-placeholder-text">模型消耗分布</div>
+                    <div class="chart-placeholder-sub">总计：$0.00</div>
+
+                    <!-- 模拟图表占位 -->
+                    <div class="chart-mock-axes">
+                        <div class="mock-y-line"><span>1</span></div>
+                        <div class="mock-y-line"><span>0.8</span></div>
+                        <div class="mock-y-line"><span>0.6</span></div>
+                        <div class="mock-y-line"><span>0.4</span></div>
+                        <div class="mock-y-line"><span>0.2</span></div>
+                        <div class="mock-y-line" style="border-bottom: none;"><span>0</span></div>
+                    </div>
+                    <div class="mock-x-line">
+                        <span>08-06 10:00</span>
+                        <span>08-06 11:00</span>
+                        <span>08-06 12:00</span>
+                        <span>08-06 13:00</span>
+                        <span>08-06 14:00</span>
+                        <span>08-06 15:00</span>
+                        <span>08-06 16:00</span>
+                    </div>
+                    <div style="display:flex; justify-content:center; padding:12px 0 0 0; color: var(--c-primary); font-weight: 600; letter-spacing: 1px; border-top: 1px solid var(--c-border); margin-top: 12px;">club.fnnas.com</div>
+                </div>
+            </div>
+
+            <!-- 右侧：API信息 -->
+            <div class="api-info-area">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <div class="api-info-title">暂无API信息</div>
+                <div class="api-info-desc">请联系管理员在系统设置中配置API信息</div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- 引入 JavaScript -->
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/console.js"></script>
+</body>
+</html>
