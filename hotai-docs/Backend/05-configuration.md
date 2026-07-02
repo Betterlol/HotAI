@@ -13,18 +13,16 @@
 | `REDIS_CONN_STRING` | (空) | Redis 连接串 |
 | `CHANNEL_TEST_FREQUENCY` | (空) | 渠道测试频率（分钟），设置即启用 |
 | `CHANNEL_TEST_ENABLED` | `false` | 渠道测试开关 |
-| `CHANNEL_DISABLE_THRESHOLD` | `5` | 渠道禁用阈值（秒） |
-| `RETRY_TIMES` | `0` | 重试次数（默认不重试） |
 | `MEMORY_CACHE_ENABLED` | `true` | 内存缓存开关 |
 | `SYNC_FREQUENCY` | `30` | 缓存同步频率（秒） |
 | `BATCH_UPDATE_ENABLED` | `false` | 批量写入开关 |
-| `AUTOMATIC_DISABLE_CHANNEL_ENABLED` | `false` | 自动禁用渠道开关 |
-| `AUTOMATIC_ENABLE_CHANNEL_ENABLED` | `false` | 自动启用渠道开关 |
 | `PYROSCOPE_URL` | (空) | Pyroscope 持续性能分析 |
 
 ### 2. 数据库 Option 表
 
 `Option` 表存储 300+ 键值对，通过后台管理页面可视化配置。
+
+> 注意：`RetryTimes`、`ChannelDisableThreshold`、`AutomaticDisableChannelEnabled`、`AutomaticEnableChannelEnabled` 等配置项也通过 Option 表加载（非环境变量），可在后台"系统设置"页面修改。
 
 **操作设置 (`setting/operation_setting/`):**
 

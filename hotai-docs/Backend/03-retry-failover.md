@@ -20,7 +20,7 @@ for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
 ```
 
 关键参数：
-- `common.RetryTimes`: 默认 `0`（不重试），可通过环境变量/配置修改
+- `common.RetryTimes`: 默认 `0`（不重试），可通过后台设置页面修改
 - 每次重试 increment `retry` 参数 → 选择**下一级 Priority** 的渠道（不是重试同一渠道）
 - 跨组重试时，当前组所有 Priority 用完 → 切换到下一个 Group
 
@@ -111,7 +111,7 @@ performChannelTests()
 ```
 
 ### 禁用阈值
-- `ChannelDisableThreshold`: 默认 5.0 秒（环境变量 `CHANNEL_DISABLE_THRESHOLD`）
+- `ChannelDisableThreshold`: 默认 5.0 秒（可通过后台设置页面修改）
 - 响应时间超过此阈值 → 自动禁用
 
 ## 现有容错能力总结

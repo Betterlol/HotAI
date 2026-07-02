@@ -36,7 +36,7 @@ CREATE TABLE logs (
     use_time          INT,                 -- 请求耗时 (秒)
     is_stream         BOOL,
     channel_id        INT       INDEX,
-    channel_name      VARCHAR,             -- 查询时通过 JOIN 填充
+    channel_name      VARCHAR,             -- 查询时通过缓存/独立查询填充
     token_id          INT       INDEX,
     group             VARCHAR   INDEX,
     ip                VARCHAR   INDEX,     -- 仅在用户开启 RecordIpLog 时记录
