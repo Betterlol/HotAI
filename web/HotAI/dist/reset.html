@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="picture/favicon.ico" />
+    <link rel="icon" type="image/png" href="picture/logo.png" />
+    <title data-i18n="reset.title">密码重置</title>
+    <link rel="stylesheet" href="css/head.css">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+
+<!-- 顶部导航栏 -->
+<header class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo">
+            <img src="picture/logo.png" alt="图灵智算" style="width: 36px; height: 36px; object-fit: contain;">
+            图灵智算</a>
+        <div class="nav-links">
+            <a href="index.html" data-i18n="nav.home">首页</a>
+            <a href="console.html" data-i18n="nav.console">控制台</a>
+            <a href="model.html" data-i18n="nav.models">模型广场</a>
+            <a href="docs.html" data-i18n="nav.docs">文档</a>
+            <a href="#" data-i18n="nav.about">关于</a>
+        </div>
+    </div>
+    <div class="nav-right">
+        <!-- 公告按钮 -->
+        <button class="icon-btn" id="noticeBtn" title="公告">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span class="notice-badge" id="noticeBadge" style="display: none;"></span>
+        </button>
+        
+        <!-- 翻译/语言切换按钮 -->
+        <div class="language-selector">
+            <button class="icon-btn" id="languageBtn" title="语言">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M2 12h20"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+            </button>
+            <div class="language-dropdown" id="languageDropdown">
+                <div class="language-option" data-lang="zh">
+                    <span data-i18n="lang.zh">中文</span>
+                </div>
+                <div class="language-option" data-lang="en">
+                    <span data-i18n="lang.en">English</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 未登录时显示登录/注册按钮，已登录时显示用户菜单，由 auth.js 动态控制 -->
+        <a href="login.html" class="btn-login" id="navLoginBtn" data-i18n="nav.login">登录</a>
+        <a href="register.html" class="btn-signup" id="navSignupBtn" data-i18n="nav.signup">注册</a>
+        
+        <!-- 用户菜单（已登录时显示） -->
+        <div class="user-menu hidden" id="navUserMenu">
+            <div class="user-trigger">
+                <div class="user-avatar-top" id="navUserAvatar">U</div>
+                <div class="user-info">
+                    <span id="navUsername">User</span>
+                    <span class="user-balance" id="navUserBalance">加载中...</span>
+                </div>
+            </div>
+            <div class="user-dropdown" id="navUserDropdown">
+                <a href="profile.html" class="user-dropdown-item" data-i18n="nav.profile">个人设置</a>
+                <div class="user-dropdown-divider"></div>
+                <button id="navLogoutBtn" class="user-dropdown-item" data-i18n="nav.logout">退出登录</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- 公告弹窗 -->
+<div class="notice-modal" id="noticeModal" style="display: none;">
+    <div class="notice-overlay" id="noticeOverlay"></div>
+    <div class="notice-card">
+        <div class="notice-header">
+            <h3 data-i18n="notice.title">公告</h3>
+            <button class="notice-close" id="noticeClose">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="notice-content" id="noticeContent">
+            <div class="notice-loading" data-i18n="notice.loading">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<div class="auth-wrapper">
+    <!-- 左侧：轮播图区域 -->
+    <div class="auth-left">
+        <div class="carousel">
+            <div class="slide">
+                <div class="slide-content"><h2 data-i18n="reset.carousel1_title">安全可靠</h2>
+                    <p data-i18n="reset.carousel1_desc">企业级数据保护与加密</p></div>
+            </div>
+            <div class="slide">
+                <div class="slide-content"><h2 data-i18n="reset.carousel2_title">快速响应</h2>
+                    <p data-i18n="reset.carousel2_desc">密码重置邮件秒级送达</p></div>
+            </div>
+            <div class="slide">
+                <div class="slide-content"><h2 data-i18n="reset.carousel3_title">体验优化</h2>
+                    <p data-i18n="reset.carousel3_desc">极简流程，快速恢复访问</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧：固定宽度、居中显示的卡片 -->
+    <div class="auth-right">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1 data-i18n="reset.title">密码重置</h1>
+                <p data-i18n="reset.desc">输入您的邮箱以重置密码</p>
+            </div>
+            <form>
+                <div class="form-group">
+                    <label data-i18n="reset.email">邮箱</label>
+                    <div class="input-wrapper">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                        </svg>
+                        <input type="email" data-i18n-placeholder="reset.email_placeholder" placeholder="请输入您的邮箱地址">
+                    </div>
+                </div>
+                <button type="button" class="btn-submit" data-i18n="reset.submit">提交</button>
+                <div class="auth-footer">
+                    <span data-i18n="reset.back_to_login">想起来了？</span> <a href="login.html" data-i18n="reset.login_link">登录</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- 引入 JavaScript -->
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/reset.js"></script>
+</body>
+</html>
