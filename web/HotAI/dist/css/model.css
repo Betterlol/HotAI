@@ -335,6 +335,70 @@ body {
     opacity: 0.9;
 }
 
+.banner-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    overflow: hidden;
+    max-width: 400px;
+}
+
+.vendor-logo-single {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+}
+
+.vendor-logo-single img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+}
+
+.vendor-logos-carousel {
+    display: flex;
+    gap: 12px;
+    transition: transform 0.5s ease-in-out;
+}
+
+.vendor-logo-item {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    position: relative;
+}
+
+.vendor-logo-item img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+}
+
+.vendor-logo-fallback {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+}
+
 /* 卡片视图 */
 .view-container {
     display: block;
@@ -657,4 +721,97 @@ body {
     .model-table-wrapper {
         padding: 0 10px 10px 10px;
     }
+}
+
+/* 标签样式 */
+.tag-billing, .tag-endpoint, .tag-small {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.tag-billing {
+    background: #EEF2FF;
+    color: #6366F1;
+}
+
+.tag-endpoint {
+    background: #ECFDF5;
+    color: #10B981;
+    margin-right: 4px;
+}
+
+.tag-small {
+    background: #F3F4F6;
+    color: #6B7280;
+    margin-right: 4px;
+    margin-bottom: 4px;
+}
+
+/* 供应商图标降级显示 */
+.model-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F3F4F6;
+    color: #6B7280;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.model-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.model-logo span {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+/* 表格中的图标 */
+.model-name-cell .icon,
+.supplier-cell .icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #F3F4F6;
+    color: #6B7280;
+    font-weight: 600;
+    font-size: 10px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.model-name-cell .icon img,
+.supplier-cell .icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* 选中行高亮 */
+.selected-row {
+    background-color: #EEF2FF !important;
+}
+
+.selected-row:hover {
+    background-color: #E0E7FF !important;
 }

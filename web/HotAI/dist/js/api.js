@@ -65,7 +65,7 @@ const API = {
         apiRequest(`/token/${id}`, { method: 'DELETE' }),
     
     // ========== 模型相关 ==========
-    getModels: () => apiRequest('/model/'),
+    getModels: () => apiRequest('/models'),
     
     // ========== 渠道管理 ==========
     getChannels: () => apiRequest('/channel/'),
@@ -82,6 +82,9 @@ const API = {
     // ========== 系统状态 ==========
     getStatus: () => apiRequest('/status'),
     
+    // ========== 公告 ==========
+    getNotice: () => apiRequest('/notice'),
+    
     // ========== 充值相关 ==========
     getTopupOptions: () => apiRequest('/topup/'),
     
@@ -94,7 +97,18 @@ const API = {
     // ========== 仪表盘 ==========
     getDashboardStats: () => apiRequest('/dashboard/billing/subscription'),
     
-    getUsageStats: () => apiRequest('/dashboard/billing/usage')
+    getUsageStats: () => apiRequest('/dashboard/billing/usage'),
+    
+    // ========== 聊天功能 ==========
+    sendChatMessage: (messages, model, stream = true) =>
+        apiRequest('/pg/chat/completions', {
+            method: 'POST',
+            body: JSON.stringify({ 
+                model, 
+                messages,
+                stream 
+            })
+        })
 };
 
 // 导出 API（兼容模块和全局）

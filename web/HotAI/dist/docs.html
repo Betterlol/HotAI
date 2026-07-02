@@ -21,30 +21,46 @@
         <a href="index.html" class="nav-logo">
             <img src="picture/logo.png" alt="图灵智算" style="width: 36px; height: 36px; object-fit: contain;">
             图灵智算</a>
-        <div class="nav-links"><a href="index.html">首页</a><a href="console.html">控制台</a><a href="model.html">模型广场</a><a href="docs.html" class="active">文档</a><a href="#">关于</a></div>
+        <div class="nav-links">
+            <a href="index.html" data-i18n="nav.home">首页</a>
+            <a href="console.html" data-i18n="nav.console">控制台</a>
+            <a href="model.html" data-i18n="nav.models">模型广场</a>
+            <a href="docs.html" class="active" data-i18n="nav.docs">文档</a>
+            <a href="#" data-i18n="nav.about">关于</a>
+        </div>
     </div>
     <div class="nav-right">
-        <button class="icon-btn">
+        <!-- 公告按钮 -->
+        <button class="icon-btn" id="noticeBtn" title="公告">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
-        </button>
-        <button class="icon-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-        </button>
-        <button class="icon-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
+            <span class="notice-badge" id="noticeBadge" style="display: none;"></span>
         </button>
         
+        <!-- 翻译/语言切换按钮 -->
+        <div class="language-selector">
+            <button class="icon-btn" id="languageBtn" title="语言">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M2 12h20"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+            </button>
+            <div class="language-dropdown" id="languageDropdown">
+                <div class="language-option" data-lang="zh">
+                    <span data-i18n="lang.zh">中文</span>
+                </div>
+                <div class="language-option" data-lang="en">
+                    <span data-i18n="lang.en">English</span>
+                </div>
+            </div>
+        </div>
+        
         <!-- 未登录时显示登录/注册按钮，已登录时显示用户菜单，由 auth.js 动态控制 -->
-        <a href="login.html" class="btn-login" id="navLoginBtn">登录</a>
-        <a href="register.html" class="btn-signup" id="navSignupBtn">注册</a>
+        <a href="login.html" class="btn-login" id="navLoginBtn" data-i18n="nav.login">登录</a>
+        <a href="register.html" class="btn-signup" id="navSignupBtn" data-i18n="nav.signup">注册</a>
         
         <!-- 用户菜单（已登录时显示） -->
         <div class="user-menu hidden" id="navUserMenu">
@@ -53,13 +69,31 @@
                 <span id="navUsername">User</span>
             </div>
             <div class="user-dropdown" id="navUserDropdown">
-                <a href="profile.html" class="user-dropdown-item">个人设置</a>
+                <a href="profile.html" class="user-dropdown-item" data-i18n="nav.profile">个人设置</a>
                 <div class="user-dropdown-divider"></div>
-                <button id="navLogoutBtn" class="user-dropdown-item">退出登录</button>
+                <button id="navLogoutBtn" class="user-dropdown-item" data-i18n="nav.logout">退出登录</button>
             </div>
         </div>
     </div>
 </header>
+
+<!-- 公告弹窗 -->
+<div class="notice-modal" id="noticeModal" style="display: none;">
+    <div class="notice-overlay" id="noticeOverlay"></div>
+    <div class="notice-card">
+        <div class="notice-header">
+            <h3 data-i18n="notice.title">公告</h3>
+            <button class="notice-close" id="noticeClose">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="notice-content" id="noticeContent">
+            <div class="notice-loading" data-i18n="notice.loading">加载中...</div>
+        </div>
+    </div>
+</div>
 
 <div class="docs-wrapper">
 
@@ -70,42 +104,42 @@
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" placeholder="搜索文档">
-            <span>Ctrl K</span>
+            <input type="text" data-i18n-placeholder="docs.search_placeholder" placeholder="搜索文档">
+            <span data-i18n="docs.search_shortcut">Ctrl K</span>
         </div>
 
-        <div class="menu-section-title">介绍</div>
+        <div class="menu-section-title" data-i18n="docs.section_intro">介绍</div>
         <div class="menu-list">
-            <a href="docs/quickstart.md" class="menu-item">快速开始</a>
-            <a href="docs/intro.md" class="menu-item">项目介绍</a>
-            <a href="docs/features.md" class="menu-item">特性说明</a>
-            <a href="docs/architecture.md" class="menu-item">技术架构</a>
-            <a href="docs/analytics.md" class="menu-item">分析工具设置指南</a>
-            <a href="docs/performance.md" class="menu-item">性能分析设置指南</a>
-            <a href="docs/changelog.md" class="menu-item">更新日志</a>
+            <a href="docs/quickstart.md" class="menu-item" data-i18n="docs.menu_quickstart">快速开始</a>
+            <a href="docs/intro.md" class="menu-item" data-i18n="docs.menu_intro">项目介绍</a>
+            <a href="docs/features.md" class="menu-item" data-i18n="docs.menu_features">特性说明</a>
+            <a href="docs/architecture.md" class="menu-item" data-i18n="docs.menu_architecture">技术架构</a>
+            <a href="docs/analytics.md" class="menu-item" data-i18n="docs.menu_analytics">分析工具设置指南</a>
+            <a href="docs/performance.md" class="menu-item" data-i18n="docs.menu_performance">性能分析设置指南</a>
+            <a href="docs/changelog.md" class="menu-item" data-i18n="docs.menu_changelog">更新日志</a>
         </div>
 
-        <div class="menu-section-title">功能指南</div>
+        <div class="menu-section-title" data-i18n="docs.section_guides">功能指南</div>
         <div class="menu-list">
-            <a href="docs/guide-overview.md" class="menu-item">功能指南概述</a>
-            <a href="docs/user-guide.md" class="menu-item">用户指南</a>
-            <a href="docs/admin-guide.md" class="menu-item">管理员指南</a>
+            <a href="docs/guide-overview.md" class="menu-item" data-i18n="docs.menu_guide_overview">功能指南概述</a>
+            <a href="docs/user-guide.md" class="menu-item" data-i18n="docs.menu_user_guide">用户指南</a>
+            <a href="docs/admin-guide.md" class="menu-item" data-i18n="docs.menu_admin_guide">管理员指南</a>
         </div>
 
         <div class="sidebar-bottom">
-            <button class="bottom-icon-btn" title="帮助">
+            <button class="bottom-icon-btn" data-i18n-title="docs.btn_help" title="帮助">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="12" y1="16" x2="12" y2="12"></line>
                     <line x1="12" y1="8" x2="12.01" y2="8"></line>
                 </svg>
             </button>
-            <button class="bottom-icon-btn" title="主题切换">
+            <button class="bottom-icon-btn" data-i18n-title="docs.btn_theme" title="主题切换">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
                 </svg>
             </button>
-            <button class="bottom-icon-btn" title="GitHub">
+            <button class="bottom-icon-btn" data-i18n-title="docs.btn_github" title="GitHub">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
                 </svg>
@@ -118,7 +152,7 @@
         <!-- Markdown 渲染容器 -->
         <div id="md-content">
             <div style="text-align: center; padding: 60px 20px; color: var(--c-text-secondary);">
-                <p>正在加载文档...</p>
+                <p data-i18n="docs.loading">正在加载文档...</p>
             </div>
         </div>
     </main>
@@ -131,7 +165,7 @@
                 <line x1="3" y1="12" x2="21" y2="12"></line>
                 <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
-            目录
+            <span data-i18n="docs.toc_title">目录</span>
         </div>
         <ul id="toc-list" class="toc-list">
             <!-- 将由 JavaScript 动态生成 -->
@@ -141,6 +175,7 @@
 </div>
 
 <!-- 引入 JavaScript -->
+<script src="js/i18n.js"></script>
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/docs.js"></script>
