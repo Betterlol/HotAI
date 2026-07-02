@@ -276,8 +276,8 @@ function initLanguageSelector() {
 // 页面加载时自动检查认证状态（排除登录/注册页）
 document.addEventListener('DOMContentLoaded', async () => {
     const currentPage = window.location.pathname;
-    const publicPages = ['/', '/index.html', '/model.html', '/login.html', '/register.html', '/reset.html', '/console.html', '/docs.html', '/profile.html'];
-    const protectedPages = [];
+    const publicPages = ['/', '/index.html', '/model.html', '/login.html', '/register.html', '/reset.html', '/docs.html'];
+    const protectedPages = ['/console.html', '/profile.html'];
     
     // 初始化导航栏用户菜单
     initNavbarUserMenu();
