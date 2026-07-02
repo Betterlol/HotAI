@@ -17,45 +17,82 @@
         <a href="index.html" class="nav-logo">
             <img src="picture/logo.png" alt="图灵智算" style="width: 36px; height: 36px; object-fit: contain;">
             图灵智算</a>
-        <div class="nav-links"><a href="index.html" class="active">首页</a><a href="console.html">控制台</a><a href="model.html">模型广场</a><a href="docs.html">文档</a><a href="#">关于</a></div>
+        <div class="nav-links">
+            <a href="index.html" class="active" data-i18n="nav.home">首页</a>
+            <a href="console.html" data-i18n="nav.console">控制台</a>
+            <a href="model.html" data-i18n="nav.models">模型广场</a>
+            <a href="docs.html" data-i18n="nav.docs">文档</a>
+            <a href="#" data-i18n="nav.about">关于</a>
+        </div>
     </div>
     <div class="nav-right">
-        <button class="icon-btn">
+        <!-- 公告按钮 -->
+        <button class="icon-btn" id="noticeBtn" title="公告">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
-        </button>
-        <button class="icon-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-        </button>
-        <button class="icon-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
+            <span class="notice-badge" id="noticeBadge" style="display: none;"></span>
         </button>
         
+        <!-- 翻译/语言切换按钮 -->
+        <div class="language-selector">
+            <button class="icon-btn" id="languageBtn" title="语言">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M2 12h20"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+            </button>
+            <div class="language-dropdown" id="languageDropdown">
+                <div class="language-option" data-lang="zh">
+                    <span data-i18n="lang.zh">中文</span>
+                </div>
+                <div class="language-option" data-lang="en">
+                    <span data-i18n="lang.en">English</span>
+                </div>
+            </div>
+        </div>
+        
         <!-- 未登录时显示登录/注册按钮，已登录时显示用户菜单，由 auth.js 动态控制 -->
-        <a href="login.html" class="btn-login" id="navLoginBtn">登录</a>
-        <a href="register.html" class="btn-signup" id="navSignupBtn">注册</a>
+        <a href="login.html" class="btn-login" id="navLoginBtn" data-i18n="nav.login">登录</a>
+        <a href="register.html" class="btn-signup" id="navSignupBtn" data-i18n="nav.signup">注册</a>
         
         <!-- 用户菜单（已登录时显示） -->
         <div class="user-menu hidden" id="navUserMenu">
             <div class="user-trigger">
                 <div class="user-avatar-top" id="navUserAvatar">U</div>
-                <span id="navUsername">User</span>
+                <div class="user-info">
+                    <span id="navUsername">User</span>
+                    <span class="user-balance" id="navUserBalance">加载中...</span>
+                </div>
             </div>
             <div class="user-dropdown" id="navUserDropdown">
-                <a href="profile.html" class="user-dropdown-item">个人设置</a>
+                <a href="profile.html" class="user-dropdown-item" data-i18n="nav.profile">个人设置</a>
                 <div class="user-dropdown-divider"></div>
-                <button id="navLogoutBtn" class="user-dropdown-item">退出登录</button>
+                <button id="navLogoutBtn" class="user-dropdown-item" data-i18n="nav.logout">退出登录</button>
             </div>
         </div>
     </div>
 </header>
+
+<!-- 公告弹窗 -->
+<div class="notice-modal" id="noticeModal" style="display: none;">
+    <div class="notice-overlay" id="noticeOverlay"></div>
+    <div class="notice-card">
+        <div class="notice-header">
+            <h3 data-i18n="notice.title">公告</h3>
+            <button class="notice-close" id="noticeClose">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="notice-content" id="noticeContent">
+            <div class="notice-loading" data-i18n="notice.loading">加载中...</div>
+        </div>
+    </div>
+</div>
 
 <!-- 首页内容容器 -->
 <div class="index-wrapper">
@@ -63,21 +100,19 @@
 <aside class="sidebar">
     <!-- 1. 顶部：功能拓展区域 -->
     <div class="sidebar-top">
-        <div class="section-label">功能拓展</div>
-        <button class="sidebar-btn">
+        <div class="section-label" data-i18n="sidebar.extensions">功能拓展</div>
+        <button class="sidebar-btn" id="modelManagementBtn">
             <span style="display:inline-block; width:6px; height:6px; background:currentColor; border-radius:50%; margin-right:10px;"></span>
-            模型管理
+            <span data-i18n="sidebar.model_management">模型管理</span>
         </button>
     </div>
 
     <!-- 2. 中间：历史对话与占位符 -->
     <div class="sidebar-middle">
-        <div class="section-label">历史记录</div>
-        <!-- TO DO: 对话记录通过用户加载 -->
-        <button class="sidebar-btn">如何优化 API 调用？</button>
-        <button class="sidebar-btn">Claude 3.5 性能对比</button>
-        <button class="sidebar-btn">DeepSeek 模型接入</button>
-        <div class="placeholder-text">暂无更多对话记录</div>
+        <div class="section-label" data-i18n="sidebar.history">历史记录</div>
+        <!-- 历史记录将通过 JavaScript 动态加载 -->
+        <div id="historyList"></div>
+        <div class="placeholder-text" id="historyPlaceholder" data-i18n="sidebar.no_history">暂无对话记录</div>
     </div>
 
 </aside>
@@ -86,47 +121,51 @@
 <main class="main-content">
     <h1 class="brand-logo">Turing Intelligent Computing</h1>
 
+    <!-- 聊天对话区域 -->
+    <div id="chatArea" class="chat-area" style="display: none;"></div>
+
     <!-- 聊天输入框 -->
     <div class="input-container">
-        <input type="text" placeholder="输入您的问题..." id="chatInput">
+        <input type="text" data-i18n-placeholder="main.input_placeholder" placeholder="输入您的问题..." id="chatInput">
 
         <!-- 模型选择器 -->
         <button class="model-selector" id="modelSelector">
-            <span id="selectedModelText">加载中...</span>
+            <span id="selectedModelText" data-i18n="main.loading">加载中...</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                 <path d="M6 9l6 6 6-6"/>
             </svg>
             <div class="dropdown-menu" id="modelDropdown">
+                <!-- 搜索框（常驻在下拉菜单顶部） -->
+                <div class="model-search-box">
+                    <input type="text" class="model-search-input" id="modelSearchInput" data-i18n-placeholder="main.search_model" placeholder="搜索模型...">
+                </div>
                 <!-- 模型列表将通过 API 动态加载 -->
+                <div id="modelList"></div>
             </div>
         </button>
 
         <!-- 发送按钮 -->
-        <button class="send-btn">
+        <button class="send-btn" id="sendBtn">
             <svg viewBox="0 0 24 24">
                 <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
             </svg>
         </button>
     </div>
 
-    <p class="subtitle">国内外 AI api 智能聚合平台，众多合作模型供您选择</p>
+    <p class="subtitle" data-i18n="main.subtitle">国内外 AI api 智能聚合平台，众多合作模型供您选择</p>
 
     <!-- 合作平台图标 -->
-    <div class="platform-area">
-        <div class="platform-icon" title="Claude">Cl</div>
-        <div class="platform-icon" title="ChatGPT">Ch</div>
-        <div class="platform-icon" title="Gemini">Ge</div>
-        <div class="platform-icon" title="DeepSeek">De</div>
-        <div class="platform-icon" title="OpenAI">Op</div>
-        <div class="platform-icon" title="Azure">Az</div>
-        <div class="platform-icon" title="更多">+</div>
+    <div class="platform-area" id="platformArea">
+        <!-- 动态加载供应商图标 -->
     </div>
 </main>
 </div>
 
 <!-- 引入 JavaScript -->
+<script src="js/i18n.js"></script>
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/providers.js"></script>
 <script src="js/index.js"></script>
 </body>
 </html>

@@ -91,12 +91,61 @@ function initNavbarUserMenu() {
             navSignupBtn.classList.add('hidden');
             navUserMenu.classList.remove('hidden');
             
-            // 获取用户信息并更新显示
-            const user = Auth.getCurrentUser();
-            if (user && user.username) {
-                if (navUsername) navUsername.textContent = user.username;
-                if (navUserAvatar) navUserAvatar.textContent = user.username.charAt(0).toUpperCase();
-            }
+            // 获取用户信息并更新显示（包括余额）
+            API.getUserInfo().then(result => {
+                if (result.success && result.data) {
+                    const user = result.data;
+                    
+                    // 更新用户名和头像
+                    if (user.username) {
+                        if (navUsername) navUsername.textContent = user.username;
+                        if (navUserAvatar) navUserAvatar.textContent = user.username.charAt(0).toUpperCase();
+                    }
+                    
+                    // 更新余额显示
+                    const navUserBalance = document.getElementById('navUserBalance');
+                    if (navUserBalance && typeof user.quota === 'number') {
+                        // quota单位是分，转换为元
+                        const balanceYuan = (user.quota / 100).toFixed(2);
+                        navUserBalance.textContent = `余额 ¥${balanceYuan}`;
+                    }
+                    
+                    // 保存用户信息到本地存储
+                    localStorage.setItem('user', JSON.stringify(user));
+                } else {
+                    // API返回失败，使用缓存的用户信息
+                    const user = Auth.getCurrentUser();
+                    if (user && user.username) {
+                        if (navUsername) navUsername.textContent = user.username;
+                        if (navUserAvatar) navUserAvatar.textContent = user.username.charAt(0).toUpperCase();
+                        
+                        // 显示缓存的余额
+                        const navUserBalance = document.getElementById('navUserBalance');
+                        if (navUserBalance && typeof user.quota === 'number') {
+                            const balanceYuan = (user.quota / 100).toFixed(2);
+                            navUserBalance.textContent = `余额 ¥${balanceYuan}`;
+                        }
+                    }
+                }
+            }).catch(error => {
+                console.error('获取用户信息失败:', error);
+                // 出错时使用缓存信息
+                const user = Auth.getCurrentUser();
+                if (user && user.username) {
+                    if (navUsername) navUsername.textContent = user.username;
+                    if (navUserAvatar) navUserAvatar.textContent = user.username.charAt(0).toUpperCase();
+                    
+                    const navUserBalance = document.getElementById('navUserBalance');
+                    if (navUserBalance) {
+                        if (typeof user.quota === 'number') {
+                            const balanceYuan = (user.quota / 100).toFixed(2);
+                            navUserBalance.textContent = `余额 ¥${balanceYuan}`;
+                        } else {
+                            navUserBalance.textContent = '余额加载失败';
+                        }
+                    }
+                }
+            });
         } else {
             // 未登录：显示登录/注册按钮，隐藏用户菜单
             navLoginBtn.classList.remove('hidden');
@@ -147,6 +196,83 @@ function initNavbarUserMenu() {
     }
 }
 
+// ========== 公告功能（所有页面共享） ==========
+function initNoticeFeature() {
+    const noticeBtn = document.getElementById('noticeBtn');
+    const noticeModal = document.getElementById('noticeModal');
+    const noticeOverlay = document.getElementById('noticeOverlay');
+    const noticeClose = document.getElementById('noticeClose');
+    const noticeContent = document.getElementById('noticeContent');
+    
+    if (!noticeBtn || !noticeModal) return;
+    
+    // 打开公告弹窗
+    noticeBtn.addEventListener('click', async () => {
+        noticeModal.style.display = 'flex';
+        noticeContent.innerHTML = `<div class="notice-loading">${I18n.t('notice.loading')}</div>`;
+        
+        try {
+            const result = await API.getNotice();
+            if (result.success && result.data) {
+                // 渲染公告内容
+                noticeContent.innerHTML = result.data || `<div class="notice-empty">${I18n.t('notice.no_notice')}</div>`;
+            } else {
+                noticeContent.innerHTML = `<div class="notice-empty">${I18n.t('notice.no_notice')}</div>`;
+            }
+        } catch (error) {
+            console.error('获取公告失败:', error);
+            noticeContent.innerHTML = `<div class="notice-empty">${I18n.t('notice.load_failed')}</div>`;
+        }
+    });
+    
+    // 关闭公告弹窗
+    const closeNotice = () => {
+        noticeModal.style.display = 'none';
+    };
+    
+    if (noticeClose) noticeClose.addEventListener('click', closeNotice);
+    if (noticeOverlay) noticeOverlay.addEventListener('click', closeNotice);
+}
+
+// ========== 语言切换功能（所有页面共享） ==========
+function initLanguageSelector() {
+    const languageBtn = document.getElementById('languageBtn');
+    const languageDropdown = document.getElementById('languageDropdown');
+    
+    if (!languageBtn || !languageDropdown) return;
+    
+    // 点击语言按钮切换下拉菜单
+    languageBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        languageDropdown.classList.toggle('show');
+        
+        // 高亮当前语言
+        const currentLang = I18n.getCurrentLang();
+        document.querySelectorAll('.language-option').forEach(option => {
+            if (option.getAttribute('data-lang') === currentLang) {
+                option.classList.add('active');
+            } else {
+                option.classList.remove('active');
+            }
+        });
+    });
+    
+    // 点击语言选项切换语言
+    document.querySelectorAll('.language-option').forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const lang = option.getAttribute('data-lang');
+            I18n.switchLanguage(lang);
+            languageDropdown.classList.remove('show');
+        });
+    });
+    
+    // 点击其他地方关闭下拉菜单
+    document.addEventListener('click', () => {
+        languageDropdown.classList.remove('show');
+    });
+}
+
 // 页面加载时自动检查认证状态（排除登录/注册页）
 document.addEventListener('DOMContentLoaded', async () => {
     const currentPage = window.location.pathname;
@@ -155,6 +281,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // 初始化导航栏用户菜单
     initNavbarUserMenu();
+    
+    // 初始化公告功能（所有页面共享）
+    initNoticeFeature();
+    
+    // 初始化语言切换功能（所有页面共享）
+    initLanguageSelector();
     
     // 如果是公开页面，不需要验证
     const isPublicPage = publicPages.some(page => currentPage.endsWith(page));
