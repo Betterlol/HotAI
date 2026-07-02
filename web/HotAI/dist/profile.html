@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="picture/favicon.ico" />
+    <link rel="icon" type="image/png" href="picture/logo.png" />
+    <title>用户中心</title>
+    <link rel="stylesheet" href="css/head.css">
+    <link rel="stylesheet" href="css/profile.css">
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<header class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo">
+            <img src="picture/logo.png" alt="图灵智算" style="width: 36px; height: 36px; object-fit: contain;">
+            图灵智算
+        </a>
+        <div class="nav-links">
+            <a href="index.html">首页</a>
+            <a href="console.html">控制台</a>
+            <a href="model.html">模型广场</a>
+            <a href="docs.html">文档</a>
+            <a href="#">关于</a>
+        </div>
+    </div>
+    <div class="nav-right">
+        <button class="icon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+        <button class="icon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
+        <button class="icon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></button>
+        
+        <!-- 未登录时显示登录/注册按钮，已登录时显示用户菜单，由 auth.js 动态控制 -->
+        <a href="login.html" class="btn-login" id="navLoginBtn">登录</a>
+        <a href="register.html" class="btn-signup" id="navSignupBtn">注册</a>
+        
+        <!-- 用户菜单（已登录时显示） -->
+        <div class="user-menu hidden" id="navUserMenu">
+            <div class="user-trigger">
+                <div class="user-avatar-top" id="navUserAvatar">U</div>
+                <span id="navUsername">User</span>
+            </div>
+            <div class="user-dropdown" id="navUserDropdown">
+                <a href="profile.html" class="user-dropdown-item">个人设置</a>
+                <div class="user-dropdown-divider"></div>
+                <button id="navLogoutBtn" class="user-dropdown-item">退出登录</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- 主体双栏 -->
+<div class="profile-wrapper">
+
+    <!-- 左侧：功能菜单 -->
+    <aside class="profile-sidebar-left">
+        <div class="profile-menu-title">个人中心</div>
+        <div class="profile-menu-list">
+            <button class="profile-menu-item active" data-target="profile">个人资料</button>
+            <button class="profile-menu-item" data-target="security">账号安全</button>
+            <button class="profile-menu-item" data-target="bindings">登录方式</button>
+            <button class="profile-menu-item" data-target="preferences">偏好设置</button>
+        </div>
+
+        <div class="profile-menu-title" style="margin-top: 24px;">安全设置</div>
+        <div class="profile-menu-list">
+            <button class="profile-menu-item" data-target="password">修改密码</button>
+            <button class="profile-menu-item" data-target="twofa">双重验证</button>
+        </div>
+    </aside>
+
+    <!-- 右侧：主体内容 -->
+    <main class="profile-content">
+
+        <!-- 面板1: 个人资料 -->
+        <div id="panel-profile" class="content-panel active">
+            <div>
+                <h1 class="content-title">个人资料</h1>
+                <div class="content-desc">维护公开展示信息，并保持头像与昵称风格一致。</div>
+            </div>
+
+            <!-- 用户概览卡片 -->
+            <div class="overview-card">
+                <div class="overview-left">
+                    <div class="avatar-large" id="avatarLarge">U</div>
+                    <div class="overview-info">
+                        <h2>
+                            <span id="usernameDisplay">加载中...</span>
+                            <span class="tag-status">启用</span>
+                        </h2>
+                        <p id="emailDisplay">加载中...</p>
+                    </div>
+                </div>
+                <div class="overview-right">
+                    <div class="overview-stat">
+                        <span class="label">账户余额</span>
+                        <span class="val" id="balanceDisplay">$0.00</span>
+                    </div>
+                    <div class="overview-stat">
+                        <span class="label">请求次数</span>
+                        <span class="val" id="quotaDisplay">0</span>
+                    </div>
+                    <div class="overview-stat">
+                        <span class="label">注册时间</span>
+                        <span class="val" id="registerDateDisplay">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 资料与头像编辑卡片 -->
+            <div class="card-title">资料与头像</div>
+            <div class="edit-group" style="background: #fafbfc; padding: 24px; border-radius: var(--radius-card);">
+                <div class="edit-left">
+                    <div class="avatar-medium" id="avatarMedium">U</div>
+                    <div class="avatar-tip">上传图片时会自动压缩静态图片到 20KB 以内，GIF 需自行控制在 20KB 以内</div>
+                    <div class="avatar-btns">
+                        <button class="btn-outline" id="uploadAvatarBtn">上传图片</button>
+                        <button class="btn-primary" id="saveAvatarBtn">保存</button>
+                        <button class="btn-outline" id="deleteAvatarBtn">删除</button>
+                    </div>
+                    <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
+                </div>
+                <div class="edit-right">
+                    <div class="form-row">
+                        <label>用户名</label>
+                        <input class="form-input" type="text" id="usernameInput" placeholder="请输入用户名">
+                    </div>
+                    <div class="action-right">
+                        <button class="btn-primary" id="updateProfileBtn" style="padding: 8px 24px;">更新资料</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 面板2: 账号安全 -->
+        <div id="panel-security" class="content-panel">
+            <div>
+                <h1 class="content-title">账号安全</h1>
+                <div class="content-desc">管理您的账号安全设置，保护账户安全。</div>
+            </div>
+            <div class="placeholder-box">
+                <p>该功能正在开发中...</p>
+            </div>
+        </div>
+
+        <!-- 面板3: 登录方式 -->
+        <div id="panel-bindings" class="content-panel">
+            <div>
+                <h1 class="content-title">登录方式绑定</h1>
+                <div class="content-desc">查看当前绑定状态，并将更多第三方登录方式关联到这个账号。</div>
+            </div>
+            
+            <div class="bind-list">
+                <div class="bind-item">
+                    <div class="bind-left">
+                        <div class="bind-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="4"></rect><path d="M22 6l-10 7L2 6"></path></svg>
+                        </div>
+                        <div class="bind-info">
+                            <h4>邮箱 <span class="tag-bind">已绑定</span></h4>
+                            <p id="emailBindDisplay">加载中...</p>
+                            <div class="sub">主邮箱在资料表单中管理</div>
+                        </div>
+                    </div>
+                    <button class="btn-outline" id="manageEmailBtn">管理邮箱</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 面板4: 偏好设置 -->
+        <div id="panel-preferences" class="content-panel">
+            <div>
+                <h1 class="content-title">偏好设置</h1>
+                <div class="content-desc">自定义您的使用体验。</div>
+            </div>
+            <div class="placeholder-box">
+                <p>该功能正在开发中...</p>
+            </div>
+        </div>
+
+        <!-- 面板5: 修改密码 -->
+        <div id="panel-password" class="content-panel">
+            <div>
+                <h1 class="content-title">修改密码</h1>
+                <div class="content-desc">定期更新密码以保护账户安全。</div>
+            </div>
+            
+            <div class="password-form">
+                <div class="form-row">
+                    <label>当前密码</label>
+                    <input class="form-input" type="password" id="currentPassword" placeholder="请输入当前密码">
+                </div>
+                <div class="form-row">
+                    <label>新密码</label>
+                    <input class="form-input" type="password" id="newPassword" placeholder="请输入新密码">
+                    <div class="hint-text">密码至少需要 8 个字符</div>
+                </div>
+                <div class="form-row">
+                    <label>确认新密码</label>
+                    <input class="form-input" type="password" id="confirmPassword" placeholder="请再次输入新密码">
+                </div>
+                <div class="btn-submit-right">
+                    <button class="btn-commit" id="changePasswordBtn">修改密码</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 面板6: 双重验证 -->
+        <div id="panel-twofa" class="content-panel">
+            <div>
+                <h1 class="content-title">双重验证</h1>
+                <div class="content-desc">启用双重验证以增强账户安全性。</div>
+            </div>
+            <div class="placeholder-box">
+                <p>该功能正在开发中...</p>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- 引入 JavaScript -->
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/profile.js"></script>
+</body>
+</html>
