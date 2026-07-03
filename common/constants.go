@@ -114,6 +114,26 @@ var MemoryCacheEnabled bool
 
 var LogConsumeEnabled = true
 
+const (
+	LogFormatText = "text"
+	LogFormatJSON = "json"
+)
+
+var LogFormat = LogFormatText
+
+func SetLogFormat(format string) {
+	switch strings.ToLower(strings.TrimSpace(format)) {
+	case LogFormatJSON:
+		LogFormat = LogFormatJSON
+	default:
+		LogFormat = LogFormatText
+	}
+}
+
+func IsJSONLogFormat() bool {
+	return LogFormat == LogFormatJSON
+}
+
 var TLSInsecureSkipVerify bool
 var InsecureTLSConfig = &tls.Config{InsecureSkipVerify: true}
 

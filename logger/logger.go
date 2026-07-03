@@ -24,6 +24,13 @@ const (
 	loggerDebug = "DEBUG"
 )
 
+type structuredLogEntry struct {
+	Level     string `json:"level"`
+	Time      string `json:"time"`
+	RequestID string `json:"request_id"`
+	Msg       string `json:"msg"`
+}
+
 const maxLogCount = 1000000
 
 var logCount int
@@ -95,10 +102,10 @@ func LogDebug(ctx context.Context, msg string, args ...any) {
 }
 
 func logHelper(ctx context.Context, level string, msg string) {
-	var id any = "SYSTEM"
+	id := "SYSTEM"
 	if ctx != nil {
 		if requestID := ctx.Value(common.RequestIdKey); requestID != nil {
-			id = requestID
+			id = fmt.Sprint(requestID)
 		}
 	}
 	now := time.Now()
@@ -107,7 +114,21 @@ func logHelper(ctx context.Context, level string, msg string) {
 	if level == loggerINFO {
 		writer = gin.DefaultWriter
 	}
-	_, _ = fmt.Fprintf(writer, "[%s] %v | %s | %s \n", level, now.Format("2006/01/02 - 15:04:05"), id, msg)
+	if common.IsJSONLogFormat() {
+		entry := structuredLogEntry{
+			Level:     level,
+			Time:      now.Format(time.RFC3339Nano),
+			RequestID: id,
+			Msg:       msg,
+		}
+		if data, err := common.Marshal(entry); err == nil {
+			_, _ = fmt.Fprintf(writer, "%s\n", data)
+		} else {
+			_, _ = fmt.Fprintf(writer, "[%s] %v | %s | %s \n", level, now.Format("2006/01/02 - 15:04:05"), id, msg)
+		}
+	} else {
+		_, _ = fmt.Fprintf(writer, "[%s] %v | %s | %s \n", level, now.Format("2006/01/02 - 15:04:05"), id, msg)
+	}
 	common.LogWriterMu.RUnlock()
 	logCount++ // we don't need accurate count, so no lock here
 	if logCount > maxLogCount && !setupLogWorking {

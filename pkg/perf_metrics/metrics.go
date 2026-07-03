@@ -10,6 +10,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	prometheusmetrics "github.com/QuantumNous/new-api/pkg/prometheus_metrics"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/setting/perf_metrics_setting"
 )
@@ -28,6 +29,7 @@ func RecordRelaySample(info *relaycommon.RelayInfo, success bool, outputTokens i
 	if info == nil {
 		return
 	}
+	prometheusmetrics.RecordRelaySample(info, success, outputTokens)
 	now := time.Now()
 	hasTtft := info.IsStream && info.HasSendResponse()
 	ttftMs := int64(0)
