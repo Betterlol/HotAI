@@ -339,7 +339,7 @@ const I18n = {
             
             // === Register page ===
             'register.title': 'Register',
-            'register.desc': 'Join HotAI, start your AI development journey',
+            'register.desc': 'Join TuringCL, start your AI development journey',
             'register.username': 'Username',
             'register.username_placeholder': 'Enter your username',
             'register.password': 'Password',
@@ -378,6 +378,7 @@ const I18n = {
             'docs.section_guides': 'Guides',
             'docs.menu_quickstart': 'Quick Start',
             'docs.menu_intro': 'Introduction',
+            'docs.menu_model_info': 'Model Information',
             'docs.menu_features': 'Features',
             'docs.menu_architecture': 'Architecture',
             'docs.menu_analytics': 'Analytics Setup',

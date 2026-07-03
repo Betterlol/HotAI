@@ -227,6 +227,25 @@
     </main>
 </div>
 
+<!-- 模型详情抽屉 -->
+<div class="model-drawer-overlay" id="modelDrawerOverlay" style="display: none;"></div>
+<div class="model-drawer" id="modelDrawer" style="display: none;">
+    <div class="drawer-header">
+        <div class="drawer-title" id="drawerTitle">
+            <div class="drawer-model-icon" id="drawerModelIcon"></div>
+            <div class="drawer-model-name" id="drawerModelName">模型名称</div>
+        </div>
+        <button class="drawer-close-btn" id="drawerCloseBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+    <div class="drawer-content" id="drawerContent">
+        <!-- 内容将由 JS 动态填充 -->
+    </div>
+</div>
+
 <!-- 引入 JavaScript -->
 <script src="js/i18n.js"></script>
 <script src="js/api.js"></script>

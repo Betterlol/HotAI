@@ -44,6 +44,7 @@ let AIProviders = {
         'Wenxin': 'https://yiyan.baidu.com',
         'Minimax': 'https://minimaxi.com',
         'iFlytek': 'https://xinghuo.xfyun.cn',
+        '讯飞': 'https://xinghuo.xfyun.cn',
         'Tencent': 'https://cloud.tencent.com/product/hunyuan',
         'Alibaba': 'https://tongyi.aliyun.com',
         'Baidu': 'https://yiyan.baidu.com',
@@ -155,8 +156,8 @@ let AIProviders = {
     getProviderIconUrl(iconName) {
         if (!iconName) return '';
         
-        // 转换为小写并处理空格
-        const normalized = iconName.toLowerCase().replace(/\s+/g, '-');
+        // 转换为小写并处理空格和点号
+        const normalized = iconName.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '-');
         return `${this._iconCdnBase}/${normalized}.svg`;
     },
     

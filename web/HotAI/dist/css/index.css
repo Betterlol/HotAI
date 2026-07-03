@@ -285,14 +285,30 @@ body {
 }
 .model-selector:focus-within .dropdown-menu,
 .model-selector:hover .dropdown-menu { display: block; }
-.dropdown-menu div {
-    padding: 6px 14px;
+
+/* 模型列表项样式 */
+.model-list-item {
+    padding: 10px 16px;
     font-weight: normal;
     font-size: 13px;
     color: var(--c-text-secondary);
     cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    margin: 2px 8px;
 }
-.dropdown-menu div:hover { background: var(--c-primary-light); color: var(--c-primary); }
+
+.model-list-item:hover {
+    background: var(--c-gray-hover);
+}
+
+/* 选中状态样式 */
+.model-list-item.selected {
+    background: var(--c-primary-light);
+    color: var(--c-primary);
+    font-weight: 500;
+    border-radius: 999px;
+}
 
 .send-btn {
     background: var(--c-primary);

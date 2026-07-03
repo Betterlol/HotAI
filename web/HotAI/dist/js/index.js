@@ -87,10 +87,10 @@ async function renderPlatformProviders() {
 // 加载可用模型列表
 async function loadModels() {
     try {
-        const result = await API.getModels();
-        if (result.success && result.data) {
-            const models = Array.isArray(result.data) ? result.data : [];
-            allModels = models; // 保存到全局变量用于搜索
+        // 优先使用 AIProviders 数据（无需登录）
+        const success = await AIProviders.load();
+        if (success) {
+            const models = AIProviders.getModels();
             
             if (models.length === 0) {
                 document.getElementById('selectedModelText').textContent = I18n.t('main.no_models');
@@ -98,17 +98,45 @@ async function loadModels() {
                 return;
             }
             
+            // 转换为统一格式：使用 model_name 作为 id
+            const formattedModels = models.map(model => ({
+                id: model.model_name,
+                name: model.model_name,
+                vendor_id: model.vendor_id
+            }));
+            
+            allModels = formattedModels; // 保存到全局变量用于搜索
+            
             // 渲染模型列表
-            renderModelList(models);
+            renderModelList(formattedModels);
             
             // 默认选择第一个模型
-            if (models.length > 0) {
-                const firstModel = models[0].id || models[0].name || models[0];
-                selectModel(firstModel);
+            if (formattedModels.length > 0) {
+                selectModel(formattedModels[0].id);
             }
         } else {
-            document.getElementById('selectedModelText').textContent = I18n.t('main.load_failed');
-            console.error('Failed to load models:', result);
+            // 降级：尝试调用需要登录的 API
+            const result = await API.getModels();
+            if (result.success && result.data) {
+                const models = Array.isArray(result.data) ? result.data : [];
+                allModels = models;
+                
+                if (models.length === 0) {
+                    document.getElementById('selectedModelText').textContent = I18n.t('main.no_models');
+                    document.getElementById('modelList').innerHTML = `<div style="padding: 8px; color: #999;" data-i18n="main.no_models">${I18n.t('main.no_models')}</div>`;
+                    return;
+                }
+                
+                renderModelList(models);
+                
+                if (models.length > 0) {
+                    const firstModel = models[0].id || models[0].name || models[0];
+                    selectModel(firstModel);
+                }
+            } else {
+                document.getElementById('selectedModelText').textContent = I18n.t('main.load_failed');
+                console.error('Failed to load models:', result);
+            }
         }
     } catch (error) {
         console.error('Error loading models:', error);
@@ -129,10 +157,8 @@ function renderModelList(models) {
         const div = document.createElement('div');
         div.className = 'model-list-item';
         div.setAttribute('data-model', modelId);
-        div.style.cursor = 'pointer';
-        div.style.padding = '10px 16px';
-        div.style.fontWeight = 'normal';
-        div.style.color = 'var(--c-text-secondary)';
+        
+        // 使用 flex 布局
         div.style.display = 'flex';
         div.style.alignItems = 'center';
         div.style.gap = '8px';
@@ -179,16 +205,6 @@ function renderModelList(models) {
             document.getElementById('modelDropdown').style.display = 'none';
         });
         
-        div.addEventListener('mouseenter', () => {
-            div.style.background = 'var(--c-primary-light)';
-            div.style.color = 'var(--c-primary)';
-        });
-        
-        div.addEventListener('mouseleave', () => {
-            div.style.background = '';
-            div.style.color = 'var(--c-text-secondary)';
-        });
-        
         modelList.appendChild(div);
     });
 }
@@ -197,6 +213,23 @@ function renderModelList(models) {
 function selectModel(modelId) {
     selectedModel = modelId;
     document.getElementById('selectedModelText').textContent = modelId;
+    
+    // 更新选中状态的视觉效果 - 使用 CSS 类
+    const modelList = document.getElementById('modelList');
+    if (modelList) {
+        const allItems = modelList.querySelectorAll('.model-list-item');
+        allItems.forEach(item => {
+            const itemModelId = item.getAttribute('data-model');
+            if (itemModelId === modelId) {
+                // 添加选中类
+                item.classList.add('selected');
+            } else {
+                // 移除选中类
+                item.classList.remove('selected');
+            }
+        });
+    }
+    
     console.log('已选择模型:', modelId);
 }
 
