@@ -29,6 +29,8 @@ plans
 electron/node_modules
 electron/dist
 data/
+postgres-data/
+redis-data/
 .gomodcache/
 .gocache-temp
 .gopath

@@ -250,7 +250,7 @@ def parse_args():
         help="@用户 的显示语言：0 为默认名称，1 为英文名称。",
     )
     server_parser.add_argument("--host", default="localhost", help="本地服务监听地址。")
-    server_parser.add_argument("--port", type=int, default=3001, help="本地服务端口。")
+    server_parser.add_argument("--port", type=int, default=9000, help="本地服务端口。")
     server_parser.add_argument("--debug", action="store_true", help="启用 Flask debug 模式。")
     server_parser.add_argument(
         "--open-browser",
