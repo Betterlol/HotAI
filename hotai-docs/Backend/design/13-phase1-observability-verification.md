@@ -2,11 +2,12 @@
 
 ## 1. 验证目标
 
-验证 Phase 1.1～Phase 1.3 已落地的后端可观测性基础能力：
+验证 Phase 1.1～Phase 1.4 已落地的后端可观测性基础能力：
 
 - 健康检查端点：`GET /api/health`
 - Prometheus 指标端点：`GET /api/metrics`
 - JSON 结构化日志：`LOG_FORMAT=json` 或后台 `LogFormat=json`
+- 延迟百分位追踪：`P50/P90/P95/P99`
 
 ## 2. 本地自动化测试
 
@@ -18,11 +19,13 @@
 | Metrics 端点 | `controller/observability_test.go` | 返回 Prometheus 文本，包含 `hotai_active_connections` |
 | 业务 JSON 日志 | `logger/logger_test.go` | `logger.LogInfo()` 输出 JSON 字段 |
 | HTTP JSON 日志 | `middleware/logger_test.go` | Gin 请求日志输出 JSON 字段 |
+| 延迟百分位 | `pkg/perf_metrics/percentile_test.go` | 验证 nearest-rank 百分位计算和 bucket drain |
+| 百分位持久化 | `model/perf_metric_test.go` | 验证 `perf_metrics` 表保存 P50/P90/P95/P99 |
 
 推荐验证命令：
 
 ```bash
-go test ./controller ./logger ./middleware ./pkg/http_stats ./pkg/prometheus_metrics ./pkg/perf_metrics
+go test ./controller ./logger ./middleware ./model ./pkg/http_stats ./pkg/prometheus_metrics ./pkg/perf_metrics
 ```
 
 ## 3. 部署后接口验证
@@ -96,6 +99,7 @@ LogFormat = json
 ```
 
 然后：
+
 ```bash
 docker compose -f docker-compose.dev.yml up -d --build new-api
 docker compose -f docker-compose.dev.yml logs -f new-api
@@ -127,19 +131,18 @@ curl -s "$HOTAI_API_BASE/api/health"
 
 ## 5. 当前可展示结论
 
-Phase 1.1～Phase 1.3 已经支持基础可观测性闭环：
+Phase 1.1～Phase 1.4 已经支持基础可观测性闭环：
 
 - 服务健康状态可被外部探针检查。
 - Prometheus 可以采集 HotAI 自定义业务指标和 Go runtime 指标。
 - 日志可以切换为结构化 JSON，便于 Loki / ELK / Fluent Bit 采集。
 - relay 请求成功率、延迟、TTFT、Token、错误状态码已有指标入口。
+- `perf_metrics` 时间序列支持 `p50_latency_ms`、`p90_latency_ms`、`p95_latency_ms`、`p99_latency_ms`。
 
 ## 6. 下一步
 
-Phase 1.4 建议实现延迟百分位追踪：
+下一阶段建议进入 Phase 2：
 
-- `P50/P90/P95/P99` 延迟
-- DB 持久化到 `perf_metrics`
-- 前端/接口展示尾延迟
-
-该能力会为 Phase 2 的延迟感知路由提供数据基础。
+- 延迟感知路由：同优先级渠道内优先选择低延迟渠道。
+- 滑动窗口熔断：基于最近窗口错误率切换 OPEN / HALF-OPEN / CLOSED。
+- 故障切换测试：按 `10-failover-test-plan.md` 执行 TC-01～TC-07。
