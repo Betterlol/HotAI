@@ -49,6 +49,10 @@ func flushCompletedBuckets() {
 			TtftCount:      drained.ttftCount,
 			OutputTokens:   drained.outputTokens,
 			GenerationMs:   drained.generationMs,
+			P50LatencyMs:   drained.p50LatencyMs,
+			P90LatencyMs:   drained.p90LatencyMs,
+			P95LatencyMs:   drained.p95LatencyMs,
+			P99LatencyMs:   drained.p99LatencyMs,
 		})
 		if err != nil {
 			bucket.addCounters(drained)
@@ -86,6 +90,10 @@ func redisCounters(values map[string]string) counters {
 		ttftCount:      parseRedisInt(values["ttft_n"]),
 		outputTokens:   parseRedisInt(values["out"]),
 		generationMs:   parseRedisInt(values["gen_ms"]),
+		p50LatencyMs:   parseRedisInt(values["p50"]),
+		p90LatencyMs:   parseRedisInt(values["p90"]),
+		p95LatencyMs:   parseRedisInt(values["p95"]),
+		p99LatencyMs:   parseRedisInt(values["p99"]),
 	}
 }
 

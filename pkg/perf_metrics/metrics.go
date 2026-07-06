@@ -106,6 +106,10 @@ func Query(params QueryParams) (QueryResult, error) {
 			ttftCount:      row.TtftCount,
 			outputTokens:   row.OutputTokens,
 			generationMs:   row.GenerationMs,
+			p50LatencyMs:   row.P50LatencyMs,
+			p90LatencyMs:   row.P90LatencyMs,
+			p95LatencyMs:   row.P95LatencyMs,
+			p99LatencyMs:   row.P99LatencyMs,
 		})
 	}
 
@@ -149,6 +153,10 @@ func QuerySummaryAll(hours int, groups []string) (SummaryAllResult, error) {
 			totalLatencyMs: row.TotalLatencyMs,
 			outputTokens:   row.OutputTokens,
 			generationMs:   row.GenerationMs,
+			p50LatencyMs:   row.P50LatencyMs,
+			p90LatencyMs:   row.P90LatencyMs,
+			p95LatencyMs:   row.P95LatencyMs,
+			p99LatencyMs:   row.P99LatencyMs,
 		}
 		mergeModelTotals(totals, row.ModelName, value)
 		mergeModelBucket(modelBuckets, row.ModelName, row.BucketTs, value)
@@ -187,6 +195,10 @@ func QuerySummaryAll(hours int, groups []string) (SummaryAllResult, error) {
 		models = append(models, ModelSummary{
 			ModelName:          name,
 			AvgLatencyMs:       avgLatency,
+			P50LatencyMs:       total.p50LatencyMs,
+			P90LatencyMs:       total.p90LatencyMs,
+			P95LatencyMs:       total.p95LatencyMs,
+			P99LatencyMs:       total.p99LatencyMs,
 			SuccessRate:        math.Round(successRate*100) / 100,
 			AvgTps:             math.Round(avgTps*100) / 100,
 			RecentSuccessRates: recentSuccessRates(modelBuckets[name], 3),
@@ -212,6 +224,10 @@ func mergeModelTotals(totals map[string]counters, modelName string, value counte
 	current.ttftCount += value.ttftCount
 	current.outputTokens += value.outputTokens
 	current.generationMs += value.generationMs
+	current.p50LatencyMs = maxInt64(current.p50LatencyMs, value.p50LatencyMs)
+	current.p90LatencyMs = maxInt64(current.p90LatencyMs, value.p90LatencyMs)
+	current.p95LatencyMs = maxInt64(current.p95LatencyMs, value.p95LatencyMs)
+	current.p99LatencyMs = maxInt64(current.p99LatencyMs, value.p99LatencyMs)
 	totals[modelName] = current
 }
 
@@ -230,6 +246,10 @@ func mergeModelBucket(modelBuckets map[string]map[int64]counters, modelName stri
 	current.ttftCount += value.ttftCount
 	current.outputTokens += value.outputTokens
 	current.generationMs += value.generationMs
+	current.p50LatencyMs = maxInt64(current.p50LatencyMs, value.p50LatencyMs)
+	current.p90LatencyMs = maxInt64(current.p90LatencyMs, value.p90LatencyMs)
+	current.p95LatencyMs = maxInt64(current.p95LatencyMs, value.p95LatencyMs)
+	current.p99LatencyMs = maxInt64(current.p99LatencyMs, value.p99LatencyMs)
 	modelBuckets[modelName][bucketTs] = current
 }
 
@@ -285,6 +305,10 @@ func mergeCounters(merged map[bucketKey]counters, key bucketKey, value counters)
 	current.ttftCount += value.ttftCount
 	current.outputTokens += value.outputTokens
 	current.generationMs += value.generationMs
+	current.p50LatencyMs = maxInt64(current.p50LatencyMs, value.p50LatencyMs)
+	current.p90LatencyMs = maxInt64(current.p90LatencyMs, value.p90LatencyMs)
+	current.p95LatencyMs = maxInt64(current.p95LatencyMs, value.p95LatencyMs)
+	current.p99LatencyMs = maxInt64(current.p99LatencyMs, value.p99LatencyMs)
 	merged[key] = current
 }
 
@@ -335,6 +359,10 @@ func buildQueryResult(modelName string, merged map[bucketKey]counters) QueryResu
 			Group:        group,
 			AvgTtftMs:    avg(total.ttftSumMs, total.ttftCount),
 			AvgLatencyMs: avg(total.totalLatencyMs, total.requestCount),
+			P50LatencyMs: total.p50LatencyMs,
+			P90LatencyMs: total.p90LatencyMs,
+			P95LatencyMs: total.p95LatencyMs,
+			P99LatencyMs: total.p99LatencyMs,
 			SuccessRate:  successRate(total),
 			AvgTps:       avgTps(total),
 			Series:       series,
@@ -353,9 +381,20 @@ func bucketPoint(ts int64, value counters) BucketPoint {
 		Ts:           ts,
 		AvgTtftMs:    avg(value.ttftSumMs, value.ttftCount),
 		AvgLatencyMs: avg(value.totalLatencyMs, value.requestCount),
+		P50LatencyMs: value.p50LatencyMs,
+		P90LatencyMs: value.p90LatencyMs,
+		P95LatencyMs: value.p95LatencyMs,
+		P99LatencyMs: value.p99LatencyMs,
 		SuccessRate:  successRate(value),
 		AvgTps:       avgTps(value),
 	}
+}
+
+func maxInt64(a int64, b int64) int64 {
+	if b > a {
+		return b
+	}
+	return a
 }
 
 func avg(sum int64, count int64) int64 {
