@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
 
@@ -185,21 +186,73 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 		smoothingFactor = 100
 	}
 
-	// Calculate the total weight of all channels up to endIdx
-	totalWeight := sumWeight * smoothingFactor
+	adjustedWeights := adjustedChannelWeights(targetChannels, smoothingFactor, smoothingAdjustment)
+	totalWeight := 0
+	for _, weight := range adjustedWeights {
+		totalWeight += weight
+	}
+	if totalWeight <= 0 {
+		return nil, errors.New("channel not found")
+	}
 
 	// Generate a random value in the range [0, totalWeight)
 	randomWeight := rand.Intn(totalWeight)
 
 	// Find a channel based on its weight
-	for _, channel := range targetChannels {
-		randomWeight -= channel.GetWeight()*smoothingFactor + smoothingAdjustment
+	for index, channel := range targetChannels {
+		randomWeight -= adjustedWeights[index]
 		if randomWeight < 0 {
 			return channel, nil
 		}
 	}
 	// return null if no channel is not found
 	return nil, errors.New("channel not found")
+}
+
+func adjustedChannelWeights(channels []*Channel, smoothingFactor int, smoothingAdjustment int) []int {
+	weights := make([]int, len(channels))
+	setting := operation_setting.GetLatencyRoutingSetting()
+	fastestResponseTime := fastestPositiveResponseTime(channels)
+	for index, channel := range channels {
+		baseWeight := channel.GetWeight()*smoothingFactor + smoothingAdjustment
+		weights[index] = latencyAdjustedWeight(baseWeight, channel.ResponseTime, fastestResponseTime, setting)
+	}
+	return weights
+}
+
+func fastestPositiveResponseTime(channels []*Channel) int {
+	fastest := 0
+	for _, channel := range channels {
+		if channel == nil || channel.ResponseTime <= 0 {
+			continue
+		}
+		if fastest == 0 || channel.ResponseTime < fastest {
+			fastest = channel.ResponseTime
+		}
+	}
+	return fastest
+}
+
+func latencyAdjustedWeight(baseWeight int, responseTime int, fastestResponseTime int, setting operation_setting.LatencyRoutingSetting) int {
+	if baseWeight <= 0 {
+		return 0
+	}
+	if !setting.Enabled || fastestResponseTime <= 0 || responseTime <= 0 {
+		return baseWeight
+	}
+	factor := setting.WeightFactor
+	if factor < 0 {
+		factor = 0
+	}
+	if factor > 1 {
+		factor = 1
+	}
+	latencyRatio := float64(fastestResponseTime) / float64(responseTime)
+	adjusted := int(float64(baseWeight) * ((1 - factor) + factor*latencyRatio))
+	if adjusted < 1 {
+		return 1
+	}
+	return adjusted
 }
 
 // filterChannelsByRequestPath restricts candidates by request path. Only Advanced
