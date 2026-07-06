@@ -55,6 +55,7 @@ services:
       - ERROR_LOG_ENABLED=true
       - BATCH_UPDATE_ENABLED=true
       - NODE_NAME=new-api-node-1
+      - LOG_FORMAT=${LOG_FORMAT:-json}
     depends_on:
       postgres:
         condition: service_healthy
