@@ -231,6 +231,13 @@ function getFilteredModels() {
         );
     }
     
+    // 按模型名称字典序排序
+    filtered.sort((a, b) => {
+        const nameA = a.model_name || '';
+        const nameB = b.model_name || '';
+        return nameA.localeCompare(nameB);
+    });
+    
     return filtered;
 }
 

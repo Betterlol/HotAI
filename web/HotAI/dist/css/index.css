@@ -63,6 +63,24 @@ body {
     letter-spacing: 0.5px;
 }
 
+/* 带图标的标签样式（胶囊型容器） */
+.section-label-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--c-primary);
+    background: var(--c-primary-light);
+    padding: 8px 16px;
+    border-radius: var(--radius-tag);
+    margin-bottom: 12px;
+}
+
+.section-label-with-icon svg {
+    flex-shrink: 0;
+}
+
 /* 通用圆角按钮样式 */
 .sidebar-btn {
     display: flex;
@@ -83,24 +101,27 @@ body {
 .sidebar-btn:hover { background: var(--c-gray-hover); }
 .sidebar-btn.active { background: var(--c-gray-active); font-weight: 600; }
 
-/* 顶部：功能拓展区域 */
-.sidebar-top {
+/* 顶部：模型配置面板 (60%) */
+.sidebar-config {
+    flex: 0 0 60%;
     display: flex;
     flex-direction: column;
-    padding-bottom: 16px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--c-border);
     margin-bottom: 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-/* 中间：历史对话与占位符 */
-.sidebar-middle {
+/* 底部：历史记录 (40%) */
+.sidebar-history {
     flex: 1;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    margin-bottom: 16px;
+    overflow-y: auto;
+    min-height: 0;
 }
+
 .placeholder-text {
     font-size: 13px;
     color: #9CA3AF;
@@ -108,25 +129,335 @@ body {
     text-align: center;
     user-select: none;
 }
+/* =========================================
+   3.5. 配置面板样式
+   ========================================= */
 
-/* 底部：User栏 */
-.sidebar-bottom {
-    padding-top: 12px;
-    border-top: 1px solid var(--c-border);
+/* 配置项容器 */
+.config-item {
+    margin-bottom: 12px;
 }
-.user-avatar {
-    width: 32px;
-    height: 32px;
-    background: var(--c-primary);
-    color: var(--c-white);
+
+/* 配置组容器（淡蓝色背景圆角矩形） */
+.config-group {
+    background: var(--c-primary-light);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.config-group .config-item:last-child {
+    margin-bottom: 0;
+}
+
+/* 配置标签 */
+.config-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--c-text-main);
+    margin-bottom: 8px;
+}
+
+.config-value {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--c-primary);
+    background: var(--c-primary-light);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+/* 选择框样式（复用右侧模型选择器风格） */
+.config-select {
+    width: 100%;
+    background: var(--c-primary-light);
+    color: var(--c-primary);
+    border: none;
+    padding: 10px 16px;
+    border-radius: var(--radius-tag);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.config-select:hover {
+    background: #dce6fc;
+}
+
+.config-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.config-select svg {
+    flex-shrink: 0;
+}
+
+/* 下拉菜单容器 */
+.model-selector-wrapper {
+    position: relative;
+}
+
+.config-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: var(--c-white);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    border-radius: var(--radius-card);
+    padding: 8px 0;
+    z-index: 100;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* 下拉菜单项 */
+.config-dropdown-item {
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--c-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    margin: 2px 8px;
+    display: flex;
+    align-items: center;
+}
+
+.config-dropdown-item:hover {
+    background: var(--c-gray-hover);
+}
+
+.config-dropdown-item.selected {
+    background: var(--c-primary-light);
+    color: var(--c-primary);
+    font-weight: 500;
+}
+
+/* 搜索框 */
+.model-search-box {
+    position: relative;
+    background: #F3F4F6;
+    border-radius: var(--radius-tag);
+    padding: 8px 16px;
+    margin: 8px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.model-search-input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 13px;
+    color: var(--c-text-main);
+    width: 100%;
+    transition: all 0.2s;
+}
+
+.model-search-input::placeholder {
+    color: var(--c-text-secondary);
+}
+
+/* 开关按钮样式 */
+.config-switch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.config-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.config-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.config-switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.config-switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
     border-radius: 50%;
+}
+
+.config-switch input:checked + .config-switch-slider {
+    background-color: var(--c-primary);
+}
+
+.config-switch input:checked + .config-switch-slider:before {
+    transform: translateX(20px);
+}
+
+.config-switch-label {
+    font-size: 13px;
+    color: var(--c-text-secondary);
+}
+
+/* 滑块样式 */
+.config-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--c-primary-light) 0%, var(--c-primary) 100%);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.config-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--c-primary);
+    cursor: pointer;
+    border: 3px solid var(--c-white);
+    box-shadow: 0 2px 6px rgba(45, 111, 245, 0.3);
+    transition: all 0.2s;
+}
+
+.config-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(45, 111, 245, 0.5);
+}
+
+.config-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--c-primary);
+    cursor: pointer;
+    border: 3px solid var(--c-white);
+    box-shadow: 0 2px 6px rgba(45, 111, 245, 0.3);
+    transition: all 0.2s;
+}
+
+.config-slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(45, 111, 245, 0.5);
+}
+
+/* 输入框样式 */
+.config-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--c-text-main);
+    transition: all 0.2s;
+    background: var(--c-white);
+}
+
+.config-input:focus {
+    outline: none;
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 3px rgba(45, 111, 245, 0.1);
+}
+
+.config-input::placeholder {
+    color: #9CA3AF;
+}
+
+/* 配置管理按钮组 */
+.config-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.config-action-btn {
+    flex: 1;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
-    font-weight: bold;
-    margin-right: 8px;
+    gap: 6px;
+}
+
+.config-action-btn svg {
     flex-shrink: 0;
+}
+
+/* 导出按钮 - 蓝底白字 */
+.export-btn {
+    background: var(--c-primary);
+    color: var(--c-white);
+}
+
+.export-btn:hover {
+    background: var(--c-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(45, 111, 245, 0.3);
+}
+
+/* 导入按钮 - 白底蓝字 */
+.import-btn {
+    background: var(--c-white);
+    color: var(--c-primary);
+    border: 2px solid var(--c-primary);
+}
+
+.import-btn:hover {
+    background: var(--c-primary-light);
+    transform: translateY(-2px);
+}
+
+/* 重置按钮 - 白底红字 */
+.reset-btn {
+    background: var(--c-white);
+    color: #EF4444;
+    border: 2px solid #EF4444;
+}
+
+.reset-btn:hover {
+    background: #FEF2F2;
+    transform: translateY(-2px);
+}
+
+.config-action-btn:active {
+    transform: scale(0.98);
 }
 
 /* =========================================

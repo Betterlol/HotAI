@@ -105,6 +105,129 @@ body {
 .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--c-border); border-top-color: var(--c-primary); border-radius: 50%; animation: spin 0.6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* 按钮 */
+.btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+    border-radius: var(--radius-btn); font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; border: none; white-space: nowrap;
+}
+.btn svg { width: 16px; height: 16px; }
+.btn-primary { background: var(--c-primary); color: var(--c-white); }
+.btn-primary:hover { background: var(--c-primary-dark); }
+.btn-secondary { background: var(--c-white); color: var(--c-text-main); border: 1px solid var(--c-border); }
+.btn-secondary:hover { background: var(--c-gray-hover); border-color: var(--c-primary); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 标签 */
+.badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: var(--radius-btn); font-size: 12px; font-weight: 500;
+}
+.badge-blue { background: #DBEAFE; color: #1D4ED8; }
+
+/* 模态框 */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.45); z-index: 9000;
+    display: flex; align-items: center; justify-content: center;
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+    background: var(--c-white); border-radius: var(--radius-card);
+    box-shadow: 0 8px 32px rgba(45,111,245,0.15); width: 90%; max-width: 540px;
+    max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
+}
+.modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px; border-bottom: 1px solid var(--c-border);
+}
+.modal-title { font-size: 16px; font-weight: 700; color: var(--c-text-main); }
+.modal-close {
+    width: 28px; height: 28px; border-radius: 50%; border: none; background: transparent;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--c-text-secondary); transition: all 0.2s;
+}
+.modal-close:hover { background: var(--c-gray-hover); }
+.modal-close svg { width: 18px; height: 18px; stroke: currentColor; fill: none; }
+.modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+.modal-footer {
+    padding: 16px 24px; border-top: 1px solid var(--c-border);
+    display: flex; justify-content: flex-end; gap: 10px;
+}
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(--c-text-main); margin-bottom: 6px; }
+.form-input {
+    width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--c-border);
+    background: var(--c-white); font-size: 14px; color: var(--c-text-main); outline: none; transition: 0.2s;
+    font-family: inherit;
+}
+.form-input:focus { border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(45,111,245,0.08); }
+
+/* Toast */
+.toast-container {
+    position: fixed; top: 80px; right: 24px; z-index: 99999;
+    display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+}
+.toast {
+    min-width: 260px; max-width: 360px; padding: 12px 16px; border-radius: 10px;
+    display: flex; align-items: flex-start; gap: 10px; pointer-events: auto;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12); animation: toastIn 0.3s ease;
+    font-size: 14px; line-height: 1.4;
+}
+.toast-success { background: #F0FDF4; border: 1px solid #BBF7D0; color: #15803D; }
+.toast-error { background: #FEF2F2; border: 1px solid #FECACA; color: #DC2626; }
+.toast-info { background: var(--c-primary-light); border: 1px solid #BFDBFE; color: var(--c-primary-dark); }
+@keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+/* 管理员标签页显示 */
+.admin-tab.hidden { display: none; }
+.admin-tab { display: none; }
+.admin-tab.show { display: inline-flex; }
+
+/* API信息列表模式 */
+.api-info-list-item {
+    background: var(--c-gray-hover); border-radius: 8px; padding: 12px; margin-bottom: 10px;
+    text-align: left;
+}
+.api-info-list-item-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+}
+.api-info-list-item-route { font-size: 13px; font-weight: 700; color: var(--c-text-main); word-break: break-all; }
+.api-info-list-item-url { font-size: 13px; color: var(--c-primary); word-break: break-all; cursor: pointer; }
+.api-info-list-item-url:hover { text-decoration: underline; }
+.api-info-list-item-desc { font-size: 12px; color: var(--c-text-secondary); margin-top: 4px; }
+.api-info-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.api-tag {
+    padding: 2px 10px; border-radius: var(--radius-btn); font-size: 11px; font-weight: 500;
+    background: var(--c-primary-light); color: var(--c-primary); cursor: pointer; border: none; transition: 0.2s;
+}
+.api-tag:hover { background: var(--c-primary); color: var(--c-white); }
+
+/* FAQ 折叠 */
+.faq-item { border-bottom: 1px solid var(--c-border); }
+.faq-item:last-child { border-bottom: none; }
+.faq-question {
+    padding: 12px 0; display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; font-size: 13px; font-weight: 600; color: var(--c-text-main);
+}
+.faq-question svg { width: 16px; height: 16px; fill: var(--c-text-secondary); transition: transform 0.2s; flex-shrink: 0; }
+.faq-item.open .faq-question svg { transform: rotate(180deg); }
+.faq-answer { font-size: 13px; color: var(--c-text-secondary); line-height: 1.6; padding-bottom: 12px; display: none; }
+.faq-item.open .faq-answer { display: block; }
+
+/* Uptime 监控 */
+.uptime-service {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid var(--c-border); gap: 8px;
+}
+.uptime-service:last-child { border-bottom: none; }
+.uptime-service-name { font-size: 13px; font-weight: 500; color: var(--c-text-main); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uptime-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.uptime-dot-up { background: #22C55E; }
+.uptime-dot-down { background: #EF4444; }
+.uptime-dot-pending { background: #F59E0B; }
+
 /* =========================================
    5. 响应式适配
    ========================================= */

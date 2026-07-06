@@ -35,7 +35,7 @@ body {
 .docs-wrapper {
     display: flex;
     gap: 20px;
-    height: 100vh;
+    height: calc(100vh - 64px);
     padding: 20px;
     overflow: hidden;
 }

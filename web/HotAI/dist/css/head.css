@@ -201,6 +201,11 @@
     display: none;
 }
 
+/* 通用隐藏类 */
+.hidden {
+    display: none !important;
+}
+
 .user-trigger {
     display: flex;
     align-items: center;

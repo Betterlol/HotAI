@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="picture/favicon.ico" />
+    <title>钱包充值 - 控制台</title>
+    <link rel="stylesheet" href="css/head.css">
+    <link rel="stylesheet" href="css/console-shared.css">
+</head>
+<body>
+<header class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo"><img src="picture/logo.png" alt="图灵智算" style="width:36px;height:36px;object-fit:contain;">图灵智算</a>
+        <div class="nav-links"><a href="index.html">首页</a><a href="console.html" class="active">控制台</a><a href="model.html">模型广场</a><a href="docs.html">文档</a></div>
+    </div>
+    <div class="nav-right">
+        <button class="icon-btn" id="noticeBtn" title="公告"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+        <div class="language-selector"><button class="icon-btn" id="languageBtn" title="语言"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></button><div class="language-dropdown" id="languageDropdown"><div class="language-option" data-lang="zh"><span>中文</span></div><div class="language-option" data-lang="en"><span>English</span></div></div></div>
+        <a href="login.html" class="btn-login" id="navLoginBtn">登录</a><a href="register.html" class="btn-signup" id="navSignupBtn">注册</a>
+        <div class="user-menu hidden" id="navUserMenu">
+            <div class="user-trigger"><div class="user-avatar-top" id="navUserAvatar">U</div><span id="navUsername">User</span></div>
+            <div class="user-dropdown" id="navUserDropdown"><a href="profile.html" class="user-dropdown-item">个人设置</a><div class="user-dropdown-divider"></div><button id="navLogoutBtn" class="user-dropdown-item">退出登录</button></div>
+        </div>
+    </div>
+</header>
+<div class="notice-modal" id="noticeModal" style="display:none;"><div class="notice-overlay" id="noticeOverlay"></div><div class="notice-card"><div class="notice-header"><h3>公告</h3><button class="notice-close" id="noticeClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div><div class="notice-content" id="noticeContent"><div class="notice-loading">加载中...</div></div></div></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="app-wrapper">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+        <div class="page-header">
+            <div class="page-title">钱包充值</div>
+        </div>
+
+        <!-- 当前余额卡片 -->
+        <div class="balance-card" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:32px;border-radius:12px;color:#fff;margin-bottom:24px;">
+            <div style="font-size:14px;opacity:0.9;margin-bottom:8px;">当前余额</div>
+            <div style="font-size:42px;font-weight:700;" id="currentBalance">$0.0000</div>
+            <div style="font-size:13px;opacity:0.8;margin-top:8px;">汇率：1 RMB = <span id="ratioDisplay">15</span> quota（500000 quota = $1）</div>
+        </div>
+
+        <!-- 充值金额选择 -->
+        <div class="card-title">选择充值金额</div>
+        <div class="amount-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:24px;">
+            <button class="amount-btn" data-amount="10">¥10</button>
+            <button class="amount-btn" data-amount="20">¥20</button>
+            <button class="amount-btn" data-amount="50">¥50</button>
+            <button class="amount-btn" data-amount="100">¥100</button>
+            <button class="amount-btn" data-amount="200">¥200</button>
+            <button class="amount-btn" data-amount="500">¥500</button>
+        </div>
+
+        <div class="card-title">或输入自定义金额</div>
+        <div style="max-width:400px;margin-bottom:32px;">
+            <div class="form-group">
+                <input type="number" class="form-input" id="customAmount" placeholder="输入充值金额（RMB）" min="1" step="1">
+                <div class="hint-text">最小充值金额：¥<span id="minTopupDisplay">1</span></div>
+            </div>
+        </div>
+
+        <!-- 兑换码充值 -->
+        <div class="card-title">使用兑换码</div>
+        <div style="max-width:400px;margin-bottom:32px;">
+            <div class="form-group">
+                <input type="text" class="form-input" id="redemptionCode" placeholder="输入兑换码">
+                <button class="btn btn-secondary" onclick="redeemCode()" style="margin-top:8px;">兑换</button>
+            </div>
+        </div>
+
+        <!-- 充值记录 -->
+        <div class="card-title">充值记录</div>
+        <div class="table-card">
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>时间</th><th>金额</th><th>方式</th><th>状态</th></tr></thead>
+                    <tbody id="topupTableBody">
+                        <tr><td colspan="4"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination"><span id="topupPageInfo">共 0 条</span><div class="pagination-pages" id="topupPages"></div></div>
+        </div>
+    </main>
+</div>
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/topup.js"></script>
+</body>
+</html>
