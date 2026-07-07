@@ -114,6 +114,7 @@ function openCreateTokenModal() {
     document.getElementById('tokenExpire').value = '';
     document.getElementById('tokenModels').value = '';
     document.getElementById('tokenIps').value = '';
+    document.getElementById('tokenGroup').value = '';
     document.getElementById('tokenModal').classList.remove('hidden');
 }
 
@@ -127,6 +128,7 @@ async function openEditTokenModal(id) {
     document.getElementById('tokenQuota').value = tk.remain_quota ?? -1;
     document.getElementById('tokenModels').value = (tk.models || '').split(',').filter(Boolean).join(',');
     document.getElementById('tokenIps').value = (tk.subnet || []).join(',');
+    document.getElementById('tokenGroup').value = tk.group || '';
     if (tk.expired_time > 0) {
         const d = new Date(tk.expired_time * 1000);
         const pad = n => String(n).padStart(2,'0');
@@ -146,13 +148,24 @@ async function saveToken() {
     const name = document.getElementById('tokenName').value.trim();
     if (!name) { showToast('请输入令牌名称', 'warning'); return; }
 
-    const quota = parseInt(document.getElementById('tokenQuota').value) || -1;
+    const quotaValue = document.getElementById('tokenQuota').value.trim();
+    // 处理额度：空字符串或-1表示无限制，0表示禁止使用
+    let quota;
+    if (quotaValue === '' || quotaValue === '-1') {
+        quota = -1;
+    } else {
+        quota = parseInt(quotaValue);
+        if (isNaN(quota)) quota = -1;
+    }
+    
     const expireStr = document.getElementById('tokenExpire').value;
     const expiredTime = expireStr ? Math.floor(new Date(expireStr).getTime()/1000) : -1;
     const models = document.getElementById('tokenModels').value.trim().split(',').filter(Boolean);
     const subnet = document.getElementById('tokenIps').value.trim().split(',').filter(Boolean);
+    const group = document.getElementById('tokenGroup').value.trim();
 
     const payload = { name, remain_quota: quota, expired_time: expiredTime, models, subnet };
+    if (group) payload.group = group;
 
     let res;
     if (id) {

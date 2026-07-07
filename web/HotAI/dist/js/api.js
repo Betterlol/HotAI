@@ -379,6 +379,36 @@ const API = {
 
     // ========== 用户分组 ==========
     getGroups: () => apiRequest('/group/'),
+
+    // ========== 订阅管理（管理员） ==========
+    getSubscriptions: (page = 1, size = 10) =>
+        apiRequest(`/subscription/?p=${page}&page_size=${size}`),
+
+    searchSubscriptions: (keyword) =>
+        apiRequest(`/subscription/search?keyword=${encodeURIComponent(keyword)}`),
+
+    getSubscription: (id) => apiRequest(`/subscription/${id}`),
+
+    createSubscription: (data) =>
+        apiRequest('/subscription/', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+
+    updateSubscription: (data) =>
+        apiRequest('/subscription/', {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        }),
+
+    deleteSubscription: (id) =>
+        apiRequest(`/subscription/${id}`, { method: 'DELETE' }),
+
+    getSubscriptionUsers: (id, page = 1, size = 10) =>
+        apiRequest(`/subscription/${id}/users?p=${page}&page_size=${size}`),
+
+    cancelUserSubscription: (userId, subscriptionId) =>
+        apiRequest(`/subscription/${subscriptionId}/user/${userId}`, { method: 'DELETE' }),
 };
 
 // 导出 API（兼容模块和全局）

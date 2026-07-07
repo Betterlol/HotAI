@@ -91,6 +91,7 @@ async function openEditUserModal(id) {
     const u = res.data;
     document.getElementById('userId').value = u.id;
     document.getElementById('editUsername').value = u.username||'';
+    document.getElementById('editEmail').value = u.email||'';
     document.getElementById('editDisplayName').value = u.display_name||'';
     document.getElementById('editRole').value = String(u.role||1);
     document.getElementById('editGroup').value = u.group||'default';
@@ -104,18 +105,34 @@ function closeUserModal() { document.getElementById('userModal').classList.add('
 async function saveUser() {
     const id = parseInt(document.getElementById('userId').value);
     const payload = {
-        id,
         display_name: document.getElementById('editDisplayName').value.trim(),
         role: parseInt(document.getElementById('editRole').value),
         group: document.getElementById('editGroup').value.trim()||'default',
         quota: parseInt(document.getElementById('editQuota').value)||0,
     };
+    
+    const email = document.getElementById('editEmail').value.trim();
+    if (email) payload.email = email;
+    
     const pwd = document.getElementById('editPassword').value.trim();
     if (pwd) payload.password = pwd;
 
-    const res = await API.updateUser(payload);
+    let res;
+    if (id) {
+        // 编辑模式
+        payload.id = id;
+        res = await API.updateUser(payload);
+    } else {
+        // 创建模式
+        const username = document.getElementById('editUsername').value.trim();
+        if (!username) { showToast('请输入用户名','warning'); return; }
+        if (!pwd) { showToast('请输入密码','warning'); return; }
+        payload.username = username;
+        res = await API.createUser(payload);
+    }
+
     if (res.success) {
-        showToast('用户已更新','success');
+        showToast(id ? '用户已更新' : '用户已创建','success');
         closeUserModal();
         loadUsers();
     } else {
@@ -148,6 +165,13 @@ async function doTopup() {
 }
 
 async function toggleUserStatus(id, currentStatus) {
+    // 防止封禁自己
+    const currentUser = await API.getUserInfo();
+    if (currentUser.success && currentUser.data && currentUser.data.id === id && currentStatus === 1) {
+        showToast('不能封禁自己','warning');
+        return;
+    }
+    
     const newStatus = currentStatus === 1 ? 2 : 1;
     const res = await API.updateUser({ id, status: newStatus });
     if (res.success) {
@@ -169,6 +193,7 @@ async function deleteUser(id, username) {
 function openCreateUserModal() {
     document.getElementById('userId').value = '';
     document.getElementById('editUsername').value = '';
+    document.getElementById('editEmail').value = '';
     document.getElementById('editDisplayName').value = '';
     document.getElementById('editRole').value = '1';
     document.getElementById('editGroup').value = 'default';
@@ -244,6 +269,21 @@ function updateUserBatchBar() {
 
 async function batchBanUsers() {
     if (!selectedUsers.size) return;
+    
+    // 防止封禁自己
+    const currentUser = await API.getUserInfo();
+    if (currentUser.success && currentUser.data) {
+        const currentUserId = currentUser.data.id;
+        if (selectedUsers.has(currentUserId)) {
+            showToast('不能封禁自己，已从选择中排除','warning');
+            selectedUsers.delete(currentUserId);
+            if (selectedUsers.size === 0) {
+                updateUserBatchBar();
+                return;
+            }
+        }
+    }
+    
     await Promise.all([...selectedUsers].map(id => API.updateUser({ id, status: 2 })));
     showToast(`已封禁 ${selectedUsers.size} 个用户`, 'success');
     selectedUsers.clear(); updateUserBatchBar(); loadUsers();

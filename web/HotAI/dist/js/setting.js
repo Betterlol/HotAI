@@ -61,7 +61,7 @@ async function loadSettings() {
     document.getElementById('affiliateRate').value = parseFloat(settingsData.AffiliateRate) || 5;
 
     // 运营设置
-    document.getElementById('noticeContent').value = settingsData.Notice || '';
+    document.getElementById('systemNoticeContent').value = settingsData.Notice || '';
     document.getElementById('announcementsEnabled').checked = settingsData.AnouncementsEnabled !== 'false';
     document.getElementById('faqEnabled').checked = settingsData.FAQEnabled !== 'false';
     document.getElementById('apiInfoContent').value = settingsData.ApiInfo || '';
@@ -129,7 +129,7 @@ async function saveAllSettings() {
         AffiliateRate: document.getElementById('affiliateRate').value,
 
         // 运营设置
-        Notice: document.getElementById('noticeContent').value,
+        Notice: document.getElementById('systemNoticeContent').value,
         AnnouncementsEnabled: document.getElementById('announcementsEnabled').checked ? 'true' : 'false',
         FAQEnabled: document.getElementById('faqEnabled').checked ? 'true' : 'false',
         ApiInfo: document.getElementById('apiInfoContent').value,

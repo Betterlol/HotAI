@@ -110,6 +110,12 @@ function openCreateChannelModal() {
     document.getElementById('channelModels').value = '';
     document.getElementById('channelGroup').value = 'default';
     document.getElementById('channelPriority').value = '0';
+    document.getElementById('channelWeight').value = '0';
+    document.getElementById('channelTestModel').value = '';
+    document.getElementById('channelTag').value = '';
+    document.getElementById('channelAutoBan').value = '0';
+    document.getElementById('channelRemark').value = '';
+    document.getElementById('channelModelMapping').value = '';
     document.getElementById('channelModal').classList.remove('hidden');
 }
 
@@ -126,6 +132,17 @@ async function openEditChannelModal(id) {
     document.getElementById('channelModels').value = (ch.models || '').split(',').filter(Boolean).join('\n');
     document.getElementById('channelGroup').value = ch.group || 'default';
     document.getElementById('channelPriority').value = ch.priority || 0;
+    document.getElementById('channelWeight').value = ch.weight || 0;
+    document.getElementById('channelTestModel').value = ch.test_model || '';
+    document.getElementById('channelTag').value = ch.tag || '';
+    document.getElementById('channelAutoBan').value = String(ch.auto_ban || 0);
+    document.getElementById('channelRemark').value = ch.remark || '';
+    // 模型映射：如果是对象，转换为JSON字符串
+    if (ch.model_mapping && typeof ch.model_mapping === 'object') {
+        document.getElementById('channelModelMapping').value = JSON.stringify(ch.model_mapping, null, 2);
+    } else {
+        document.getElementById('channelModelMapping').value = ch.model_mapping || '';
+    }
     document.getElementById('channelModal').classList.remove('hidden');
 }
 
@@ -147,7 +164,23 @@ async function saveChannel() {
         models: modelsStr,
         group: document.getElementById('channelGroup').value.trim() || 'default',
         priority: parseInt(document.getElementById('channelPriority').value) || 0,
+        weight: parseInt(document.getElementById('channelWeight').value) || 0,
+        test_model: document.getElementById('channelTestModel').value.trim(),
+        tag: document.getElementById('channelTag').value.trim(),
+        auto_ban: parseInt(document.getElementById('channelAutoBan').value) || 0,
+        remark: document.getElementById('channelRemark').value.trim(),
     };
+
+    // 处理模型映射：尝试解析JSON
+    const modelMappingStr = document.getElementById('channelModelMapping').value.trim();
+    if (modelMappingStr) {
+        try {
+            channelData.model_mapping = JSON.parse(modelMappingStr);
+        } catch (e) {
+            showToast('模型映射格式错误，请输入有效的JSON', 'warning');
+            return;
+        }
+    }
 
     let res;
     if (id) {
@@ -214,8 +247,18 @@ async function updateAllBalance() {
 }
 
 async function toggleChannelStatus(id, currentStatus) {
+    // 先获取完整的渠道信息
+    const getRes = await API.getChannel(id);
+    if (!getRes.success || !getRes.data) {
+        showToast('获取渠道信息失败', 'error');
+        return;
+    }
+    
+    const channel = getRes.data;
     const newStatus = currentStatus === 1 ? 2 : 1;
-    const res = await API.updateChannel({ id, status: newStatus });
+    channel.status = newStatus;
+    
+    const res = await API.updateChannel(channel);
     if (res.success) {
         showToast(newStatus === 1 ? '已启用' : '已禁用', 'success');
         loadChannels();
@@ -295,7 +338,14 @@ function updateBatchActions() {
 
 async function batchEnable() {
     if (selectedChannels.size === 0) return;
-    const promises = [...selectedChannels].map(id => API.updateChannel({ id, status: 1 }));
+    const promises = [...selectedChannels].map(async id => {
+        const getRes = await API.getChannel(id);
+        if (getRes.success && getRes.data) {
+            const channel = getRes.data;
+            channel.status = 1;
+            return API.updateChannel(channel);
+        }
+    });
     await Promise.all(promises);
     showToast(`已启用 ${selectedChannels.size} 个渠道`, 'success');
     selectedChannels.clear();
@@ -305,7 +355,14 @@ async function batchEnable() {
 
 async function batchDisable() {
     if (selectedChannels.size === 0) return;
-    const promises = [...selectedChannels].map(id => API.updateChannel({ id, status: 2 }));
+    const promises = [...selectedChannels].map(async id => {
+        const getRes = await API.getChannel(id);
+        if (getRes.success && getRes.data) {
+            const channel = getRes.data;
+            channel.status = 2;
+            return API.updateChannel(channel);
+        }
+    });
     await Promise.all(promises);
     showToast(`已禁用 ${selectedChannels.size} 个渠道`, 'success');
     selectedChannels.clear();
