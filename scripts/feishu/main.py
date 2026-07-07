@@ -10,9 +10,10 @@ user_access_token 抓取知识库文档内容。
 import argparse
 import os
 import subprocess
-from threading import Timer
-from pathlib import Path
 import webbrowser
+from dataclasses import dataclass
+from pathlib import Path
+from threading import Timer
 
 from dotenv import load_dotenv
 
@@ -24,7 +25,17 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 DEFAULT_WIKI_URL = "https://pcn43kg7pnzs.feishu.cn/wiki/DG5cwq12EiuaQGk8UbtcaQKdnif"
 DEFAULT_MODEL_TEMPLATE_PATH = "docs/模型介绍页模板.md"
-MODEL_TEMPLATE_HEADER = "# 模型介绍\n\n本平台提供的模型及其属性如下："
+
+MODEL_ID_COLUMN = "模型ID"
+MODEL_TEMPLATE_IGNORED_COLUMNS = {"编号", MODEL_ID_COLUMN}
+MODEL_TEMPLATE_HEADER = "# 模型介绍\n\n本平台提供的模型及其属性如下（共{count}款）："
+
+
+@dataclass(frozen=True)
+class ModelTable:
+    header: list[str]
+    model_id_index: int
+    rows: list[list[str]]
 
 
 def load_local_env():
@@ -40,31 +51,6 @@ def env_bool(name, default=False):
     return value.lower() in {"1", "true", "yes", "on"}
 
 
-def is_wsl():
-    """检测当前进程是否运行在 WSL 中，用于选择合适的浏览器打开方式。"""
-    try:
-        os_release = Path("/proc/sys/kernel/osrelease").read_text(encoding="utf-8")
-    except OSError:
-        return False
-    return "microsoft" in os_release.lower() or "wsl" in os_release.lower()
-
-
-def open_browser(url):
-    """打开授权入口；WSL 下优先调用 Windows 默认浏览器。"""
-    if is_wsl():
-        try:
-            subprocess.Popen(
-                ["cmd.exe", "/c", "start", "", url],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            return True
-        except OSError:
-            pass
-
-    return webbrowser.open(url)
-
-
 def require_env(name):
     """读取必填环境变量，缺失时立即给出明确错误。"""
     value = os.getenv(name)
@@ -73,55 +59,12 @@ def require_env(name):
     return value
 
 
-def write_content(output_path, content):
-    """写入抓取结果；相对路径统一按仓库根目录解析。"""
-    path = Path(output_path)
-    if not path.is_absolute():
-        path = REPO_ROOT / path
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
-    template_path = sync_model_template(content)
-    if template_path:
-        print(f"模型介绍页模板已更新: {template_path}")
-    return path
-
-
-def write_model_template(template_path, markdown_table):
-    """把 Markdown 表格写入模型介绍模板，同时固定保留模板前言。"""
-    path = Path(template_path)
-    if not path.is_absolute():
-        path = REPO_ROOT / path
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        f"{MODEL_TEMPLATE_HEADER}\n\n{markdown_table.strip()}\n",
-        encoding="utf-8",
-    )
-    return path
-
-
-def extract_first_markdown_table(content):
-    """从抓取结果中提取第一段 Markdown 表格，忽略工作表标题等说明文本。"""
-    table_lines = []
-    in_table = False
-    for line in content.splitlines():
-        if line.startswith("|"):
-            table_lines.append(line)
-            in_table = True
-        elif in_table:
-            break
-
-    return "\n".join(table_lines) if table_lines else content
-
-
-def sync_model_template(content):
-    """按配置把本次抓取结果同步写入模型介绍页模板。"""
-    if not env_bool("FEISHU_SYNC_MODEL_TEMPLATE", True):
-        return None
-
-    template_path = os.getenv("FEISHU_MODEL_TEMPLATE_PATH", DEFAULT_MODEL_TEMPLATE_PATH)
-    return write_model_template(template_path, extract_first_markdown_table(content))
+def repo_path(path):
+    """把相对路径解析到仓库根目录下。"""
+    resolved = Path(path)
+    if not resolved.is_absolute():
+        resolved = REPO_ROOT / resolved
+    return resolved
 
 
 def upsert_env_value(path, key, value):
@@ -151,28 +94,198 @@ def save_user_access_token(access_token):
     print("user_access_token 已写入 scripts/feishu/.env")
 
 
-def build_config(args):
+def running_in_wsl():
+    """检测当前进程是否运行在 WSL 中，用于选择合适的浏览器打开方式。"""
+    try:
+        os_release = Path("/proc/sys/kernel/osrelease").read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return "microsoft" in os_release.lower() or "wsl" in os_release.lower()
+
+
+def open_url_in_browser(url):
+    """打开授权入口；WSL 下优先调用 Windows 默认浏览器。"""
+    if running_in_wsl():
+        try:
+            subprocess.Popen(
+                ["cmd.exe", "/c", "start", "", url],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            return True
+        except OSError:
+            pass
+
+    return webbrowser.open(url)
+
+
+def write_fetched_content(output_path, content):
+    """写入抓取结果，并按配置同步模型介绍页模板。"""
+    path = repo_path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+    template_path = sync_model_template_from_content(content)
+    if template_path:
+        print(f"模型介绍页模板已更新: {template_path}")
+    return path
+
+
+def sync_model_template_from_content(content):
+    """按配置把本次抓取结果同步写入模型介绍页模板。"""
+    if not env_bool("FEISHU_SYNC_MODEL_TEMPLATE", True):
+        return None
+
+    template_path = os.getenv("FEISHU_MODEL_TEMPLATE_PATH", DEFAULT_MODEL_TEMPLATE_PATH)
+    markdown_table = extract_first_markdown_table(content)
+    return write_model_template_file(template_path, markdown_table)
+
+
+def write_model_template_file(template_path, markdown_table):
+    """把 Markdown 表格渲染为模型介绍模板文件。"""
+    path = repo_path(template_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(render_model_template(markdown_table), encoding="utf-8")
+    return path
+
+
+def render_model_template(markdown_table):
+    """渲染完整模型介绍页，包括模型总数和分模型小表格。"""
+    model_table = parse_model_table(markdown_table)
+    if not model_table:
+        header = MODEL_TEMPLATE_HEADER.format(count=0)
+        return f"{header}\n\n{markdown_table.strip()}\n"
+
+    sections = []
+    model_count = 0
+    for row in model_table.rows:
+        if not any(cell.strip() for cell in row):
+            continue
+        if model_table.model_id_index >= len(row):
+            continue
+
+        model_id = row[model_table.model_id_index].strip()
+        if not model_id:
+            continue
+
+        model_count += 1
+        lines = [
+            f"## {model_id}",
+            "",
+            "| 属性 | 内容 |",
+            "| ---- | ---- |",
+        ]
+        for index, name in enumerate(model_table.header):
+            name = name.strip()
+            if not name or name in MODEL_TEMPLATE_IGNORED_COLUMNS:
+                continue
+            value = row[index].strip() if index < len(row) else ""
+            lines.append(f"| {name} | {value} |")
+
+        sections.append("\n".join(lines))
+
+    header = MODEL_TEMPLATE_HEADER.format(count=model_count)
+    body = "\n\n".join(sections) if sections else markdown_table.strip()
+    return f"{header}\n\n{body}\n"
+
+
+def extract_first_markdown_table(content):
+    """从抓取结果中提取第一段 Markdown 表格，忽略工作表标题等说明文本。"""
+    table_lines = []
+    in_table = False
+    for line in content.splitlines():
+        if line.startswith("|"):
+            table_lines.append(line)
+            in_table = True
+        elif in_table:
+            break
+
+    return "\n".join(table_lines) if table_lines else content
+
+
+def parse_model_table(markdown_table):
+    """解析模型 Markdown 表格，返回表头、`模型ID` 列位置和数据行。"""
+    rows = [
+        split_markdown_row(line)
+        for line in markdown_table.splitlines()
+        if line.startswith("|")
+    ]
+    if len(rows) < 2:
+        return None
+
+    header = rows[0]
+    try:
+        model_id_index = header.index(MODEL_ID_COLUMN)
+    except ValueError:
+        return None
+
+    body_rows = rows[1:]
+    if len(rows) > 1 and is_markdown_table_separator(rows[1]):
+        body_rows = rows[2:]
+    return ModelTable(header=header, model_id_index=model_id_index, rows=body_rows)
+
+
+def split_markdown_row(line):
+    """按 Markdown 表格分隔符拆分一行，保留单元格内已转义的竖线。"""
+    text = line.strip()
+    if text.startswith("|"):
+        text = text[1:]
+    if text.endswith("|"):
+        text = text[:-1]
+
+    cells = []
+    cell = []
+    backslash_count = 0  # 当前字符前连续反斜杠数量，用于判断竖线是否被转义。
+    for char in text:
+        if char == "|" and backslash_count % 2 == 0:  # 偶数个反斜杠表示当前竖线未被转义。
+            cells.append("".join(cell).strip())
+            cell = []
+            backslash_count = 0
+            continue
+
+        cell.append(char)
+        if char == "\\":
+            backslash_count += 1
+        else:
+            backslash_count = 0
+
+    cells.append("".join(cell).strip())
+    return cells
+
+
+def is_markdown_table_separator(cells):
+    """判断是否为 Markdown 表格中的分隔行。"""
+    if not cells:
+        return False
+
+    for cell in cells:
+        normalized = cell.replace(" ", "")
+        dashes = normalized.strip(":")
+        if len(dashes) < 3 or set(dashes) != {"-"}:
+            return False
+    return True
+
+
+def build_oauth_server_config(args):
     """汇总命令行参数和环境变量，生成传给 OAuth 服务的配置对象。"""
     return {
         "app_id": require_env("FEISHU_APP_ID"),
         "app_secret": require_env("FEISHU_APP_SECRET"),
         "redirect_uri": require_env("FEISHU_REDIRECT_URI"),
         "oauth_state": os.getenv("FEISHU_OAUTH_STATE", "hotai-test"),
-        "save_user_access_token": save_user_access_token,
+        "save_user_access_token": save_user_access_token if env_bool("FEISHU_SAVE_USER_ACCESS_TOKEN", True) else None,
         "wiki_url": args.wiki or os.getenv("FEISHU_WIKI_URL", DEFAULT_WIKI_URL),
         "fetch_doc_after_auth": env_bool("FEISHU_FETCH_DOC_AFTER_AUTH", True),
-        "write_content": write_content,
+        "write_content": write_fetched_content,
         "doc_output": args.output or os.getenv("FEISHU_DOC_OUTPUT"),
-        "sync_model_template": sync_model_template,
-        "lang": args.lang
-        if env_bool("FEISHU_SAVE_USER_ACCESS_TOKEN", True)
-        else None,
+        "sync_model_template": sync_model_template_from_content,
+        "lang": args.lang,
     }
 
 
 def run_server(args):
     """启动本地 OAuth 服务，并按配置自动打开授权入口。"""
-    config = build_config(args)
+    config = build_oauth_server_config(args)
     app = create_app(config)
 
     auth_url = build_auth_url(
@@ -190,7 +303,7 @@ def run_server(args):
         print(f"将自动打开浏览器访问: {local_auth_url}")
         print(f"若自动打开失败，可手动打开本地入口: {local_auth_url}")
         print(f"也可直接打开飞书授权链接: {auth_url}")
-        Timer(1.0, open_browser, args=(local_auth_url,)).start()
+        Timer(1.0, open_url_in_browser, args=(local_auth_url,)).start()
     else:
         print(f"请手动打开本地入口: {local_auth_url}")
         print(f"或直接打开飞书授权链接: {auth_url}")
@@ -216,14 +329,40 @@ def run_fetch(args):
     print(f"obj_token: {node['obj_token']}")
 
     if output:
-        output_path = write_content(output, content)
+        output_path = write_fetched_content(output, content)
         print(f"内容已写入: {output_path}")
     else:
-        template_path = sync_model_template(content)
+        template_path = sync_model_template_from_content(content)
         if template_path:
             print(f"模型介绍页模板已更新: {template_path}")
         print()
         print(content)
+
+
+def add_wiki_fetch_arguments(parser, *, positional_wiki):
+    """给 serve/fetch 子命令添加共用抓取参数。"""
+    if positional_wiki:
+        parser.add_argument(
+            "wiki",
+            nargs="?",
+            help="飞书知识库 URL 或 wiki token，默认读取 FEISHU_WIKI_URL。",
+        )
+    else:
+        parser.add_argument(
+            "--wiki",
+            help="飞书知识库 URL 或 wiki token，默认读取 FEISHU_WIKI_URL。",
+        )
+
+    parser.add_argument(
+        "--output",
+        help="文档内容输出路径，默认读取 FEISHU_DOC_OUTPUT。",
+    )
+    parser.add_argument(
+        "--lang",
+        type=int,
+        default=0,
+        help="@用户 的显示语言：0 为默认名称，1 为英文名称。",
+    )
 
 
 def parse_args():
@@ -235,35 +374,15 @@ def parse_args():
         "serve",
         help="启动本地 OAuth 授权服务，授权成功后可自动抓取文档。",
     )
-    server_parser.add_argument(
-        "--wiki",
-        help="飞书知识库 URL 或 wiki token，默认读取 FEISHU_WIKI_URL。",
-    )
-    server_parser.add_argument(
-        "--output",
-        help="文档内容输出路径，默认读取 FEISHU_DOC_OUTPUT。",
-    )
-    server_parser.add_argument(
-        "--lang",
-        type=int,
-        default=0,
-        help="@用户 的显示语言：0 为默认名称，1 为英文名称。",
-    )
+    add_wiki_fetch_arguments(server_parser, positional_wiki=False)
     server_parser.add_argument("--host", default="localhost", help="本地服务监听地址。")
     server_parser.add_argument("--port", type=int, default=9000, help="本地服务端口。")
     server_parser.add_argument("--debug", action="store_true", help="启用 Flask debug 模式。")
     server_parser.add_argument(
         "--open-browser",
-        dest="open_browser",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         default=None,
-        help="启动服务后自动打开授权入口。",
-    )
-    server_parser.add_argument(
-        "--no-open-browser",
-        dest="open_browser",
-        action="store_false",
-        help="启动服务后不自动打开授权入口。",
+        help="启动服务后是否自动打开授权入口。",
     )
     server_parser.set_defaults(func=run_server)
 
@@ -271,24 +390,10 @@ def parse_args():
         "fetch",
         help="直接使用已有 user_access_token 抓取文档。",
     )
-    fetch_parser.add_argument(
-        "wiki",
-        nargs="?",
-        help="飞书知识库 URL 或 wiki token，默认读取 FEISHU_WIKI_URL。",
-    )
+    add_wiki_fetch_arguments(fetch_parser, positional_wiki=True)
     fetch_parser.add_argument(
         "--user-access-token",
         help="飞书 user_access_token，默认读取 FEISHU_USER_ACCESS_TOKEN。",
-    )
-    fetch_parser.add_argument(
-        "--output",
-        help="文档内容输出路径，默认读取 FEISHU_DOC_OUTPUT。",
-    )
-    fetch_parser.add_argument(
-        "--lang",
-        type=int,
-        default=0,
-        help="@用户 的显示语言：0 为默认名称，1 为英文名称。",
     )
     fetch_parser.set_defaults(func=run_fetch)
 
