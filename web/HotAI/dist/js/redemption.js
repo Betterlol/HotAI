@@ -28,8 +28,8 @@ async function loadRd() {
         return;
     }
 
-    const items = res.data || [];
-    rdTotal = res.total || items.length;
+    const items = res.data?.items || [];
+    rdTotal = res.data?.total || items.length;
     document.getElementById('rdPageInfo').textContent = `共 ${rdTotal} 条`;
 
     if (items.length === 0) {

@@ -41,8 +41,8 @@ async function loadTokens() {
         return;
     }
 
-    const tokens = res.data || [];
-    tokenTotal = res.total || tokens.length;
+    const tokens = res.data?.items || [];
+    tokenTotal = res.data?.total || tokens.length;
     document.getElementById('tokenPageInfo').textContent = `共 ${tokenTotal} 条`;
 
     if (tokens.length === 0) {
@@ -118,7 +118,7 @@ async function openEditTokenModal(id) {
     document.getElementById('tokenId').value = tk.id;
     document.getElementById('tokenName').value = tk.name || '';
     document.getElementById('tokenQuota').value = tk.remain_quota ?? -1;
-    document.getElementById('tokenModels').value = (tk.models || []).join(',');
+    document.getElementById('tokenModels').value = (tk.models || '').split(',').filter(Boolean).join(',');
     document.getElementById('tokenIps').value = (tk.subnet || []).join(',');
     if (tk.expired_time > 0) {
         const d = new Date(tk.expired_time * 1000);
@@ -167,8 +167,8 @@ async function saveToken() {
 async function viewKey(id) {
     const res = await API.getTokenKey(id);
     if (res.success && res.data) {
-        currentKey = res.data;
-        document.getElementById('keyDisplay').textContent = res.data;
+        currentKey = res.data.key || res.data;
+        document.getElementById('keyDisplay').textContent = currentKey;
         document.getElementById('keyModal').classList.remove('hidden');
     } else {
         showToast(res.message || '获取密钥失败', 'error');

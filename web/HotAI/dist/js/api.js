@@ -4,11 +4,27 @@ const API_BASE = '/api';
 // 通用请求函数
 async function apiRequest(url, options = {}) {
     try {
+        // 从 localStorage 读取缓存的用户信息，自动附加 New-Api-User 头
+        // 后端 UserAuth 中间件要求该头存在并与 session 中的 id 一致
+        const extraHeaders = {};
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                const userObj = JSON.parse(userStr);
+                if (userObj && userObj.id) {
+                    extraHeaders['New-Api-User'] = String(userObj.id);
+                }
+            }
+        } catch (_) {
+            // 解析失败则不添加该头，后端会正常返回 401
+        }
+
         const response = await fetch(API_BASE + url, {
             ...options,
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
+                ...extraHeaders,
                 ...options.headers
             }
         });

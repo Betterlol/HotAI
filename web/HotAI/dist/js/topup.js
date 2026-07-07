@@ -41,8 +41,8 @@ async function loadTopupHistory() {
         return;
     }
 
-    const items = res.data || [];
-    tTotal = res.total || items.length;
+    const items = res.data?.items || [];
+    tTotal = res.data?.total || items.length;
     document.getElementById('topupPageInfo').textContent = `共 ${tTotal} 条`;
 
     if (items.length === 0) {

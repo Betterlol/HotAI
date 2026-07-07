@@ -51,8 +51,8 @@ async function loadTaskLogs() {
         return;
     }
 
-    const items = res.data || [];
-    taskTotal = res.total || items.length;
+    const items = res.data?.items || [];
+    taskTotal = res.data?.total || items.length;
     document.getElementById('taskTotal').textContent = taskTotal;
     document.getElementById('taskPageInfo').textContent = `第 ${taskPage} 页`;
 

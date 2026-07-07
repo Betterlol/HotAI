@@ -29,8 +29,8 @@ async function loadUsers() {
         return;
     }
 
-    const items = res.data || [];
-    uTotal = res.total || items.length;
+    const items = res.data?.items || [];
+    uTotal = res.data?.total || items.length;
     document.getElementById('userPageInfo').textContent = `共 ${uTotal} 条`;
 
     if (items.length === 0) {

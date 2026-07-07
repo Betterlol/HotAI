@@ -42,8 +42,8 @@ async function loadChannels() {
         return;
     }
 
-    const items = res.data || [];
-    chTotal = res.total || items.length;
+    const items = res.data?.items || [];
+    chTotal = res.data?.total || items.length;
     document.getElementById('channelPageInfo').textContent = `共 ${chTotal} 条`;
 
     if (items.length === 0) {
@@ -121,7 +121,7 @@ async function openEditChannelModal(id) {
     document.getElementById('channelType').value = String(ch.type || 1);
     document.getElementById('channelBaseUrl').value = ch.base_url || '';
     document.getElementById('channelKey').value = (ch.key || '').replace(/,/g, '\n');
-    document.getElementById('channelModels').value = (ch.models || []).join('\n');
+    document.getElementById('channelModels').value = (ch.models || '').split(',').filter(Boolean).join('\n');
     document.getElementById('channelGroup').value = ch.group || 'default';
     document.getElementById('channelPriority').value = ch.priority || 0;
     document.getElementById('channelModal').classList.remove('hidden');
@@ -136,22 +136,26 @@ async function saveChannel() {
     if (!name) { showToast('请输入渠道名称', 'warning'); return; }
     if (!key && !id) { showToast('请输入密钥', 'warning'); return; }
 
-    const models = document.getElementById('channelModels').value.trim().split('\n').filter(Boolean);
-    const payload = {
+    const modelsStr = document.getElementById('channelModels').value.trim().split('\n').filter(Boolean).join(',');
+    const channelData = {
         name,
         type: parseInt(document.getElementById('channelType').value),
         base_url: document.getElementById('channelBaseUrl').value.trim(),
         key,
-        models,
+        models: modelsStr,
         group: document.getElementById('channelGroup').value.trim() || 'default',
         priority: parseInt(document.getElementById('channelPriority').value) || 0,
     };
 
     let res;
     if (id) {
-        payload.id = parseInt(id);
-        res = await API.updateChannel(payload);
+        channelData.id = parseInt(id);
+        res = await API.updateChannel(channelData);
     } else {
+        const payload = {
+            mode: 'single',
+            channel: channelData
+        };
         res = await API.createChannel(payload);
     }
 

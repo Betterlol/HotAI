@@ -66,8 +66,8 @@ async function loadLogs() {
         return;
     }
 
-    const logs = res.data || [];
-    logTotal = res.total || logs.length;
+    const logs = res.data?.items || [];
+    logTotal = res.data?.total || logs.length;
     document.getElementById('logTotal').textContent = logTotal;
     document.getElementById('logPageInfo').textContent = `第 ${logPage} 页`;
 

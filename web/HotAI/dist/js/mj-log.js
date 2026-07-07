@@ -56,8 +56,8 @@ async function loadMjLogs() {
         return;
     }
 
-    const items = res.data || [];
-    mjTotal = res.total || items.length;
+    const items = res.data?.items || [];
+    mjTotal = res.data?.total || items.length;
     document.getElementById('mjTotal').textContent = mjTotal;
     document.getElementById('mjPageInfo').textContent = `第 ${mjPage} 页`;
 
