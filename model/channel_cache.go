@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/pkg/circuitbreaker"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
@@ -130,6 +131,9 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 
 	if len(channels) == 1 {
 		if channel, ok := channelsIDM[channels[0]]; ok {
+			if !circuitbreaker.CanSelect(channel.Id) || !circuitbreaker.MarkSelected(channel.Id) {
+				return nil, nil
+			}
 			return channel, nil
 		}
 		return nil, fmt.Errorf("数据库一致性错误，渠道# %d 不存在，请联系管理员修复", channels[0])
@@ -159,7 +163,7 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 	var targetChannels []*Channel
 	for _, channelId := range channels {
 		if channel, ok := channelsIDM[channelId]; ok {
-			if channel.GetPriority() == targetPriority {
+			if channel.GetPriority() == targetPriority && circuitbreaker.CanSelect(channel.Id) {
 				sumWeight += channel.GetWeight()
 				targetChannels = append(targetChannels, channel)
 			}
@@ -202,6 +206,9 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 	for index, channel := range targetChannels {
 		randomWeight -= adjustedWeights[index]
 		if randomWeight < 0 {
+			if !circuitbreaker.MarkSelected(channel.Id) {
+				continue
+			}
 			return channel, nil
 		}
 	}
