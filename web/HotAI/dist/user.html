@@ -267,6 +267,17 @@
                     <select class="form-select" id="groupFilter" style="width:150px;margin-left:12px;">
                         <option value="">所有分组</option>
                     </select>
+                    <select class="form-select" id="sortField" style="width:130px;margin-left:12px;">
+                        <option value="id">ID排序</option>
+                        <option value="username">用户名排序</option>
+                        <option value="created_time">注册时间</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="toggleSortOrder()" style="margin-left:8px;" id="sortOrderBtn" title="切换排序">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" id="sortIcon">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <polyline points="19 12 12 19 5 12"/>
+                        </svg>
+                    </button>
                     <button class="btn btn-secondary" onclick="resetFilters()" style="margin-left:8px;">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
                              stroke-width="2" style="margin-right:4px;">
@@ -290,13 +301,13 @@
                         </th>
                         <th>ID</th>
                         <th>用户名</th>
-                        <th>显示名称</th>
+                        <th>分组</th>
                         <th>角色</th>
-                        <th>余额</th>
-                        <th>已用额度</th>
-                        <th>状态</th>
+                        <th style="min-width:140px;">额度使用</th>
                         <th>注册时间</th>
-                        <th>操作</th>
+                        <th>最后登录</th>
+                        <th>状态</th>
+                        <th style="min-width:420px;">操作</th>
                     </tr>
                     </thead>
                     <tbody id="userTableBody">
@@ -331,6 +342,53 @@
         <div class="modal-body" id="userDetailContent"></div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeUserDetail()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- 订阅管理对话框 -->
+<div class="modal-overlay hidden" id="subscriptionModal">
+    <div class="modal" style="max-width:900px;">
+        <div class="modal-header">
+            <div class="modal-title">
+                <span>管理用户订阅 - </span>
+                <strong id="subUsername" style="color:var(--c-primary);">-</strong>
+            </div>
+            <button class="modal-close" onclick="closeSubscriptionModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+            <input type="hidden" id="subUserId"/>
+            <div style="margin-bottom:16px;">
+                <h4 style="margin:0 0 12px 0;font-size:15px;font-weight:600;">当前订阅列表</h4>
+                <div class="table-wrap">
+                    <table style="font-size:13px;">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>订阅计划</th>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="subTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align:center;padding:20px;">
+                                <div class="loading-spinner" style="margin:0 auto;"></div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeSubscriptionModal()">关闭</button>
         </div>
     </div>
 </div>

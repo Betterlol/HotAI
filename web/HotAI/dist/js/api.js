@@ -409,6 +409,33 @@ const API = {
 
     cancelUserSubscription: (userId, subscriptionId) =>
         apiRequest(`/subscription/${subscriptionId}/user/${userId}`, { method: 'DELETE' }),
+
+    // ========== 管理员用户订阅管理 ==========
+    getUserSubscriptions: (userId) =>
+        apiRequest(`/subscription/admin/users/${userId}/subscriptions`),
+
+    createUserSubscription: (userId, data) =>
+        apiRequest(`/subscription/admin/users/${userId}/subscriptions`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+
+    invalidateUserSubscription: (userSubscriptionId) =>
+        apiRequest(`/subscription/admin/user_subscriptions/${userSubscriptionId}/invalidate`, {
+            method: 'POST'
+        }),
+
+    deleteUserSubscription: (userSubscriptionId) =>
+        apiRequest(`/subscription/admin/user_subscriptions/${userSubscriptionId}`, {
+            method: 'DELETE'
+        }),
+
+    // ========== 管理员重置用户认证 ==========
+    resetUserPasskey: (userId) =>
+        apiRequest(`/user/admin/${userId}/reset_passkey`, { method: 'DELETE' }),
+
+    resetUser2FA: (userId) =>
+        apiRequest(`/user/admin/${userId}/2fa`, { method: 'DELETE' }),
 };
 
 // 导出 API（兼容模块和全局）
