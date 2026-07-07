@@ -15,8 +15,8 @@
 | 文件 | 作用 |
 | ---- | ---- |
 | `main.py` | 统一入口，负责加载配置、启动授权服务、抓取文档和同步模型介绍页模板 |
-| `fetch_wiki_doc.py` | 调用飞书 OpenAPI，读取 Wiki 节点背后的 docx 或 sheet 内容 |
 | `oauth_server.py` | 本地 OAuth 回调服务，用于获取 `user_access_token` |
+| `fetch_wiki_doc.py` | 调用飞书 OpenAPI，读取 Wiki 节点背后的 docx 或 sheet 内容 |
 | `.env.example` | 运维配置示例 |
 | `.env` | 本地实际配置文件，不应提交到仓库 |
 | `requirements.txt` | Python 依赖列表 |
@@ -162,21 +162,6 @@ python scripts/feishu/main.py fetch --output docs/feishu_content.txt
 
 注意：只要 `FEISHU_SYNC_MODEL_TEMPLATE` 未关闭，`fetch` 成功后也会同步更新模型介绍页模板。
 
-## 定时自动更新
-
-运维环境可用 cron 定时执行 `fetch`。示例：每天 03:10 更新一次。
-
-```cron
-10 3 * * * cd /home/bobby_2026/projects/HotAI && /usr/bin/python3 scripts/feishu/main.py fetch >> /tmp/hotai-feishu-sync.log 2>&1
-```
-
-建议：
-
-- 先通过 `serve` 模式完成一次人工授权，让 `.env` 保存 `FEISHU_USER_ACCESS_TOKEN`。
-- 确认定时任务运行用户能读取 `scripts/feishu/.env`。
-- 确认定时任务运行用户有权限写入 `FEISHU_DOC_OUTPUT` 和 `FEISHU_MODEL_TEMPLATE_PATH`。
-- 将日志输出到固定文件，便于排查飞书权限、token 过期或表格格式问题。
-
 ## 模型表格格式要求
 
 脚本会从抓取结果中提取第一张 Markdown 表格，并按表头中的 `模型ID` 列识别模型。
@@ -277,7 +262,7 @@ sed -n '1,80p' docs/模型介绍页模板.md
 
 ## 故障排查
 
-### 缺少必要环境变量
+### 1. 缺少必要环境变量
 
 报错示例：
 
@@ -291,7 +276,7 @@ sed -n '1,80p' docs/模型介绍页模板.md
 - 检查 `FEISHU_APP_ID`、`FEISHU_APP_SECRET`、`FEISHU_REDIRECT_URI` 是否已配置。
 - 确认命令是在仓库根目录执行，或脚本路径正确。
 
-### OAuth 回调失败
+### 2. OAuth 回调失败
 
 常见原因：
 
@@ -304,21 +289,21 @@ sed -n '1,80p' docs/模型介绍页模板.md
 - 确认飞书开放平台回调地址和 `.env` 中完全一致。
 - 如果端口冲突，改用 `--port 9001`，并同步修改 `FEISHU_REDIRECT_URI` 与飞书应用配置。
 
-### 抓取失败或返回权限错误
+### 3. 抓取失败或返回权限错误
 
 常见原因：
 
-- 运维账号没有目标 Wiki 的访问权限。
 - 飞书应用未开通读取文档、读取电子表格或 Wiki 相关权限。
+- 运维账号没有目标 Wiki 的访问权限。
 - `FEISHU_USER_ACCESS_TOKEN` 已过期或被撤销。
 
 处理方式：
 
-- 用浏览器确认运维账号可以打开 `FEISHU_WIKI_URL`。
 - 检查飞书开放平台应用权限。
+- 用浏览器确认运维账号可以打开 `FEISHU_WIKI_URL`。
 - 重新执行 `python scripts/feishu/main.py serve` 完成授权并刷新 token。
 
-### 未生成模型介绍页
+### 4. 未生成模型介绍页
 
 检查项：
 
@@ -329,7 +314,7 @@ sed -n '1,80p' docs/模型介绍页模板.md
 
 如果表格无法解析，脚本仍会生成模板头部，但模型总数可能为 0，并保留原始 Markdown 内容。
 
-### 生成内容不完整
+### 5. 生成内容不完整
 
 脚本只会提取抓取结果中的第一张 Markdown 表格。若飞书文档中有多个表格，请将模型清单放在第一张表，或调整飞书文档结构后重新执行更新。
 
@@ -338,4 +323,3 @@ sed -n '1,80p' docs/模型介绍页模板.md
 - 不要提交 `scripts/feishu/.env`。
 - 不要在日志、截图或工单中泄露 `FEISHU_APP_SECRET` 和 `FEISHU_USER_ACCESS_TOKEN`。
 - `FEISHU_USER_ACCESS_TOKEN` 代表授权用户身份，建议使用专门的运维账号授权。
-- 定时任务日志应避免打印完整 token。如需排查 token 问题，优先重新授权。
