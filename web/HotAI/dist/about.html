@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="picture/favicon.ico" />
+    <link rel="icon" type="image/png" href="picture/logo.png" />
+    <title>关于我们 - 图灵智算</title>
+    <link rel="stylesheet" href="css/head.css">
+    <link rel="stylesheet" href="css/about.css">
+</head>
+<body>
+
+<!-- 顶部导航栏 -->
+<header class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo">
+            <img src="picture/logo.png" alt="图灵智算" style="width: 36px; height: 36px; object-fit: contain;">
+            图灵智算</a>
+        <div class="nav-links">
+            <a href="index.html" data-i18n="nav.home">首页</a>
+            <a href="console.html" data-i18n="nav.console">控制台</a>
+            <a href="model.html" data-i18n="nav.models">模型广场</a>
+            <a href="docs.html" data-i18n="nav.docs">文档</a>
+            <a href="about.html" class="active" data-i18n="nav.about">关于</a>
+        </div>
+    </div>
+    <div class="nav-right">
+        <!-- 公告按钮 -->
+        <button class="icon-btn" id="noticeBtn" title="公告">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span class="notice-badge" id="noticeBadge" style="display: none;"></span>
+        </button>
+        
+        <!-- 翻译/语言切换按钮 -->
+        <div class="language-selector">
+            <button class="icon-btn" id="languageBtn" title="语言">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M2 12h20"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+            </button>
+            <div class="language-dropdown" id="languageDropdown">
+                <div class="language-option" data-lang="zh">
+                    <span data-i18n="lang.zh">中文</span>
+                </div>
+                <div class="language-option" data-lang="en">
+                    <span data-i18n="lang.en">English</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 未登录时显示登录/注册按钮，已登录时显示用户菜单 -->
+        <a href="login.html" class="btn-login" id="navLoginBtn" data-i18n="nav.login">登录</a>
+        <a href="register.html" class="btn-signup" id="navSignupBtn" data-i18n="nav.signup">注册</a>
+        
+        <!-- 用户菜单（已登录时显示） -->
+        <div class="user-menu hidden" id="navUserMenu">
+            <div class="user-trigger">
+                <div class="user-avatar-top" id="navUserAvatar">U</div>
+                <div class="user-info">
+                    <span id="navUsername">User</span>
+                    <span class="user-balance" id="navUserBalance">加载中...</span>
+                </div>
+            </div>
+            <div class="user-dropdown" id="navUserDropdown">
+                <a href="profile.html" class="user-dropdown-item" data-i18n="nav.profile">个人设置</a>
+                <div class="user-dropdown-divider"></div>
+                <button id="navLogoutBtn" class="user-dropdown-item" data-i18n="nav.logout">退出登录</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- 公告弹窗 -->
+<div class="notice-modal" id="noticeModal" style="display: none;">
+    <div class="notice-overlay" id="noticeOverlay"></div>
+    <div class="notice-card">
+        <div class="notice-header">
+            <h3 data-i18n="notice.title">公告</h3>
+            <button class="notice-close" id="noticeClose">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="notice-content" id="noticeContent">
+            <div class="notice-loading" data-i18n="notice.loading">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<!-- 主体内容 -->
+<div class="about-container">
+    <div class="about-card">
+        <h1>关于我们</h1>
+        
+        <h2>平台简介</h2>
+        <p>
+            图灵智算是一个国内外 AI API 智能聚合平台，致力于为开发者和企业提供便捷、高效的 AI 服务接入方案。
+            我们整合了多家顶级 AI 服务提供商的能力，让您能够通过统一的接口访问众多优质模型。
+        </p>
+        
+        <h2>核心优势</h2>
+        <ul>
+            <li><strong>多模型支持：</strong>集成 OpenAI、Claude、Gemini、Azure 等多家主流 AI 模型</li>
+            <li><strong>统一接口：</strong>标准化的 API 接口，降低集成成本</li>
+            <li><strong>灵活配置：</strong>支持模型切换、参数调优、分组管理等功能</li>
+            <li><strong>高可用性：</strong>7x24 小时稳定服务，智能负载均衡</li>
+            <li><strong>安全可靠：</strong>数据加密传输，隐私保护机制完善</li>
+        </ul>
+        
+        <h2>服务特色</h2>
+        <p>
+            我们提供灵活的计费方案和完善的技术支持，无论您是个人开发者还是企业用户，
+            都能找到适合您的服务方案。平台持续更新，不断引入最新的 AI 技术和模型，
+            确保您始终能够使用业界领先的 AI 能力。
+        </p>
+        
+        <h2>联系我们</h2>
+        <p>
+            如有任何问题或建议，欢迎通过平台公告、文档中心或客服渠道与我们联系。
+            我们将竭诚为您服务，持续优化产品体验。
+        </p>
+    </div>
+</div>
+
+<!-- 引入 JavaScript -->
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script>
+// 公告按钮功能
+document.getElementById('noticeBtn')?.addEventListener('click', function() {
+    document.getElementById('noticeModal').style.display = 'flex';
+    loadNotice();
+});
+
+document.getElementById('noticeClose')?.addEventListener('click', function() {
+    document.getElementById('noticeModal').style.display = 'none';
+});
+
+document.getElementById('noticeOverlay')?.addEventListener('click', function() {
+    document.getElementById('noticeModal').style.display = 'none';
+});
+
+// 语言切换功能
+document.getElementById('languageBtn')?.addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.getElementById('languageDropdown').classList.toggle('show');
+});
+
+document.querySelectorAll('.language-option').forEach(option => {
+    option.addEventListener('click', function() {
+        const lang = this.getAttribute('data-lang');
+        if (window.i18n && window.i18n.changeLanguage) {
+            window.i18n.changeLanguage(lang);
+        }
+        document.getElementById('languageDropdown').classList.remove('show');
+    });
+});
+
+// 点击外部关闭语言下拉菜单
+document.addEventListener('click', function() {
+    document.getElementById('languageDropdown').classList.remove('show');
+});
+
+// 加载公告内容
+async function loadNotice() {
+    const noticeContent = document.getElementById('noticeContent');
+    try {
+        const response = await fetch('/api/notice');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+                noticeContent.innerHTML = data.data;
+            } else {
+                noticeContent.innerHTML = '<div class="notice-empty">暂无公告</div>';
+            }
+        } else {
+            noticeContent.innerHTML = '<div class="notice-empty">加载失败</div>';
+        }
+    } catch (error) {
+        noticeContent.innerHTML = '<div class="notice-empty">加载失败</div>';
+    }
+}
+</script>
+</body>
+</html>
