@@ -118,11 +118,22 @@ function checkAdminAccess() {
         if (result.success && result.data) {
             const role = result.data.role || 0;
             if (role >= 10) {
-                // 管理员
+                // 管理员或超级管理员
                 const adminGroup = document.getElementById('adminMenuGroup');
                 if (adminGroup) {
                     adminGroup.classList.add('show');
-                    adminGroup.querySelectorAll('.admin-only').forEach(el => el.classList.add('show'));
+                    adminGroup.querySelectorAll('.admin-only').forEach(el => {
+                        // 系统设置只对超级管理员（role >= 100）显示
+                        if (el.href && el.href.includes('setting.html')) {
+                            if (role >= 100) {
+                                el.classList.add('show');
+                            } else {
+                                el.style.display = 'none';
+                            }
+                        } else {
+                            el.classList.add('show');
+                        }
+                    });
                 }
             }
         }

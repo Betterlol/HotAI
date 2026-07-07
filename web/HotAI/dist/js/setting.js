@@ -195,8 +195,8 @@ window.syncChannelBalance = async function() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     const res = await API.getUserInfo();
-    if (!res.success||!res.data||(res.data.role||0)<10) {
-        showToast('无权限访问','error');
+    if (!res.success||!res.data||(res.data.role||0)<100) {
+        showToast('需要超级管理员权限才能访问系统设置','error');
         setTimeout(()=>window.location.href='console.html',1500);
         return;
     }
