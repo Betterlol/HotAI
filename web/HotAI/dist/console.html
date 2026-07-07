@@ -228,6 +228,16 @@
             </div>
         </div>
 
+        <!-- 概览信息标签栏 -->
+        <div class="chart-tabsbar" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="chart-tab active" data-view="models" onclick="switchDashboardView('models')">模型分析</button>
+            <button class="chart-tab admin-tab hidden" data-view="users" onclick="switchDashboardView('users')">用户分析</button>
+            <button class="chart-tab admin-tab hidden" data-view="flow" onclick="switchDashboardView('flow')">流量分析</button>
+            <button class="chart-tab admin-tab hidden" data-view="performance" onclick="switchDashboardView('performance')">性能概览</button>
+        </div>
+
+        <!-- 模型分析视图（默认） -->
+        <div id="view-models">
         <!-- 主面板双栏区域 -->
         <div class="dashboard-main">
 
@@ -270,6 +280,93 @@
                     <div class="api-info-title">暂无API信息</div>
                     <div class="api-info-desc">请联系管理员在系统设置中配置API信息</div>
                 </div>
+            </div>
+        </div>
+
+        </div><!-- end view-models -->
+
+        <!-- 用户分析视图 -->
+        <div id="view-users" style="display:none;">
+            <div class="chart-area">
+                <div class="chart-header">
+                    <div class="chart-title">用户消耗分析</div>
+                    <div style="display:flex;gap:8px;">
+                        <select class="filter-input" id="userAnalyticsLimit" style="width:auto;">
+                            <option value="10">Top 10</option>
+                            <option value="20">Top 20</option>
+                            <option value="50">Top 50</option>
+                </select>
+                        <button class="btn btn-secondary-sm" onclick="loadUserAnalytics()">刷新</button>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <div id="userAnalyticsContainer" style="min-height:300px;">
+                        <div style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--c-text-secondary);">
+                            <div class="loading"></div><span style="margin-left:8px;">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 流量分析视图 -->
+        <div id="view-flow" style="display:none;">
+            <div class="chart-area">
+                <div class="chart-header">
+                    <div class="chart-title">API 流量分析</div>
+                <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="loadFlowAnalytics()">刷新</button>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <canvas id="flowChart" style="width:100%;height:300px;"></canvas>
+                    <div id="flowChartEmpty" style="display:none;text-align:center;padding:60px 0;color:var(--c-text-secondary);">暂无流量数据</div>
+                </div>
+            </div>
+            <!-- 流量详情表格 -->
+            <div class="chart-area" style="margin-top:16px;">
+                <div class="chart-header"><div class="chart-title">请求来源分布</div></div>
+                <div id="flowSourceTable" style="padding:12px;">
+                    <table style="width:100%;font-size:13px;"><thead><tr><th style="text-align:left;padding:8px;">来源</th><th style="text-align:right;padding:8px;">请求数</th><th style="text-align:right;padding:8px;">占比</th></tr></thead><tbody id="flowSourceBody"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 性能概览视图 -->
+        <div id="view-performance" style="display:none;">
+            <div class="stat-grid" id="perfStatGrid">
+                <div class="stat-card">
+                    <div class="stat-card-header"><svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg><span>响应时间</span></div>
+                    <div class="stat-list">
+                        <div class="stat-item"><span>P50 延迟</span><span class="val" id="perfP50">--</span></div>
+                        <div class="stat-item"><span>P99 延迟</span><span class="val" id="perfP99">--</span></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header"><svg viewBox="0 0 24"><path d="M22 12h-4l-3 9-4-18-3 9H2"/></svg><span>吞吐量</span></div>
+                    <div class="stat-list">
+                        <div class="stat-item"><span>当前 RPM</span><span class="val" id="perfCurrentRPM">--</span></div>
+                        <div class="stat-item"><span>当前 TPM</span><span class="val" id="perfCurrentTPM">--</span></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header"><svg viewBox="0 24 24"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 16zm-1-5h2v2h-2v-2zm0-8h2v6h-2V7z"/></svg><span>错误统计</span></div>
+                    <div class="stat-list">
+                        <div class="stat-item"><span>错误率</span><span class="val" id="perfErrorRate">--</span></div>
+                        <div class="stat-item"><span>失败请求</span><span class="val" id="perfFailCount">--</span></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header"><svg viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg><span>渠道健康</span></div>
+                    <div class="stat-list">
+                        <div class="stat-item"><span>可用渠道</span><span class="val" id="perfActiveChannels">--</span></div>
+                        <div class="stat-item"><span>异常渠道</span><span class="val" id="perfErrorChannels">--</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-area" style="margin-top:16px;">
+                <div class="chart-header"><div class="chart-title">渠道响应时间排行</div></div>
+                <div id="channelPerfTable" style="padding:12px;"></div>
             </div>
         </div>
 

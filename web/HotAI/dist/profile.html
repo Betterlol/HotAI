@@ -139,8 +139,82 @@
             </div>
         </div>
 
+        <!-- 签到日历 -->
+        <div class="settings-section">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">每日签到</div>
+                    <span class="badge badge-success" id="checkinBadge" style="display:none;">已签到</span>
+                </div>
+                <div class="card-body">
+                    <div style="margin-bottom:16px;">
+                        <span style="font-size:13px;color:var(--c-text-secondary);">连续签到：</span>
+                        <span style="font-size:20px;font-weight:700;color:var(--c-primary);" id="checkinStreak">0</span>
+                        <span style="font-size:13px;color:var(--c-text-secondary);margin-left:16px;">本月签到：</span>
+                        <span style="font-size:20px;font-weight:700;" id="checkinMonth">0</span>
+                    </div>
+                    <button class="btn btn-primary" onclick="doCheckin()" id="checkinBtn">立即签到</button>
+                    <div id="checkinCalendar" style="margin-top:20px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Passkey 管理 -->
+        <div class="settings-section">
+            <div class="card">
+                <div class="card-header"><div class="card-title">Passkey 通行密钥</div></div>
+                <div class="card-body">
+                    <p style="font-size:14px;color:var(--c-text-secondary);margin-bottom:16px;">
+                        使用 Passkey 可以更快速、更安全地登录，无需记住密码。
+                    </p>
+                    <button class="btn btn-primary" onclick="addPasskey()">添加 Passkey</button>
+                    <div id="passkeyList" style="margin-top:16px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 双因素认证 -->
+        <div class="settings-section">
+            <div class="card">
+                <div class="card-header"><div class="card-title">双因素认证 (2FA)</div></div>
+                <div class="card-body">
+                    <p style="font-size:14px;color:var(--c-text-secondary);margin-bottom:16px;">
+                        启用双因素认证后，登录时需要输入动态验证码，增强账户安全。
+                    </p>
+                    <div id="twoFAStatus"></div>
+                </div>
+            </div>
+        </div>
+
     </main>
 </div>
+
+<!-- 2FA 设置对话框 -->
+<div class="modal-overlay hidden" id="twoFAModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">启用双因素认证</div>
+            <button class="modal-close" onclick="close2FAModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom:16px;">使用认证应用扫描二维码（推荐 Google Authenticator）</p>
+            <div style="text-align:center;margin-bottom:16px;" id="qrCode"></div>
+            <div class="form-group">
+                <label class="form-label">或手动输入密钥</label>
+                <input type="text" class="form-input" id="totpSecret" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">输入6位验证码 <span>*</span></label>
+                <input type="text" class="form-input" id="totpCode" placeholder="000000" maxlength="6">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="close2FAModal()">取消</button>
+            <button class="btn btn-primary" onclick="confirm2FA()">确认启用</button>
+        </div>
+    </div>
+</div>
+
 <script src="js/i18n.js"></script>
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>

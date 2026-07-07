@@ -87,8 +87,22 @@
     <main class="main-content">
         <div class="page-header">
             <div class="page-title">用户管理</div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openCreateUserModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    创建用户
+                </button>
+            </div>
         </div>
         <div class="table-card">
+            <!-- 批量操作工具栏 -->
+            <div id="userBatchBar" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:var(--c-primary-light,#eff6ff);border-bottom:1px solid var(--c-border);">
+                <span style="font-size:13px;color:var(--c-primary);font-weight:500;">已选 <strong id="userSelectedCount">0</strong> 项</span>
+                <button class="btn btn-secondary btn-sm" onclick="batchUnbanUsers()">批量解封</button>
+                <button class="btn btn-secondary btn-sm" onclick="batchBanUsers()">批量封禁</button>
+                <button class="btn btn-danger btn-sm" onclick="batchDeleteUsers()">批量删除</button>
+                <button class="btn btn-secondary btn-sm" onclick="selectedUsers.clear();updateUserBatchBar();document.querySelectorAll('.u-checkbox').forEach(c=>c.checked=false)">取消选择</button>
+            </div>
             <div class="table-toolbar">
                 <div class="table-toolbar-left">
                     <div class="search-input-wrap">
@@ -100,14 +114,32 @@
             </div>
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>ID</th><th>用户名</th><th>显示名称</th><th>角色</th><th>余额</th><th>已用额度</th><th>状态</th><th>注册时间</th><th>操作</th></tr></thead>
-                    <tbody id="userTableBody"><tr><td colspan="9"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr></tbody>
+                    <thead><tr>
+                        <th style="width:36px;"><input type="checkbox" onchange="toggleSelectAllUsers(this.checked)"></th>
+                        <th>ID</th><th>用户名</th><th>显示名称</th><th>角色</th><th>余额</th><th>已用额度</th><th>状态</th><th>注册时间</th><th>操作</th>
+                    </tr></thead>
+                    <tbody id="userTableBody"><tr><td colspan="10"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr></tbody>
                 </table>
             </div>
             <div class="pagination"><span id="userPageInfo">共 0 条</span><div class="pagination-pages" id="userPages"></div></div>
         </div>
     </main>
 </div>
+
+<!-- 用户详情弹窗 -->
+<div class="modal-overlay hidden" id="userDetailModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">用户详情</div>
+            <button class="modal-close" onclick="closeUserDetail()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body" id="userDetailContent"></div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeUserDetail()">关闭</button>
+        </div>
+    </div>
+</div>
+
 <script src="js/i18n.js"></script>
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>

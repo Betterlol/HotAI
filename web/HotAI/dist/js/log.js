@@ -81,12 +81,15 @@ async function loadLogs() {
         return;
     }
 
-    tbody.innerHTML = logs.map(log => {
+    // 存储日志数据供详情弹窗使用
+    window._logData = logs;
+
+    tbody.innerHTML = logs.map((log, idx) => {
         const typeLabel = logTypes[log.type] || '其他';
         const typeBadge = logTypeBadge[log.type] || 'badge-gray';
         const userCell = adminMode ? `<td>${escHtml(log.username || '-')}</td>` : '';
         return `
-        <tr>
+        <tr style="cursor:pointer;" onclick="showLogDetail(${idx})">
             <td class="td-mono" style="white-space:nowrap;">${formatTime(log.created_at)}</td>
             ${userCell}
             <td>${escHtml(log.token_name || '-')}</td>
@@ -95,7 +98,7 @@ async function loadLogs() {
             <td style="text-align:right;">${(log.prompt_tokens || 0).toLocaleString()}</td>
             <td style="text-align:right;">${(log.completion_tokens || 0).toLocaleString()}</td>
             <td style="text-align:right;font-weight:600;color:var(--c-primary);">${quotaToDisplay(log.quota)}</td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--c-text-secondary);font-size:12px;" title="${escHtml(log.content || '')}">${escHtml(log.content || '-')}</td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--c-text-secondary);font-size:12px;">${escHtml((log.content || '-').slice(0, 50))}</td>
         </tr>`;
     }).join('');
 
@@ -164,6 +167,89 @@ function resetFilters() {
     logPage = 1;
     loadLogs();
 }
+
+// ========== 日志详情弹窗 ==========
+window.showLogDetail = function(idx) {
+    const log = (window._logData || [])[idx];
+    if (!log) return;
+
+    const modal = document.getElementById('logDetailModal');
+    const content = document.getElementById('logDetailContent');
+    if (!modal || !content) return;
+
+    const rows = [
+        ['时间', formatTime(log.created_at)],
+        ['用户名', log.username || '-'],
+        ['令牌', log.token_name || '-'],
+        ['模型', log.model_name || '-'],
+        ['类型', logTypes[log.type] || '其他'],
+        ['提示 Tokens', (log.prompt_tokens || 0).toLocaleString()],
+        ['补全 Tokens', (log.completion_tokens || 0).toLocaleString()],
+        ['消耗额度', quotaToDisplay(log.quota)],
+        ['渠道ID', log.channel_id || '-'],
+        ['IP 地址', log.ip || '-'],
+    ].filter(([, v]) => v !== '-' && v !== '');
+
+    content.innerHTML = `
+        <div style="display:grid;grid-template-columns:100px 1fr;gap:8px 16px;font-size:14px;">
+            ${rows.map(([k, v]) => `
+                <div style="color:var(--c-text-secondary);padding:8px 0;border-bottom:1px solid var(--c-border);">${k}</div>
+                <div style="padding:8px 0;border-bottom:1px solid var(--c-border);font-weight:500;word-break:break-all;">${escHtml(String(v))}</div>
+            `).join('')}
+        </div>
+        ${log.content ? `
+            <div style="margin-top:16px;">
+                <div style="font-size:13px;font-weight:600;color:var(--c-text-secondary);margin-bottom:8px;">请求内容</div>
+                <div style="background:var(--c-input-bg);border-radius:8px;padding:12px;font-size:13px;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;">${escHtml(log.content)}</div>
+            </div>
+        ` : ''}
+    `;
+
+    modal.classList.remove('hidden');
+};
+
+window.closeLogDetail = function() {
+    document.getElementById('logDetailModal')?.classList.add('hidden');
+};
+
+// ========== 导出日志 ==========
+window.exportLogs = async function() {
+    showToast('正在导出，请稍候...', 'info');
+
+    const params = getFilters();
+    params.page_size = 10000; // 尽量导出全部
+    Object.keys(params).forEach(k => { if (params[k] === '') delete params[k]; });
+
+    const res = adminMode ? await API.getAllLogs(params) : await API.getUserLogs(params);
+    if (!res.success || !res.data) {
+        showToast('导出失败', 'error');
+        return;
+    }
+
+    const logs = res.data?.items || [];
+    const header = ['时间', '用户名', '令牌', '模型', '类型', '提示Tokens', '补全Tokens', '消耗额度', '内容'];
+    const rows = logs.map(log => [
+        formatTime(log.created_at),
+        log.username || '',
+        log.token_name || '',
+        log.model_name || '',
+        logTypes[log.type] || '',
+        log.prompt_tokens || 0,
+        log.completion_tokens || 0,
+        (log.quota / 500000).toFixed(6),
+        (log.content || '').replace(/,/g, '，').replace(/\n/g, ' '),
+    ]);
+
+    const csv = [header, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `logs_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`已导出 ${logs.length} 条日志`, 'success');
+};
 
 function escHtml(s) {
     return String(s).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');

@@ -42,6 +42,7 @@ async function loadRd() {
             ? '<span class="badge badge-green">可用</span>'
             : '<span class="badge badge-red">已使用</span>';
         return `<tr>
+            <td><input type="checkbox" class="rd-checkbox" data-id="${rd.id}" onchange="toggleSelectRd(${rd.id})" ${selectedRds.has(rd.id)?'checked':''}></td>
             <td><strong>${escHtml(rd.name||'-')}</strong></td>
             <td class="td-mono" style="font-size:12px;">${escHtml(rd.key||'-')}
                 <button class="btn btn-secondary btn-sm" style="margin-left:4px;" onclick="navigator.clipboard.writeText('${escHtml(rd.key||'')}').then(()=>showToast('已复制','success'))">复制</button>
@@ -113,6 +114,67 @@ async function deleteInvalidRd() {
     const res = await API.deleteInvalidRedemptions();
     if (res.success) { showToast('清理完成','success'); loadRd(); }
     else showToast(res.message||'清理失败','error');
+}
+
+// ========== 批量操作 ==========
+let selectedRds = new Set();
+
+function toggleSelectRd(id) {
+    if (selectedRds.has(id)) selectedRds.delete(id);
+    else selectedRds.add(id);
+    updateRdBatchBar();
+}
+
+function toggleSelectAllRds(checked) {
+    document.querySelectorAll('.rd-checkbox').forEach(cb => {
+        const id = parseInt(cb.dataset.id);
+        if (checked) { selectedRds.add(id); cb.checked = true; }
+        else { selectedRds.delete(id); cb.checked = false; }
+    });
+    updateRdBatchBar();
+}
+
+function updateRdBatchBar() {
+    const bar = document.getElementById('rdBatchBar');
+    const count = document.getElementById('rdSelectedCount');
+    if (bar) bar.style.display = selectedRds.size > 0 ? 'flex' : 'none';
+    if (count) count.textContent = selectedRds.size;
+}
+
+async function batchDeleteRds() {
+    if (!selectedRds.size) return;
+    if (!confirm(`确定删除选中的 ${selectedRds.size} 个兑换码？`)) return;
+    await Promise.all([...selectedRds].map(id => API.deleteRedemption(id)));
+    showToast(`已删除 ${selectedRds.size} 个兑换码`, 'success');
+    selectedRds.clear(); updateRdBatchBar(); loadRd();
+}
+
+// ========== 导出兑换码 ==========
+async function exportRds() {
+    showToast('正在导出...', 'info');
+    const res = await API.getRedemptions(1, 10000);
+    if (!res.success || !res.data) { showToast('导出失败', 'error'); return; }
+
+    const items = res.data?.items || [];
+    const header = ['名称', '兑换码', '额度', '状态', '使用者', '使用时间'];
+    const rows = items.map(rd => [
+        rd.name || '',
+        rd.key || '',
+        (rd.quota / 500000).toFixed(4),
+        rd.status === 1 ? '可用' : '已使用',
+        rd.used_username || '',
+        rd.used_time ? formatTime(rd.used_time) : '',
+    ]);
+
+    const csv = [header, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `redemptions_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`已导出 ${items.length} 条兑换码`, 'success');
 }
 
 let searchTimer;

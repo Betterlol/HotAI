@@ -70,19 +70,22 @@ async function loadMjLogs() {
         return;
     }
 
-    tbody.innerHTML = items.map(item => {
+    // 存储数据供详情弹窗使用
+    window._mjData = items;
+
+    tbody.innerHTML = items.map((item, idx) => {
         const status = item.status || '';
         const badgeClass = mjStatusBadge[status] || 'badge-gray';
         const userCell = mjAdminMode ? `<td>${escHtml(item.username || '-')}</td>` : '';
         const imgCell = item.image_url
-            ? `<td><a href="${escHtml(item.image_url)}" target="_blank"><img src="${escHtml(item.image_url)}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'"></a></td>`
-            : `<td><span style="color:var(--c-text-secondary);font-size:12px;">无</span></td>`;
+            ? `<td style="cursor:pointer;" onclick="showMjDetail(${idx})"><img src="${escHtml(item.image_url)}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;border:2px solid transparent;transition:border-color 0.2s;" onerror="this.style.display='none'" title="点击查看详情"></td>`
+            : `<td><span style="color:var(--c-text-secondary);font-size:12px;">无图片</span></td>`;
         return `
-        <tr>
+        <tr style="cursor:pointer;" onclick="showMjDetail(${idx})">
             <td class="td-mono" style="white-space:nowrap;">${formatTime(item.submit_time || item.created_at)}</td>
             ${userCell}
             <td class="td-mono" style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(item.mj_id||'')}">
-                ${escHtml((item.mj_id||'').slice(0,16)+'...'||'-')}
+                ${escHtml((item.mj_id||'').slice(0,16) || '-')}
             </td>
             <td><span class="badge badge-blue">${escHtml(item.action || '-')}</span></td>
             <td><span class="badge ${badgeClass}">${escHtml(status || '-')}</span></td>
@@ -123,6 +126,57 @@ function resetMjFilters() {
     mjPage = 1;
     loadMjLogs();
 }
+
+// ========== 绘图任务详情 ==========
+window.showMjDetail = function(idx) {
+    const item = (window._mjData || [])[idx];
+    if (!item) return;
+
+    const modal = document.getElementById('mjDetailModal');
+    const content = document.getElementById('mjDetailContent');
+    if (!modal || !content) return;
+
+    const statusColor = { SUCCESS: '#22c55e', FAILURE: '#ef4444', IN_PROGRESS: '#3b82f6', NOT_START: '#9ca3af' };
+    const status = item.status || '';
+
+    content.innerHTML = `
+        ${item.image_url ? `
+            <div style="text-align:center;margin-bottom:20px;">
+                <img src="${escHtml(item.image_url)}" style="max-width:100%;max-height:400px;border-radius:8px;border:1px solid var(--c-border);" alt="生成图片">
+                <div style="margin-top:8px;">
+                    <a href="${escHtml(item.image_url)}" target="_blank" class="btn btn-sm btn-secondary">在新窗口打开</a>
+                    <button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText('${escHtml(item.image_url)}').then(()=>showToast('链接已复制','success'))">复制链接</button>
+                </div>
+            </div>
+        ` : ''}
+        <div style="display:grid;grid-template-columns:110px 1fr;gap:8px 16px;font-size:14px;">
+            ${[
+                ['任务ID', item.mj_id || '-'],
+                ['用户名', item.username || '-'],
+                ['操作类型', item.action || '-'],
+                ['状态', `<span style="color:${statusColor[status]||'#6b7280'};font-weight:600;">${status}</span>`],
+                ['提交时间', formatTime(item.submit_time || item.created_at)],
+                ['完成时间', item.finish_time ? formatTime(item.finish_time) : '-'],
+                ['错误信息', item.fail_reason || item.fail_message || '-'],
+            ].map(([k, v]) => `
+                <div style="color:var(--c-text-secondary);padding:8px 0;border-bottom:1px solid var(--c-border);">${k}</div>
+                <div style="padding:8px 0;border-bottom:1px solid var(--c-border);word-break:break-all;">${typeof v === 'string' && !v.includes('<') ? escHtml(v) : v}</div>
+            `).join('')}
+        </div>
+        ${item.prompt ? `
+            <div style="margin-top:16px;">
+                <div style="font-size:13px;font-weight:600;color:var(--c-text-secondary);margin-bottom:8px;">Prompt</div>
+                <div style="background:var(--c-input-bg);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;">${escHtml(item.prompt)}</div>
+            </div>
+        ` : ''}
+    `;
+
+    modal.classList.remove('hidden');
+};
+
+window.closeMjDetail = function() {
+    document.getElementById('mjDetailModal')?.classList.add('hidden');
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
     renderSidebar('mj-log');

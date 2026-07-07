@@ -55,11 +55,18 @@ async function loadTokens() {
         const statusBadge = tk.status === 1
             ? '<span class="badge badge-green">正常</span>'
             : '<span class="badge badge-red">禁用</span>';
+        const usedPct = (tk.remain_quota > 0 && tk.used_quota > 0)
+            ? Math.min(100, Math.round(tk.used_quota / (tk.used_quota + tk.remain_quota) * 100))
+            : 0;
         return `
         <tr>
+            <td><input type="checkbox" class="tk-checkbox" data-id="${tk.id}" onchange="toggleSelectToken(${tk.id})" ${selectedTokens.has(tk.id)?'checked':''}></td>
             <td><strong>${escHtml(tk.name || '-')}</strong></td>
             <td>${statusBadge}</td>
-            <td>${quotaToDisplay(tk.remain_quota)}</td>
+            <td>
+                <div style="font-size:13px;">${quotaToDisplay(tk.remain_quota)}</div>
+                ${tk.remain_quota !== -1 ? `<div style="margin-top:4px;height:4px;background:var(--c-border);border-radius:2px;overflow:hidden;"><div style="width:${usedPct}%;height:100%;background:var(--c-primary);"></div></div>` : ''}
+            </td>
             <td>${quotaToDisplay(tk.used_quota)}</td>
             <td class="td-mono">${formatTime(tk.created_time)}</td>
             <td class="td-mono">${formatTime(tk.expired_time)}</td>
@@ -205,6 +212,53 @@ async function deleteToken(id, name) {
     } else {
         showToast(res.message || '删除失败', 'error');
     }
+}
+
+// ========== 批量操作 ==========
+let selectedTokens = new Set();
+
+function toggleSelectToken(id) {
+    if (selectedTokens.has(id)) selectedTokens.delete(id);
+    else selectedTokens.add(id);
+    updateTokenBatchActions();
+}
+
+function toggleSelectAllTokens(checked) {
+    document.querySelectorAll('.tk-checkbox').forEach(cb => {
+        const id = parseInt(cb.dataset.id);
+        if (checked) { selectedTokens.add(id); cb.checked = true; }
+        else { selectedTokens.delete(id); cb.checked = false; }
+    });
+    updateTokenBatchActions();
+}
+
+function updateTokenBatchActions() {
+    const bar = document.getElementById('tokenBatchBar');
+    const count = document.getElementById('tokenSelectedCount');
+    if (bar) bar.style.display = selectedTokens.size > 0 ? 'flex' : 'none';
+    if (count) count.textContent = selectedTokens.size;
+}
+
+async function batchEnableTokens() {
+    if (!selectedTokens.size) return;
+    await Promise.all([...selectedTokens].map(id => API.updateToken({ id, status: 1 })));
+    showToast(`已启用 ${selectedTokens.size} 个令牌`, 'success');
+    selectedTokens.clear(); updateTokenBatchActions(); loadTokens();
+}
+
+async function batchDisableTokens() {
+    if (!selectedTokens.size) return;
+    await Promise.all([...selectedTokens].map(id => API.updateToken({ id, status: 2 })));
+    showToast(`已禁用 ${selectedTokens.size} 个令牌`, 'success');
+    selectedTokens.clear(); updateTokenBatchActions(); loadTokens();
+}
+
+async function batchDeleteTokens() {
+    if (!selectedTokens.size) return;
+    if (!confirm(`确定删除选中的 ${selectedTokens.size} 个令牌？`)) return;
+    await Promise.all([...selectedTokens].map(id => API.deleteToken(id)));
+    showToast(`已删除 ${selectedTokens.size} 个令牌`, 'success');
+    selectedTokens.clear(); updateTokenBatchActions(); loadTokens();
 }
 
 // 搜索防抖

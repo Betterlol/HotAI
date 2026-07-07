@@ -65,13 +65,19 @@ async function loadTaskLogs() {
         return;
     }
 
-    tbody.innerHTML = items.map(item => {
+    // 存储数据供详情弹窗使用
+    window._taskData = items;
+
+    tbody.innerHTML = items.map((item, idx) => {
         const st = item.status || '';
         const badgeClass = taskStatusBadge[st] || 'badge-gray';
         const userCell = taskAdminMode ? `<td>${escHtml(item.username||'-')}</td>` : '';
         const resultText = item.fail_reason || (item.result_url ? '已完成' : '-');
+        const retryBtn = (st === 'FAILURE' || st === 'NOT_START')
+            ? `<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();retryTask('${escHtml(item.task_id||'')}')">重试</button>`
+            : '';
         return `
-        <tr>
+        <tr style="cursor:pointer;" onclick="showTaskDetail(${idx})">
             <td class="td-mono" style="white-space:nowrap;">${formatTime(item.submit_time || item.created_at)}</td>
             ${userCell}
             <td class="td-mono" style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(item.task_id||'')}">
@@ -80,8 +86,9 @@ async function loadTaskLogs() {
             <td><span class="badge badge-blue">${escHtml(item.platform || '-')}</span></td>
             <td>${escHtml(item.action || '-')}</td>
             <td><span class="badge ${badgeClass}">${escHtml(st||'-')}</span></td>
-            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--c-text-secondary);" title="${escHtml(resultText)}">
-                ${item.result_url ? `<a href="${escHtml(item.result_url)}" target="_blank" style="color:var(--c-primary);">查看结果</a>` : escHtml(resultText)}
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--c-text-secondary);">
+                ${item.result_url ? `<a href="${escHtml(item.result_url)}" target="_blank" style="color:var(--c-primary);" onclick="event.stopPropagation()">查看结果</a>` : escHtml(resultText)}
+                ${retryBtn}
             </td>
         </tr>`;
     }).join('');
@@ -110,6 +117,62 @@ function resetTaskFilters() {
     taskPage = 1;
     loadTaskLogs();
 }
+
+// ========== 任务详情 ==========
+window.showTaskDetail = function(idx) {
+    const item = (window._taskData || [])[idx];
+    if (!item) return;
+
+    const modal = document.getElementById('taskDetailModal');
+    const content = document.getElementById('taskDetailContent');
+    if (!modal || !content) return;
+
+    const statusColor = { SUCCESS: '#22c55e', FAILURE: '#ef4444', IN_PROGRESS: '#3b82f6', NOT_START: '#9ca3af' };
+    const st = item.status || '';
+
+    content.innerHTML = `
+        <div style="display:grid;grid-template-columns:110px 1fr;gap:8px 16px;font-size:14px;">
+            ${[
+                ['任务ID', item.task_id || '-'],
+                ['平台', item.platform || '-'],
+                ['操作类型', item.action || '-'],
+                ['用户名', item.username || '-'],
+                ['状态', `<span style="color:${statusColor[st]||'#6b7280'};font-weight:600;">${st}</span>`],
+                ['提交时间', formatTime(item.submit_time || item.created_at)],
+                ['完成时间', item.finish_time ? formatTime(item.finish_time) : '-'],
+                ['失败原因', item.fail_reason || '-'],
+            ].map(([k, v]) => `
+                <div style="color:var(--c-text-secondary);padding:8px 0;border-bottom:1px solid var(--c-border);">${k}</div>
+                <div style="padding:8px 0;border-bottom:1px solid var(--c-border);word-break:break-all;">${typeof v === 'string' && !v.includes('<') ? escHtml(v) : v}</div>
+            `).join('')}
+        </div>
+        ${item.result_url ? `
+            <div style="margin-top:16px;padding:12px;background:var(--c-input-bg);border-radius:8px;">
+                <div style="font-size:13px;color:var(--c-text-secondary);margin-bottom:8px;">结果链接</div>
+                <a href="${escHtml(item.result_url)}" target="_blank" style="color:var(--c-primary);word-break:break-all;">${escHtml(item.result_url)}</a>
+            </div>
+        ` : ''}
+    `;
+
+    modal.classList.remove('hidden');
+};
+
+window.closeTaskDetail = function() {
+    document.getElementById('taskDetailModal')?.classList.add('hidden');
+};
+
+// ========== 任务重试 ==========
+window.retryTask = async function(taskId) {
+    if (!taskId || taskId === '-') return;
+    showToast('正在重试...', 'info');
+    const res = await API.retryTask(taskId);
+    if (res.success) {
+        showToast('已重新提交任务', 'success');
+        loadTaskLogs();
+    } else {
+        showToast(res.message || '重试失败', 'error');
+    }
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
     renderSidebar('task-log');

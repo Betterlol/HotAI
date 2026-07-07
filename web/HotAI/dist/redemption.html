@@ -57,7 +57,11 @@
     <main class="main-content">
         <div class="page-header">
             <div class="page-title">兑换码管理</div>
-            <div class="page-actions">
+            <div class="page-actions" style="display:flex;gap:8px;">
+                <button class="btn btn-secondary" onclick="exportRds()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    导出
+                </button>
                 <button class="btn btn-danger" onclick="deleteInvalidRd()">清理无效码</button>
                 <button class="btn btn-primary" onclick="openCreateRdModal()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -66,6 +70,12 @@
             </div>
         </div>
         <div class="table-card">
+            <!-- 批量操作工具栏 -->
+            <div id="rdBatchBar" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:var(--c-primary-light,#eff6ff);border-bottom:1px solid var(--c-border);">
+                <span style="font-size:13px;color:var(--c-primary);font-weight:500;">已选 <strong id="rdSelectedCount">0</strong> 项</span>
+                <button class="btn btn-danger btn-sm" onclick="batchDeleteRds()">批量删除</button>
+                <button class="btn btn-secondary btn-sm" onclick="selectedRds.clear();updateRdBatchBar();document.querySelectorAll('.rd-checkbox').forEach(c=>c.checked=false)">取消选择</button>
+            </div>
             <div class="table-toolbar">
                 <div class="table-toolbar-left">
                     <div class="search-input-wrap">
@@ -77,8 +87,11 @@
             </div>
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>名称</th><th>兑换码</th><th>额度</th><th>状态</th><th>使用者</th><th>使用时间</th><th>操作</th></tr></thead>
-                    <tbody id="rdTableBody"><tr><td colspan="7"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr></tbody>
+                    <thead><tr>
+                        <th style="width:36px;"><input type="checkbox" onchange="toggleSelectAllRds(this.checked)"></th>
+                        <th>名称</th><th>兑换码</th><th>额度</th><th>状态</th><th>使用者</th><th>使用时间</th><th>操作</th>
+                    </tr></thead>
+                    <tbody id="rdTableBody"><tr><td colspan="8"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr></tbody>
                 </table>
             </div>
             <div class="pagination"><span id="rdPageInfo">共 0 条</span><div class="pagination-pages" id="rdPages"></div></div>

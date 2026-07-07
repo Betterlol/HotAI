@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="picture/favicon.ico" />
     <link rel="icon" type="image/png" href="picture/logo.png" />
-    <title>控制台 - 绘图日志</title>
+    <title>控制台 - 排行榜</title>
     <link rel="stylesheet" href="css/head.css">
     <link rel="stylesheet" href="css/console-shared.css">
 </head>
@@ -43,94 +43,84 @@
     <aside class="sidebar" id="sidebar"></aside>
     <main class="main-content">
         <div class="page-header">
-            <div class="page-title">绘图日志</div>
-            <div class="page-actions" id="adminActions" style="display:none;">
-                <label class="form-switch">
-                    <input type="checkbox" class="switch-input" id="adminModeToggle">
-                    <span class="switch-track"></span>
-                    <span class="switch-label">查看所有用户</span>
-                </label>
+            <div class="page-title">排行榜</div>
+            <div class="page-actions">
+                <button class="btn btn-secondary" id="refreshBtn" title="刷新数据">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.12"/></svg>
+                    刷新
+                </button>
             </div>
         </div>
+
+        <!-- 筛选栏 -->
         <div class="filter-bar">
             <div class="filter-item">
-                <label class="filter-label">操作类型</label>
-                <select class="filter-input" id="filterAction">
-                    <option value="">全部</option>
-                    <option value="IMAGINE">IMAGINE</option>
-                    <option value="UPSCALE">UPSCALE</option>
-                    <option value="VARIATION">VARIATION</option>
-                    <option value="DESCRIBE">DESCRIBE</option>
-                    <option value="BLEND">BLEND</option>
+                <label class="filter-label">时间范围</label>
+                <select class="filter-input" id="timeRange">
+                    <option value="7">过去7天</option>
+                    <option value="30">过去30天</option>
+                    <option value="90">过去90天</option>
+                    <option value="365">过去一年</option>
                 </select>
             </div>
             <div class="filter-item">
-                <label class="filter-label">状态</label>
-                <select class="filter-input" id="filterStatus">
-                    <option value="">全部</option>
-                    <option value="SUCCESS">成功</option>
-                    <option value="FAILURE">失败</option>
-                    <option value="IN_PROGRESS">进行中</option>
-                    <option value="NOT_START">未开始</option>
+                <label class="filter-label">排行类型</label>
+                <select class="filter-input" id="rankingType">
+                    <option value="model">模型调用排行</option>
+                    <option value="user">用户消耗排行</option>
+                    <option value="token">令牌使用排行</option>
                 </select>
             </div>
-            <div class="filter-item" id="usernameFilterItem" style="display:none;">
-                <label class="filter-label">用户名</label>
-                <input type="text" class="filter-input" id="filterUser" placeholder="用户名">
+            <div class="filter-item">
+                <label class="filter-label">显示数量</label>
+                <select class="filter-input" id="topLimit">
+                    <option value="10">Top 10</option>
+                    <option value="20">Top 20</option>
+                    <option value="50">Top 50</option>
+                    <option value="100">Top 100</option>
+                </select>
             </div>
             <div class="filter-actions">
-                <button class="btn btn-primary" onclick="searchMjLogs()">查询</button>
-                <button class="btn btn-secondary" onclick="resetMjFilters()">重置</button>
+                <button class="btn btn-primary" onclick="loadRankings()">查询</button>
             </div>
         </div>
+
+        <!-- 排行榜卡片网格 -->
+        <div class="stat-grid" id="rankingCards" style="display:none;">
+            <!-- 动态生成卡片 -->
+        </div>
+
+        <!-- 排行榜表格 -->
         <div class="table-card">
             <div class="table-toolbar">
-                <div class="table-toolbar-left"><span style="font-size:13px;color:var(--c-text-secondary);">共 <strong id="mjTotal">0</strong> 条</span></div>
-                <div class="table-toolbar-right"><button class="btn btn-secondary" onclick="loadMjLogs()">刷新</button></div>
+                <div class="table-toolbar-left">
+                    <span style="font-size:13px;color:var(--c-text-secondary);">共 <strong id="rankingTotal">0</strong> 条记录</span>
+                </div>
             </div>
             <div class="table-wrap">
                 <table>
-                    <thead>
+                    <thead id="rankingTableHead">
                         <tr>
-                            <th>时间</th>
-                            <th id="thUser" style="display:none;">用户</th>
-                            <th>任务ID</th>
-                            <th>操作</th>
-                            <th>状态</th>
-                            <th>提示词</th>
-                            <th>图像</th>
+                            <th>排名</th>
+                            <th>名称</th>
+                            <th>调用次数</th>
+                            <th>消耗额度</th>
+                            <th>占比</th>
                         </tr>
                     </thead>
-                    <tbody id="mjTableBody">
-                        <tr><td colspan="7"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
+                    <tbody id="rankingTableBody">
+                        <tr><td colspan="5"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
                     </tbody>
                 </table>
             </div>
-            <div class="pagination">
-                <span id="mjPageInfo">第 1 页</span>
-                <div class="pagination-pages" id="mjPages"></div>
-            </div>
         </div>
     </main>
-</div>
-<!-- 绘图任务详情弹窗 -->
-<div class="modal-overlay hidden" id="mjDetailModal">
-    <div class="modal modal-lg">
-        <div class="modal-header">
-            <div class="modal-title">绘图任务详情</div>
-            <button class="modal-close" onclick="closeMjDetail()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-        </div>
-        <div class="modal-body" id="mjDetailContent"></div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeMjDetail()">关闭</button>
-        </div>
-    </div>
 </div>
 
 <script src="js/i18n.js"></script>
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/sidebar.js"></script>
-<script src="js/mj-log.js"></script>
+<script src="js/rankings.js"></script>
 </body>
 </html>

@@ -484,6 +484,182 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
+    // ========== 视图切换 ==========
+    window.switchDashboardView = function(view) {
+        // 切换标签激活状态
+        document.querySelectorAll('.chart-tabsbar .chart-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.view === view);
+        });
+        // 切换视图显示
+        ['models', 'users', 'flow', 'performance'].forEach(v => {
+            const el = document.getElementById(`view-${v}`);
+            if (el) el.style.display = v === view ? 'block' : 'none';
+        });
+        // 按需加载数据
+        if (view === 'users') loadUserAnalytics();
+        if (view === 'flow') loadFlowAnalytics();
+        if (view === 'performance') loadPerformanceData();
+    };
+
+    // ========== 用户分析 ==========
+    window.loadUserAnalytics = async function() {
+        const container = document.getElementById('userAnalyticsContainer');
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--c-text-secondary);"><div class="loading"></div><span style="margin-left:8px;">加载中...</span></div>';
+        
+        const limit = parseInt(document.getElementById('userAnalyticsLimit')?.value || 10);
+        const res = await API.getQuotaDatesByUser({
+            start_timestamp: filterParams.start,
+            end_timestamp: filterParams.end,
+        });
+        
+        if (!res.success || !res.data || res.data.length === 0) {
+            container.innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--c-text-secondary);">暂无数据</div>';
+            return;
+        }
+        
+        // 按用户聚合
+        const userMap = {};
+        res.data.forEach(d => {
+            const u = d.username || '未知';
+            if (!userMap[u]) userMap[u] = { quota: 0, count: 0 };
+            userMap[u].quota += d.quota || 0;
+            userMap[u].count += d.count || 0;
+        });
+        
+        const sorted = Object.entries(userMap)
+            .sort((a, b) => b[1].quota - a[1].quota)
+            .slice(0, limit);
+        
+        const totalQuota = sorted.reduce((s, [, v]) => s + v.quota, 0);
+        
+        container.innerHTML = `
+            <table style="width:100%;font-size:13px;">
+                <thead><tr>
+                    <th style="text-align:left;padding:8px;font-weight:600;">排名</th>
+                    <th style="text-align:left;padding:8px;font-weight:600;">用户名</th>
+                    <th style="text-align:right;padding:8px;font-weight:600;">消耗额度</th>
+                    <th style="text-align:right;padding:8px;font-weight:600;">请求次数</th>
+                    <th style="text-align:right;padding:8px;font-weight:600;">占比</th>
+                </tr></thead>
+                <tbody>
+                    ${sorted.map(([name, v], i) => {
+                        const pct = totalQuota > 0 ? ((v.quota / totalQuota) * 100).toFixed(1) : '0.0';
+                        return `<tr style="border-top:1px solid var(--c-border);">
+                            <td style="padding:8px;color:var(--c-text-secondary);">${i + 1}</td>
+                            <td style="padding:8px;font-weight:500;">${name}</td>
+                            <td style="padding:8px;text-align:right;color:var(--c-primary);font-weight:600;">$${(v.quota / 500000).toFixed(4)}</td>
+                            <td style="padding:8px;text-align:right;">${v.count.toLocaleString()}</td>
+                            <td style="padding:8px;text-align:right;">${pct}%</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+    };
+
+    // ========== 流量分析 ==========
+    window.loadFlowAnalytics = async function() {
+        const res = await API.getAllQuotaDates({
+            start_timestamp: filterParams.start,
+            end_timestamp: filterParams.end,
+            default_time: 'hour',
+        });
+        
+        if (!res.success || !res.data || res.data.length === 0) {
+            document.getElementById('flowChart').style.display = 'none';
+            document.getElementById('flowChartEmpty').style.display = 'block';
+            return;
+        }
+        
+        // 按小时聚合
+        const hourMap = {};
+        res.data.forEach(d => {
+            const hour = new Date(d.created_at * 1000).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit' });
+            hourMap[hour] = (hourMap[hour] || 0) + (d.count || 0);
+        });
+        
+        const labels = Object.keys(hourMap).sort();
+        const values = labels.map(l => hourMap[l]);
+        
+        document.getElementById('flowChartEmpty').style.display = 'none';
+        const canvas = document.getElementById('flowChart');
+        canvas.style.display = 'block';
+        
+        if (window._flowChartInstance) window._flowChartInstance.destroy();
+        window._flowChartInstance = new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{ label: '请求数', data: values, backgroundColor: '#2D6FF580', borderColor: '#2D6FF5', borderWidth: 1 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+        
+        // 来源分布
+        const tokenMap = {};
+        res.data.forEach(d => {
+            const token = d.token_name || '直接调用';
+            tokenMap[token] = (tokenMap[token] || 0) + (d.count || 0);
+        });
+        const totalCount = Object.values(tokenMap).reduce((s, v) => s + v, 0);
+        const tbody = document.getElementById('flowSourceBody');
+        if (tbody) {
+            tbody.innerHTML = Object.entries(tokenMap)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)
+                .map(([name, count]) => {
+                    const pct = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : '0.0';
+                    return `<tr style="border-top:1px solid var(--c-border);">
+                        <td style="padding:8px;">${name}</td>
+                        <td style="padding:8px;text-align:right;">${count.toLocaleString()}</td>
+                        <td style="padding:8px;text-align:right;">${pct}%</td>
+                    </tr>`;
+                }).join('');
+        }
+    };
+
+    // ========== 性能数据 ==========
+    window.loadPerformanceData = async function() {
+        const res = await API.getPerfMetrics();
+        if (res.success && res.data) {
+            const d = res.data;
+            document.getElementById('perfP50').textContent = d.p50 ? `${d.p50}ms` : '--';
+            document.getElementById('perfP99').textContent = d.p99 ? `${d.p99}ms` : '--';
+            document.getElementById('perfCurrentRPM').textContent = d.rpm ? d.rpm.toFixed(2) : '--';
+            document.getElementById('perfCurrentTPM').textContent = d.tpm ? d.tpm.toLocaleString() : '--';
+            document.getElementById('perfErrorRate').textContent = d.error_rate !== undefined ? `${(d.error_rate * 100).toFixed(2)}%` : '--';
+            document.getElementById('perfFailCount').textContent = d.fail_count !== undefined ? d.fail_count.toLocaleString() : '--';
+            document.getElementById('perfActiveChannels').textContent = d.active_channels ?? '--';
+            document.getElementById('perfErrorChannels').textContent = d.error_channels ?? '--';
+        }
+        
+        // 渠道响应时间排行
+        const chanRes = await API.getChannels(1, 100);
+        if (chanRes.success && chanRes.data) {
+            const channels = (chanRes.data.data || chanRes.data || [])
+                .filter(c => c.response_time > 0)
+                .sort((a, b) => a.response_time - b.response_time)
+                .slice(0, 10);
+            
+            document.getElementById('channelPerfTable').innerHTML = channels.length > 0 ? `
+                <table style="width:100%;font-size:13px;">
+                    <thead><tr>
+                        <th style="text-align:left;padding:8px;font-weight:600;">渠道名称</th>
+                        <th style="text-align:right;padding:8px;font-weight:600;">响应时间</th>
+                        <th style="text-align:right;padding:8px;font-weight:600;">状态</th>
+                    </tr></thead>
+                    <tbody>
+                        ${channels.map(c => `<tr style="border-top:1px solid var(--c-border);">
+                            <td style="padding:8px;">${c.name}</td>
+                            <td style="padding:8px;text-align:right;">${c.response_time}ms</td>
+                            <td style="padding:8px;text-align:right;"><span class="badge ${c.status === 1 ? 'badge-green' : 'badge-red'}">${c.status === 1 ? '正常' : '异常'}</span></td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            ` : '<div style="padding:20px;color:var(--c-text-secondary);text-align:center;">暂无数据</div>';
+        }
+    };
+
     // ========== 全量刷新 ==========
     async function refreshAll() {
         // 显示加载状态

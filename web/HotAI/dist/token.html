@@ -130,6 +130,14 @@
             </div>
         </div>
         <div class="table-card">
+            <!-- 批量操作工具栏 -->
+            <div id="tokenBatchBar" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:var(--c-primary-light,#eff6ff);border-bottom:1px solid var(--c-border);">
+                <span style="font-size:13px;color:var(--c-primary);font-weight:500;">已选 <strong id="tokenSelectedCount">0</strong> 项</span>
+                <button class="btn btn-secondary btn-sm" onclick="batchEnableTokens()">批量启用</button>
+                <button class="btn btn-secondary btn-sm" onclick="batchDisableTokens()">批量禁用</button>
+                <button class="btn btn-danger btn-sm" onclick="batchDeleteTokens()">批量删除</button>
+                <button class="btn btn-secondary btn-sm" onclick="selectedTokens.clear();updateTokenBatchActions();document.querySelectorAll('.tk-checkbox').forEach(c=>c.checked=false)">取消选择</button>
+            </div>
             <div class="table-toolbar">
                 <div class="table-toolbar-left">
                     <div class="search-input-wrap">
@@ -148,9 +156,10 @@
                 <table>
                     <thead>
                         <tr>
+                            <th style="width:36px;"><input type="checkbox" onchange="toggleSelectAllTokens(this.checked)"></th>
                             <th>名称</th>
                             <th>状态</th>
-                            <th>额度</th>
+                            <th>剩余额度</th>
                             <th>已用额度</th>
                             <th>创建时间</th>
                             <th>过期时间</th>

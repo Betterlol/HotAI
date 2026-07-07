@@ -61,6 +61,7 @@ async function loadChannels() {
         const respTime = ch.response_time ? `${ch.response_time}ms` : '-';
         return `
         <tr>
+            <td><input type="checkbox" class="ch-checkbox" data-id="${ch.id}" onchange="toggleSelectChannel(${ch.id})" ${selectedChannels.has(ch.id)?'checked':''}></td>
             <td class="td-mono">${ch.id}</td>
             <td><strong>${escHtml(ch.name||'-')}</strong></td>
             <td><span class="badge badge-blue">${escHtml(typeName)}</span></td>
@@ -72,7 +73,8 @@ async function loadChannels() {
             <td>
                 <div class="td-actions">
                     <button class="btn btn-secondary btn-sm" onclick="testChannel(${ch.id})">测速</button>
-                    <button class="btn btn-secondary btn-sm" onclick="updateBalance(${ch.id})">更新余额</button>
+                    <button class="btn btn-secondary btn-sm" onclick="updateBalance(${ch.id})">余额</button>
+                    <button class="btn btn-secondary btn-sm" onclick="cloneChannel(${ch.id})">克隆</button>
                     <button class="btn btn-secondary btn-sm" onclick="openEditChannelModal(${ch.id})">编辑</button>
                     <button class="btn ${ch.status===1?'btn-warning':'btn-success'} btn-sm" onclick="toggleChannelStatus(${ch.id},${ch.status})">${ch.status===1?'禁用':'启用'}</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteChannel(${ch.id},'${escHtml(ch.name||'')}')">删除</button>
@@ -231,6 +233,95 @@ async function deleteChannel(id, name) {
     } else {
         showToast(res.message || '删除失败', 'error');
     }
+}
+
+// 克隆渠道
+async function cloneChannel(id) {
+    const res = await API.getChannel(id);
+    if (!res.success || !res.data) { showToast('获取渠道失败', 'error'); return; }
+    const ch = res.data;
+    const cloneData = {
+        name: ch.name + '_copy',
+        type: ch.type,
+        base_url: ch.base_url || '',
+        key: ch.key || '',
+        models: ch.models || '',
+        group: ch.group || 'default',
+        priority: ch.priority || 0,
+    };
+    const payload = { mode: 'single', channel: cloneData };
+    const createRes = await API.createChannel(payload);
+    if (createRes.success) {
+        showToast('渠道已克隆', 'success');
+        loadChannels();
+    } else {
+        showToast(createRes.message || '克隆失败', 'error');
+    }
+}
+
+// 批量操作
+let selectedChannels = new Set();
+
+function toggleSelectChannel(id) {
+    if (selectedChannels.has(id)) {
+        selectedChannels.delete(id);
+    } else {
+        selectedChannels.add(id);
+    }
+    updateBatchActions();
+}
+
+function toggleSelectAll(checked) {
+    const checkboxes = document.querySelectorAll('.ch-checkbox');
+    checkboxes.forEach(cb => {
+        const id = parseInt(cb.dataset.id);
+        if (checked) {
+            selectedChannels.add(id);
+            cb.checked = true;
+        } else {
+            selectedChannels.delete(id);
+            cb.checked = false;
+        }
+    });
+    updateBatchActions();
+}
+
+function updateBatchActions() {
+    const bar = document.getElementById('batchActionBar');
+    const count = document.getElementById('selectedCount');
+    if (bar) bar.style.display = selectedChannels.size > 0 ? 'flex' : 'none';
+    if (count) count.textContent = selectedChannels.size;
+}
+
+async function batchEnable() {
+    if (selectedChannels.size === 0) return;
+    const promises = [...selectedChannels].map(id => API.updateChannel({ id, status: 1 }));
+    await Promise.all(promises);
+    showToast(`已启用 ${selectedChannels.size} 个渠道`, 'success');
+    selectedChannels.clear();
+    updateBatchActions();
+    loadChannels();
+}
+
+async function batchDisable() {
+    if (selectedChannels.size === 0) return;
+    const promises = [...selectedChannels].map(id => API.updateChannel({ id, status: 2 }));
+    await Promise.all(promises);
+    showToast(`已禁用 ${selectedChannels.size} 个渠道`, 'success');
+    selectedChannels.clear();
+    updateBatchActions();
+    loadChannels();
+}
+
+async function batchDelete() {
+    if (selectedChannels.size === 0) return;
+    if (!confirm(`确定删除选中的 ${selectedChannels.size} 个渠道？此操作不可撤销。`)) return;
+    const promises = [...selectedChannels].map(id => API.deleteChannel(id));
+    await Promise.all(promises);
+    showToast(`已删除 ${selectedChannels.size} 个渠道`, 'success');
+    selectedChannels.clear();
+    updateBatchActions();
+    loadChannels();
 }
 
 let searchTimer;

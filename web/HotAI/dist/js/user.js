@@ -47,6 +47,7 @@ async function loadUsers() {
             ? `<span class="badge badge-purple">${roleName}</span>`
             : `<span class="badge badge-gray">${roleName}</span>`;
         return `<tr>
+            <td><input type="checkbox" class="u-checkbox" data-id="${u.id}" onchange="toggleSelectUser(${u.id})" ${selectedUsers.has(u.id)?'checked':''}></td>
             <td class="td-mono">${u.id}</td>
             <td><strong>${escHtml(u.username||'-')}</strong></td>
             <td>${escHtml(u.display_name||'-')}</td>
@@ -57,6 +58,7 @@ async function loadUsers() {
             <td class="td-mono">${formatTime(u.created_time)}</td>
             <td>
                 <div class="td-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="showUserDetail(${u.id})">详情</button>
                     <button class="btn btn-secondary btn-sm" onclick="openEditUserModal(${u.id})">编辑</button>
                     <button class="btn btn-secondary btn-sm" onclick="openTopupModal(${u.id},'${escHtml(u.username||'')}')">充值</button>
                     <button class="btn ${u.status===1?'btn-warning':'btn-success'} btn-sm" onclick="toggleUserStatus(${u.id},${u.status})">${u.status===1?'封禁':'解封'}</button>
@@ -161,6 +163,105 @@ async function deleteUser(id, username) {
     const res = await API.deleteUser(id);
     if (res.success) { showToast('用户已删除','success'); loadUsers(); }
     else showToast(res.message||'删除失败','error');
+}
+
+// ========== 创建用户 ==========
+function openCreateUserModal() {
+    document.getElementById('userId').value = '';
+    document.getElementById('editUsername').value = '';
+    document.getElementById('editDisplayName').value = '';
+    document.getElementById('editRole').value = '1';
+    document.getElementById('editGroup').value = 'default';
+    document.getElementById('editQuota').value = '500000';
+    document.getElementById('editPassword').value = '';
+    document.getElementById('userModalTitle').textContent = '创建用户';
+    const usernameField = document.getElementById('editUsername');
+    if (usernameField) usernameField.removeAttribute('readonly');
+    document.getElementById('userModal').classList.remove('hidden');
+}
+
+// ========== 用户详情 ==========
+window.showUserDetail = async function(id) {
+    const res = await API.getUser(id);
+    if (!res.success || !res.data) { showToast('获取用户失败', 'error'); return; }
+    const u = res.data;
+    const modal = document.getElementById('userDetailModal');
+    const content = document.getElementById('userDetailContent');
+    if (!modal || !content) return;
+
+    content.innerHTML = `
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:8px 16px;font-size:14px;">
+            ${[
+                ['用户ID', u.id],
+                ['用户名', u.username || '-'],
+                ['显示名称', u.display_name || '-'],
+                ['邮箱', u.email || '-'],
+                ['角色', roleNames[u.role] || `角色${u.role}`],
+                ['分组', u.group || 'default'],
+                ['状态', u.status === 1 ? '正常' : '封禁'],
+                ['账户余额', quotaToDisplay(u.quota)],
+                ['已用额度', quotaToDisplay(u.used_quota)],
+                ['请求次数', (u.request_count || 0).toLocaleString()],
+                ['注册时间', formatTime(u.created_time)],
+                ['最后活跃', u.last_login_time ? formatTime(u.last_login_time) : '-'],
+            ].map(([k, v]) => `
+                <div style="color:var(--c-text-secondary);padding:8px 0;border-bottom:1px solid var(--c-border);">${k}</div>
+                <div style="padding:8px 0;border-bottom:1px solid var(--c-border);font-weight:500;">${escHtml(String(v))}</div>
+            `).join('')}
+        </div>
+    `;
+    modal.classList.remove('hidden');
+};
+
+window.closeUserDetail = function() {
+    document.getElementById('userDetailModal')?.classList.add('hidden');
+};
+
+// ========== 批量操作 ==========
+let selectedUsers = new Set();
+
+function toggleSelectUser(id) {
+    if (selectedUsers.has(id)) selectedUsers.delete(id);
+    else selectedUsers.add(id);
+    updateUserBatchBar();
+}
+
+function toggleSelectAllUsers(checked) {
+    document.querySelectorAll('.u-checkbox').forEach(cb => {
+        const id = parseInt(cb.dataset.id);
+        if (checked) { selectedUsers.add(id); cb.checked = true; }
+        else { selectedUsers.delete(id); cb.checked = false; }
+    });
+    updateUserBatchBar();
+}
+
+function updateUserBatchBar() {
+    const bar = document.getElementById('userBatchBar');
+    const count = document.getElementById('userSelectedCount');
+    if (bar) bar.style.display = selectedUsers.size > 0 ? 'flex' : 'none';
+    if (count) count.textContent = selectedUsers.size;
+}
+
+async function batchBanUsers() {
+    if (!selectedUsers.size) return;
+    await Promise.all([...selectedUsers].map(id => API.updateUser({ id, status: 2 })));
+    showToast(`已封禁 ${selectedUsers.size} 个用户`, 'success');
+    selectedUsers.clear(); updateUserBatchBar(); loadUsers();
+}
+
+async function batchUnbanUsers() {
+    if (!selectedUsers.size) return;
+    await Promise.all([...selectedUsers].map(id => API.updateUser({ id, status: 1 })));
+    showToast(`已解封 ${selectedUsers.size} 个用户`, 'success');
+    selectedUsers.clear(); updateUserBatchBar(); loadUsers();
+}
+
+async function batchDeleteUsers() {
+    if (!selectedUsers.size) return;
+    if (!confirm(`确定删除选中的 ${selectedUsers.size} 个用户？`)) return;
+    await Promise.all([...selectedUsers].map(id => API.deleteUser(id)));
+    showToast(`已删除 ${selectedUsers.size} 个用户`, 'success');
+    selectedUsers.clear(); updateUserBatchBar(); loadUsers();
 }
 
 let searchTimer;

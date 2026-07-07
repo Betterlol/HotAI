@@ -70,20 +70,99 @@
             </div>
         </div>
 
+        <!-- 推广返利 -->
+        <div class="card-title">推广返利</div>
+        <div class="card" style="margin-bottom:32px;">
+            <div class="card-body">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:20px;">
+                    <div>
+                        <div style="font-size:13px;color:var(--c-text-secondary);margin-bottom:4px;">返利余额</div>
+                        <div style="font-size:24px;font-weight:700;color:var(--c-primary);" id="affBalance">$0.0000</div>
+                    </div>
+                    <div>
+                        <div style="font-size:13px;color:var(--c-text-secondary);margin-bottom:4px;">累计推广人数</div>
+                        <div style="font-size:24px;font-weight:700;" id="affCount">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size:13px;color:var(--c-text-secondary);margin-bottom:4px;">累计返利</div>
+                        <div style="font-size:24px;font-weight:700;" id="affTotal">$0.0000</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">推广链接</label>
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" class="form-input" id="affLink" readonly style="flex:1;">
+                        <button class="btn btn-secondary" onclick="copyAffLink()">复制</button>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="openTransferDialog()" id="transferBtn" style="margin-top:12px;">转账到主账户</button>
+            </div>
+        </div>
+
+        <!-- 账单历史 -->
+        <div class="card-title">账单历史</div>
+        <div class="table-card" style="margin-bottom:32px;">
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <button class="btn btn-secondary btn-sm" onclick="filterBilling('all')">全部</button>
+                    <button class="btn btn-secondary btn-sm" onclick="filterBilling('topup')">充值</button>
+                    <button class="btn btn-secondary btn-sm" onclick="filterBilling('usage')">消费</button>
+                    <button class="btn btn-secondary btn-sm" onclick="filterBilling('system')">系统</button>
+                </div>
+                <div class="table-toolbar-right">
+                    <button class="btn btn-secondary" onclick="loadBillingHistory()">刷新</button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>时间</th><th>类型</th><th>金额变动</th><th>余额</th><th>说明</th></tr></thead>
+                    <tbody id="billingTableBody">
+                        <tr><td colspan="5"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination"><span id="billingPageInfo">共 0 条</span><div class="pagination-pages" id="billingPages"></div></div>
+        </div>
+
         <!-- 充值记录 -->
         <div class="card-title">充值记录</div>
         <div class="table-card">
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>时间</th><th>金额</th><th>方式</th><th>状态</th></tr></thead>
+                    <thead><tr><th>时间</th><th>金额</th><th>方式</th><th>状态</th><th>折扣率</th></tr></thead>
                     <tbody id="topupTableBody">
-                        <tr><td colspan="4"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
+                        <tr><td colspan="5"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
                     </tbody>
                 </table>
             </div>
             <div class="pagination"><span id="topupPageInfo">共 0 条</span><div class="pagination-pages" id="topupPages"></div></div>
         </div>
     </main>
+</div>
+
+<!-- 转账对话框 -->
+<div class="modal-overlay hidden" id="transferModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">转账到主账户</div>
+            <button class="modal-close" onclick="closeTransferDialog()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">可转账额度</label>
+                <div style="font-size:20px;font-weight:700;color:var(--c-primary);margin-bottom:12px;" id="transferAvailable">$0.0000</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">转账金额 <span>*</span></label>
+                <input type="number" class="form-input" id="transferAmount" placeholder="输入转账金额" min="0" step="0.01">
+                <div class="hint-text">单位：美元（USD）</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeTransferDialog()">取消</button>
+            <button class="btn btn-primary" onclick="confirmTransfer()">确认转账</button>
+        </div>
+    </div>
 </div>
 <script src="js/i18n.js"></script>
 <script src="js/api.js"></script>

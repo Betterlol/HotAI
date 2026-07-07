@@ -44,12 +44,18 @@
     <main class="main-content">
         <div class="page-header">
             <div class="page-title">使用日志</div>
-            <div class="page-actions" id="adminActions" style="display:none;">
-                <label class="form-switch" style="cursor:pointer;">
-                    <input type="checkbox" class="switch-input" id="adminModeToggle">
-                    <span class="switch-track"></span>
-                    <span class="switch-label">查看所有用户日志</span>
-                </label>
+            <div class="page-actions" style="display:flex;gap:8px;align-items:center;">
+                <div id="adminActions" style="display:none;">
+                    <label class="form-switch" style="cursor:pointer;">
+                        <input type="checkbox" class="switch-input" id="adminModeToggle">
+                        <span class="switch-track"></span>
+                        <span class="switch-label">查看所有用户日志</span>
+                    </label>
+                </div>
+                <button class="btn btn-secondary" onclick="exportLogs()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    导出 CSV
+                </button>
             </div>
         </div>
 
@@ -122,6 +128,20 @@
             </div>
         </div>
     </main>
+</div>
+
+<!-- 日志详情弹窗 -->
+<div class="modal-overlay hidden" id="logDetailModal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <div class="modal-title">日志详情</div>
+            <button class="modal-close" onclick="closeLogDetail()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body" id="logDetailContent"></div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeLogDetail()">关闭</button>
+        </div>
+    </div>
 </div>
 
 <script src="js/i18n.js"></script>
