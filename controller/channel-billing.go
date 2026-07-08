@@ -7,10 +7,12 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -451,6 +453,41 @@ func UpdateChannelBalance(c *gin.Context) {
 	})
 }
 
+// balanceWarnCooldown tracks the last warning time per channel to avoid
+// spamming notifications on every refresh cycle.
+var (
+	balanceWarnCooldown   = map[int]time.Time{}
+	balanceWarnCooldownMu sync.Mutex
+)
+
+const balanceWarnCooldownDuration = 24 * time.Hour
+
+func checkBalanceWarning(channelId int, channelName string, balance float64) {
+	setting := operation_setting.GetBalanceWarningSetting()
+	if !setting.Enabled || setting.Threshold <= 0 {
+		return
+	}
+	if balance > setting.Threshold {
+		return
+	}
+
+	balanceWarnCooldownMu.Lock()
+	lastWarn, warned := balanceWarnCooldown[channelId]
+	now := time.Now()
+	// Re-warn only if cooldown has passed AND balance dropped further
+	if warned && now.Sub(lastWarn) < balanceWarnCooldownDuration {
+		balanceWarnCooldownMu.Unlock()
+		return
+	}
+	balanceWarnCooldown[channelId] = now
+	balanceWarnCooldownMu.Unlock()
+
+	subject := fmt.Sprintf("渠道余额不足警告: %s", channelName)
+	content := fmt.Sprintf("渠道「%s」(ID: %d) 当前余额 $%.2f 已低于阈值 $%.2f，请及时充值。",
+		channelName, channelId, balance, setting.Threshold)
+	service.NotifyRootUser(dto.NotifyTypeBalanceWarning, subject, content)
+}
+
 func updateAllChannelsBalance() error {
 	channels, err := model.GetAllChannels(0, 0, true, false)
 	if err != nil {
@@ -474,6 +511,8 @@ func updateAllChannelsBalance() error {
 			// err is nil & balance <= 0 means quota is used up
 			if balance <= 0 {
 				service.DisableChannel(*types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, "", channel.GetAutoBan()), "余额不足")
+			} else {
+				checkBalanceWarning(channel.Id, channel.Name, balance)
 			}
 		}
 		time.Sleep(common.RequestInterval)
