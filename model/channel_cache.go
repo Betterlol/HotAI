@@ -15,7 +15,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	channellimiter "github.com/QuantumNous/new-api/pkg/channel_limiter"
 	"github.com/QuantumNous/new-api/pkg/circuitbreaker"
-	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/pkg/routing"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
 
@@ -206,7 +206,20 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 		smoothingFactor = 100
 	}
 
-	adjustedWeights := adjustedChannelWeights(group, model, targetChannels, smoothingFactor, smoothingAdjustment)
+	inputs := make([]routing.ChannelData, len(targetChannels))
+	for i, ch := range targetChannels {
+		inputs[i] = routing.ChannelData{
+			ChannelID:    ch.Id,
+			BaseWeight:   ch.GetWeight()*smoothingFactor + smoothingAdjustment,
+			ResponseTime: ch.ResponseTime,
+			Cost:         costForChannel(group, model, ch),
+		}
+	}
+	scores := routing.NewEngine().Calculate(inputs)
+	adjustedWeights := make([]int, len(scores))
+	for i, s := range scores {
+		adjustedWeights[i] = s.FinalWeight
+	}
 	totalWeight := 0
 	for _, weight := range adjustedWeights {
 		totalWeight += weight
@@ -247,34 +260,6 @@ func markChannelSelected(channelID int) bool {
 	return true
 }
 
-func adjustedChannelWeights(group string, model string, channels []*Channel, smoothingFactor int, smoothingAdjustment int) []int {
-	weights := make([]int, len(channels))
-	latencySetting := operation_setting.GetLatencyRoutingSetting()
-	costSetting := operation_setting.GetCostRoutingSetting()
-	fastestResponseTime := fastestPositiveResponseTime(channels)
-	costs := costsForChannels(group, model, channels)
-	lowestCost := lowestPositiveCost(costs)
-	for index, channel := range channels {
-		baseWeight := channel.GetWeight()*smoothingFactor + smoothingAdjustment
-		weight := latencyAdjustedWeight(baseWeight, channel.ResponseTime, fastestResponseTime, latencySetting)
-		weights[index] = costAdjustedWeight(weight, costs[channel.Id], lowestCost, costSetting)
-	}
-	return weights
-}
-
-func costsForChannels(group string, model string, channels []*Channel) map[int]float64 {
-	costs := make(map[int]float64, len(channels))
-	for _, channel := range channels {
-		if channel == nil {
-			continue
-		}
-		if cost := costForChannel(group, model, channel); cost > 0 {
-			costs[channel.Id] = cost
-		}
-	}
-	return costs
-}
-
 func costForChannel(group string, model string, channel *Channel) float64 {
 	if channelCostIndex != nil {
 		if modelCosts, ok := channelCostIndex[group]; ok {
@@ -297,79 +282,6 @@ func costForChannel(group string, model string, channel *Channel) float64 {
 		return 0
 	}
 	return routingCost(channel.PricePerToken, channel.PricePerRequest)
-}
-
-func lowestPositiveCost(costs map[int]float64) float64 {
-	lowest := 0.0
-	for _, cost := range costs {
-		if cost <= 0 {
-			continue
-		}
-		if lowest == 0 || cost < lowest {
-			lowest = cost
-		}
-	}
-	return lowest
-}
-
-func fastestPositiveResponseTime(channels []*Channel) int {
-	fastest := 0
-	for _, channel := range channels {
-		if channel == nil || channel.ResponseTime <= 0 {
-			continue
-		}
-		if fastest == 0 || channel.ResponseTime < fastest {
-			fastest = channel.ResponseTime
-		}
-	}
-	return fastest
-}
-
-func latencyAdjustedWeight(baseWeight int, responseTime int, fastestResponseTime int, setting operation_setting.LatencyRoutingSetting) int {
-	if baseWeight <= 0 {
-		return 0
-	}
-	if !setting.Enabled || fastestResponseTime <= 0 || responseTime <= 0 {
-		return baseWeight
-	}
-	factor := setting.WeightFactor
-	if factor < 0 {
-		factor = 0
-	}
-	if factor > 1 {
-		factor = 1
-	}
-	latencyRatio := float64(fastestResponseTime) / float64(responseTime)
-	adjusted := int(float64(baseWeight) * ((1 - factor) + factor*latencyRatio))
-	if adjusted < 1 {
-		return 1
-	}
-	return adjusted
-}
-
-func costAdjustedWeight(baseWeight int, channelCost float64, lowestCost float64, setting operation_setting.CostRoutingSetting) int {
-	if baseWeight <= 0 {
-		return 0
-	}
-	if !setting.Enabled || lowestCost <= 0 || channelCost <= 0 {
-		return baseWeight
-	}
-	factor := setting.CostWeight
-	if factor < 0 {
-		factor = 0
-	}
-	if factor > 1 {
-		factor = 1
-	}
-	costRatio := lowestCost / channelCost
-	if costRatio > 1 {
-		costRatio = 1
-	}
-	adjusted := int(float64(baseWeight) * ((1 - factor) + factor*costRatio))
-	if adjusted < 1 {
-		return 1
-	}
-	return adjusted
 }
 
 // filterChannelsByRequestPath restricts candidates by request path. Only Advanced

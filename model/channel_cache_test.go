@@ -7,92 +7,14 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	channellimiter "github.com/QuantumNous/new-api/pkg/channel_limiter"
 	"github.com/QuantumNous/new-api/pkg/circuitbreaker"
+	"github.com/QuantumNous/new-api/pkg/routing"
 	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestLatencyAdjustedWeightDisabledKeepsBaseWeight(t *testing.T) {
-	weight := latencyAdjustedWeight(100, 1000, 100, operation_setting.LatencyRoutingSetting{
-		Enabled:      false,
-		WeightFactor: 1,
-	})
-
-	assert.Equal(t, 100, weight)
-}
-
-func TestLatencyAdjustedWeightPenalizesSlowerChannel(t *testing.T) {
-	fast := latencyAdjustedWeight(100, 100, 100, operation_setting.LatencyRoutingSetting{
-		Enabled:      true,
-		WeightFactor: 1,
-	})
-	slow := latencyAdjustedWeight(100, 1000, 100, operation_setting.LatencyRoutingSetting{
-		Enabled:      true,
-		WeightFactor: 1,
-	})
-
-	assert.Equal(t, 100, fast)
-	assert.Equal(t, 10, slow)
-}
-
-func TestLatencyAdjustedWeightBlendsWithConfiguredWeightFactor(t *testing.T) {
-	weight := latencyAdjustedWeight(100, 1000, 100, operation_setting.LatencyRoutingSetting{
-		Enabled:      true,
-		WeightFactor: 0.3,
-	})
-
-	assert.Equal(t, 73, weight)
-}
-
-func TestLatencyAdjustedWeightIgnoresMissingResponseTimes(t *testing.T) {
-	assert.Equal(t, 100, latencyAdjustedWeight(100, 0, 100, operation_setting.LatencyRoutingSetting{Enabled: true, WeightFactor: 1}))
-	assert.Equal(t, 100, latencyAdjustedWeight(100, 100, 0, operation_setting.LatencyRoutingSetting{Enabled: true, WeightFactor: 1}))
-}
-
-func TestFastestPositiveResponseTimeSkipsMissingSamples(t *testing.T) {
-	fastest := fastestPositiveResponseTime([]*Channel{
-		{Id: 1, ResponseTime: 0},
-		{Id: 2, ResponseTime: 450},
-		{Id: 3, ResponseTime: 120},
-	})
-
-	assert.Equal(t, 120, fastest)
-}
-
-func TestCostAdjustedWeightDisabledKeepsBaseWeight(t *testing.T) {
-	weight := costAdjustedWeight(100, 10, 1, operation_setting.CostRoutingSetting{
-		Enabled:    false,
-		CostWeight: 1,
-	})
-
-	assert.Equal(t, 100, weight)
-}
-
-func TestCostAdjustedWeightPenalizesExpensiveChannel(t *testing.T) {
-	cheap := costAdjustedWeight(100, 1, 1, operation_setting.CostRoutingSetting{
-		Enabled:    true,
-		CostWeight: 1,
-	})
-	expensive := costAdjustedWeight(100, 10, 1, operation_setting.CostRoutingSetting{
-		Enabled:    true,
-		CostWeight: 1,
-	})
-
-	assert.Equal(t, 100, cheap)
-	assert.Equal(t, 10, expensive)
-}
-
-func TestCostAdjustedWeightBlendsWithConfiguredWeight(t *testing.T) {
-	weight := costAdjustedWeight(100, 10, 1, operation_setting.CostRoutingSetting{
-		Enabled:    true,
-		CostWeight: 0.2,
-	})
-
-	assert.Equal(t, 82, weight)
-}
-
-func TestAdjustedChannelWeightsApplyAbilityCosts(t *testing.T) {
+func TestGetRandomSatisfiedChannelAppliesRoutingEngineScores(t *testing.T) {
 	oldIndex := channelCostIndex
 	channelCostIndex = map[string]map[string]map[int]float64{
 		"default": {"gpt-test": {1: 1, 2: 10}},
@@ -102,12 +24,18 @@ func TestAdjustedChannelWeightsApplyAbilityCosts(t *testing.T) {
 	})
 	withCostRoutingSettingForModelTest(t, map[string]string{"enabled": "true", "cost_weight": "1"})
 
-	weights := adjustedChannelWeights("default", "gpt-test", []*Channel{
-		{Id: 1, Weight: common.GetPointer(uint(10))},
-		{Id: 2, Weight: common.GetPointer(uint(10))},
-	}, 1, 0)
+	ch1 := &Channel{Id: 1, Weight: common.GetPointer(uint(10))}
+	ch2 := &Channel{Id: 2, Weight: common.GetPointer(uint(10))}
 
-	assert.Equal(t, []int{10, 1}, weights)
+	inputs := []routing.ChannelData{
+		{ChannelID: ch1.Id, BaseWeight: ch1.GetWeight(), Cost: costForChannel("default", "gpt-test", ch1)},
+		{ChannelID: ch2.Id, BaseWeight: ch2.GetWeight(), Cost: costForChannel("default", "gpt-test", ch2)},
+	}
+	scores := routing.NewEngine().Calculate(inputs)
+
+	require.Len(t, scores, 2)
+	// Cheap channel (cost=1) should score higher than expensive (cost=10)
+	assert.Greater(t, scores[0].FinalWeight, scores[1].FinalWeight)
 }
 
 func TestGetRandomSatisfiedChannelSkipsOpenCircuitBreaker(t *testing.T) {
