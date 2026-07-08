@@ -122,6 +122,62 @@ function renderSidebar(activePage, customMenuItems = null) {
 
     // 根据用户角色显示/隐藏管理员菜单
     checkAdminAccess();
+    
+    // 初始化侧边栏折叠功能
+    initSidebarToggle();
+}
+
+// 初始化侧边栏折叠功能
+function initSidebarToggle() {
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    const sidebar = document.querySelector('.sidebar');
+    
+    if (!sidebarToggleBtn || !sidebar) return;
+    
+    // 从 localStorage 读取侧边栏状态
+    const savedState = localStorage.getItem('sidebarCollapsed');
+    if (savedState === 'true') {
+        sidebar.classList.add('collapsed');
+        updateToggleButton(true);
+    }
+    
+    // 绑定点击事件
+    sidebarToggleBtn.addEventListener('click', () => {
+        const isCollapsed = sidebar.classList.toggle('collapsed');
+        
+        // 保存状态到 localStorage
+        localStorage.setItem('sidebarCollapsed', isCollapsed);
+        
+        // 更新按钮图标
+        updateToggleButton(isCollapsed);
+        
+        // 触发图表重绘（如果存在）
+        setTimeout(() => {
+            if (window._mainChartInstance) {
+                window._mainChartInstance.resize();
+            }
+            if (window._flowChartInstance) {
+                window._flowChartInstance.resize();
+            }
+        }, 350);
+    });
+}
+
+// 更新侧边栏折叠按钮的图标
+function updateToggleButton(isCollapsed) {
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    if (!sidebarToggleBtn) return;
+    
+    const svg = sidebarToggleBtn.querySelector('svg');
+    if (svg) {
+        if (isCollapsed) {
+            // 展开图标（向右双箭头）
+            svg.innerHTML = '<polyline points="6 17 11 12 6 7"></polyline><polyline points="13 17 18 12 13 7"></polyline>';
+        } else {
+            // 收起图标（向左双箭头）
+            svg.innerHTML = '<polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline>';
+        }
+    }
 }
 
 function checkAdminAccess() {

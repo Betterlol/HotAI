@@ -48,33 +48,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ========== 初始化侧边栏 ==========
     renderSidebar('dashboard');
-    
-    // ========== 侧边栏收起/展开 ==========
-    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
-    const sidebar = document.getElementById('sidebar');
-    if (sidebarToggleBtn && sidebar) {
-        sidebarToggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            const isCollapsed = sidebar.classList.contains('collapsed');
-            
-            // 更新图标方向
-            if (isCollapsed) {
-                sidebarToggleBtn.querySelector('svg').innerHTML = '<polyline points="6 17 11 12 6 7"></polyline><polyline points="13 17 18 12 13 7"></polyline>';
-            } else {
-                sidebarToggleBtn.querySelector('svg').innerHTML = '<polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline>';
-            }
-            
-            // 等待CSS transition完成后触发图表重绘
-            setTimeout(() => {
-                if (window._mainChartInstance) {
-                    window._mainChartInstance.resize();
-                }
-                if (window._flowChartInstance) {
-                    window._flowChartInstance.resize();
-                }
-            }, 350);
-        });
-    }
 
     // ========== 初始化时间筛选器默认值 ==========
     const startInput = document.getElementById('filterStartTime');
