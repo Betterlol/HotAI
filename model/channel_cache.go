@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/logger"
+	channellimiter "github.com/QuantumNous/new-api/pkg/channel_limiter"
 	"github.com/QuantumNous/new-api/pkg/circuitbreaker"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -131,7 +132,7 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 
 	if len(channels) == 1 {
 		if channel, ok := channelsIDM[channels[0]]; ok {
-			if !circuitbreaker.CanSelect(channel.Id) || !circuitbreaker.MarkSelected(channel.Id) {
+			if !channelSelectable(channel.Id) || !markChannelSelected(channel.Id) {
 				return nil, nil
 			}
 			return channel, nil
@@ -163,7 +164,7 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 	var targetChannels []*Channel
 	for _, channelId := range channels {
 		if channel, ok := channelsIDM[channelId]; ok {
-			if channel.GetPriority() == targetPriority && circuitbreaker.CanSelect(channel.Id) {
+			if channel.GetPriority() == targetPriority && channelSelectable(channel.Id) {
 				sumWeight += channel.GetWeight()
 				targetChannels = append(targetChannels, channel)
 			}
@@ -206,7 +207,7 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 	for index, channel := range targetChannels {
 		randomWeight -= adjustedWeights[index]
 		if randomWeight < 0 {
-			if !circuitbreaker.MarkSelected(channel.Id) {
+			if !markChannelSelected(channel.Id) {
 				continue
 			}
 			return channel, nil
@@ -214,6 +215,21 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 	}
 	// return null if no channel is not found
 	return nil, errors.New("channel not found")
+}
+
+func channelSelectable(channelID int) bool {
+	return circuitbreaker.CanSelect(channelID) && channellimiter.CanAcquire(channelID)
+}
+
+func markChannelSelected(channelID int) bool {
+	if !channellimiter.Acquire(channelID) {
+		return false
+	}
+	if !circuitbreaker.MarkSelected(channelID) {
+		channellimiter.Release(channelID)
+		return false
+	}
+	return true
 }
 
 func adjustedChannelWeights(channels []*Channel, smoothingFactor int, smoothingAdjustment int) []int {

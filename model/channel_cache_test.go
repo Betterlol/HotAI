@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
+	channellimiter "github.com/QuantumNous/new-api/pkg/channel_limiter"
 	"github.com/QuantumNous/new-api/pkg/circuitbreaker"
 	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -101,6 +102,39 @@ func TestGetRandomSatisfiedChannelSkipsOpenCircuitBreaker(t *testing.T) {
 	}
 }
 
+func TestGetRandomSatisfiedChannelSkipsFullChannelLimiter(t *testing.T) {
+	withCircuitBreakerSettingForModelTest(t, map[string]string{"enabled": "false"})
+	withChannelLimiterSettingForModelTest(t, map[string]string{"enabled": "true", "max_concurrent_requests": "1"})
+	oldMemoryCacheEnabled := common.MemoryCacheEnabled
+	oldGroups := group2model2channels
+	oldChannels := channelsIDM
+	oldAdvanced := channel2advancedCustomConfig
+	common.MemoryCacheEnabled = true
+	group2model2channels = map[string]map[string][]int{
+		"default": {"gpt-test": {1, 2}},
+	}
+	channelsIDM = map[int]*Channel{
+		1: {Id: 1, Status: common.ChannelStatusEnabled, Models: "gpt-test", Group: "default", Weight: common.GetPointer(uint(10)), Priority: common.GetPointer(int64(100))},
+		2: {Id: 2, Status: common.ChannelStatusEnabled, Models: "gpt-test", Group: "default", Weight: common.GetPointer(uint(10)), Priority: common.GetPointer(int64(100))},
+	}
+	channel2advancedCustomConfig = nil
+	t.Cleanup(func() {
+		common.MemoryCacheEnabled = oldMemoryCacheEnabled
+		group2model2channels = oldGroups
+		channelsIDM = oldChannels
+		channel2advancedCustomConfig = oldAdvanced
+		channellimiter.ResetForTest()
+	})
+
+	require.True(t, channellimiter.Acquire(1))
+	channel, err := GetRandomSatisfiedChannel("default", "gpt-test", 0, "")
+	require.NoError(t, err)
+	require.NotNil(t, channel)
+	assert.Equal(t, 2, channel.Id)
+	assert.Equal(t, 1, channellimiter.InFlight(2))
+	channellimiter.Release(2)
+}
+
 func withCircuitBreakerSettingForModelTest(t *testing.T, values map[string]string) {
 	t.Helper()
 	oldSetting := operation_setting.GetCircuitBreakerSetting()
@@ -119,6 +153,22 @@ func withCircuitBreakerSettingForModelTest(t *testing.T, values map[string]strin
 			"half_open_success_threshold": intStringForModelTest(oldSetting.HalfOpenSuccessThreshold),
 		}
 		_ = config.UpdateConfigFromMap(cfg, restore)
+	})
+}
+
+func withChannelLimiterSettingForModelTest(t *testing.T, values map[string]string) {
+	t.Helper()
+	oldSetting := operation_setting.GetChannelLimiterSetting()
+	cfg := config.GlobalConfig.Get("channel_limiter_setting")
+	require.NotNil(t, cfg)
+	require.NoError(t, config.UpdateConfigFromMap(cfg, values))
+	t.Cleanup(func() {
+		restore := map[string]string{
+			"enabled":                 boolStringForModelTest(oldSetting.Enabled),
+			"max_concurrent_requests": intStringForModelTest(oldSetting.MaxConcurrentRequests),
+		}
+		_ = config.UpdateConfigFromMap(cfg, restore)
+		channellimiter.ResetForTest()
 	})
 }
 

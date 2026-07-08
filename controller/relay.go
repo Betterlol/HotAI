@@ -15,6 +15,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
+	channellimiter "github.com/QuantumNous/new-api/pkg/channel_limiter"
 	"github.com/QuantumNous/new-api/pkg/circuitbreaker"
 	perfmetrics "github.com/QuantumNous/new-api/pkg/perf_metrics"
 	"github.com/QuantumNous/new-api/relay"
@@ -197,6 +198,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			newAPIError = channelErr
 			break
 		}
+		releaseSelectedChannel := relayInfo.ChannelMeta != nil
 
 		addUsedChannel(c, channel.Id)
 		bodyStorage, bodyErr := common.GetBodyStorage(c)
@@ -206,6 +208,9 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 				newAPIError = types.NewErrorWithStatusCode(bodyErr, types.ErrorCodeReadRequestBodyFailed, http.StatusRequestEntityTooLarge, types.ErrOptionWithSkipRetry())
 			} else {
 				newAPIError = types.NewErrorWithStatusCode(bodyErr, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+			}
+			if releaseSelectedChannel {
+				channellimiter.Release(channel.Id)
 			}
 			break
 		}
@@ -225,6 +230,9 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		if newAPIError == nil {
 			circuitbreaker.MarkSuccess(channel.Id)
 			relayInfo.LastError = nil
+			if releaseSelectedChannel {
+				channellimiter.Release(channel.Id)
+			}
 			return
 		}
 
@@ -233,6 +241,9 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		circuitbreaker.MarkFailure(channel.Id)
 
 		processChannelError(c, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError)
+		if releaseSelectedChannel {
+			channellimiter.Release(channel.Id)
+		}
 
 		if !shouldRetry(c, newAPIError, common.RetryTimes-retryParam.GetRetry()) {
 			break
@@ -538,6 +549,7 @@ func RelayTask(c *gin.Context) {
 				break
 			}
 		}
+		releaseSelectedChannel := relayInfo.ChannelMeta != nil
 
 		addUsedChannel(c, channel.Id)
 		bodyStorage, bodyErr := common.GetBodyStorage(c)
@@ -547,6 +559,9 @@ func RelayTask(c *gin.Context) {
 			} else {
 				taskErr = service.TaskErrorWrapperLocal(bodyErr, "read_request_body_failed", http.StatusBadRequest)
 			}
+			if releaseSelectedChannel {
+				channellimiter.Release(channel.Id)
+			}
 			break
 		}
 		c.Request.Body = io.NopCloser(bodyStorage)
@@ -554,6 +569,9 @@ func RelayTask(c *gin.Context) {
 		result, taskErr = relay.RelayTaskSubmit(c, relayInfo)
 		if taskErr == nil {
 			circuitbreaker.MarkSuccess(channel.Id)
+			if releaseSelectedChannel {
+				channellimiter.Release(channel.Id)
+			}
 			break
 		}
 
@@ -563,6 +581,9 @@ func RelayTask(c *gin.Context) {
 				*types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey,
 					common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()),
 				types.NewOpenAIError(taskErr.Error, types.ErrorCodeBadResponseStatusCode, taskErr.StatusCode))
+		}
+		if releaseSelectedChannel {
+			channellimiter.Release(channel.Id)
 		}
 
 		if !shouldRetryTaskRelay(c, channel.Id, taskErr, common.RetryTimes-retryParam.GetRetry()) {
