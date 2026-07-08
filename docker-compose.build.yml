@@ -11,4 +11,5 @@ services:
       dockerfile: Dockerfile
       args:
         IMAGE_REGISTRY: ${IMAGE_REGISTRY:-}
+        GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
     image: ${APP_IMAGE}
