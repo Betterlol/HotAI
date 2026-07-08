@@ -2,7 +2,7 @@
 
 ## 一、平台简介
 
-HotAI 是一款国内 AI 模型 API 聚合平台，可一站式接入 DeepSeek、xxx、xxx 等多种主流模型。
+HotAI 是一款国内 AI 模型 API 聚合平台，可一站式接入 DeepSeek、Kimi、xxx 等多种主流模型。
 
 
 
