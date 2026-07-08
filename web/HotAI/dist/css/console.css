@@ -1,0 +1,118 @@
+/* =========================================
+   控制台样式 (HotAI)
+   注意：导航栏样式已移至 head.css
+   ========================================= */
+:root {
+    --c-primary: #2D6FF5;
+    --c-primary-dark: #1A4EB8;
+    --c-primary-light: #F0F7FF;
+    --c-white: #FFFFFF;
+    --c-text-main: #1F2937;
+    --c-text-secondary: #4B5563;
+    --c-border: #E5E7EB;
+    --c-input-bg: #F3F4F6;
+    --c-gray-hover: #F9FAFB;
+    --shadow-card: 0 4px 12px rgba(45, 111, 245, 0.06);
+    --radius-btn: 999px;
+    --radius-card: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background-color: var(--c-primary-light);
+    color: var(--c-text-main);
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+}
+.hidden { display: none !important; }
+
+/* =========================================
+   3. 双栏布局 (侧边栏 + 主内容)
+   ========================================= */
+.app-wrapper { display: flex; flex: 1; height: calc(100vh - 64px); overflow: hidden; }
+
+/* 左侧边栏 */
+.sidebar {
+    width: 240px; background: var(--c-white); border-right: 1px solid var(--c-border);
+    display: flex; flex-direction: column; padding: 16px 12px; overflow-y: auto; flex-shrink: 0;
+    transition: width 0.3s ease, margin-left 0.3s ease;
+}
+.sidebar.collapsed { width: 0; margin-left: -240px; padding: 0; overflow: hidden; }
+.menu-group { margin-bottom: 24px; }
+.menu-group-title { font-size: 12px; color: #9CA3AF; padding: 0 12px 8px 12px; font-weight: 500; letter-spacing: 1px; }
+.menu-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-btn);
+    color: var(--c-text-secondary); font-size: 14px; cursor: pointer; transition: all 0.2s; text-decoration: none;
+}
+.menu-item svg { width: 18px; height: 18px; fill: currentColor; }
+.menu-item:hover { background: var(--c-gray-hover); color: var(--c-text-main); }
+.menu-item.active { background: var(--c-primary-light); color: var(--c-primary); font-weight: 600; }
+.menu-item.active svg { fill: var(--c-primary); }
+
+.sidebar-bottom { margin-top: auto; border-top: 1px solid var(--c-border); padding-top: 12px; }
+
+/* =========================================
+   4. 右侧主内容区
+   ========================================= */
+.main-content { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+
+/* 顶部欢迎语 */
+.welcome-header { font-size: 24px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+/* 统计卡片网格 (4列) */
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat-card { background: var(--c-white); border-radius: var(--radius-card); padding: 20px; box-shadow: var(--shadow-card); border: 1px solid var(--c-border); }
+.stat-card-header { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--c-text-main); margin-bottom: 16px; }
+.stat-card-header svg { width: 16px; height: 16px; fill: currentColor; }
+.stat-list { display: flex; flex-direction: column; gap: 12px; }
+.stat-item { display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: var(--c-text-secondary); }
+.stat-item .icon-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--c-primary-light); color: var(--c-primary); }
+.stat-item .val { font-weight: 700; color: var(--c-text-main); }
+
+/* 中间大块布局 (左: 图表, 右: API信息) */
+.dashboard-main { display: flex; gap: 20px; flex: 1; }
+.chart-area { flex: 2; background: var(--c-white); border-radius: var(--radius-card); padding: 20px; box-shadow: var(--shadow-card); border: 1px solid var(--c-border); display: flex; flex-direction: column; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.chart-title { font-size: 16px; font-weight: 700; }
+.chart-tabs { display: flex; gap: 12px; }
+.chart-tab { padding: 6px 16px; border-radius: var(--radius-btn); background: var(--c-input-bg); border: none; color: var(--c-text-secondary); font-size: 13px; cursor: pointer; transition: 0.2s; }
+.chart-tab.active { background: var(--c-primary); color: var(--c-white); }
+.chart-tab:hover:not(.active) { background: #e5e7eb; }
+.chart-body { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; }
+.chart-placeholder-text { font-size: 18px; font-weight: 600; color: var(--c-text-main); margin-bottom: 8px; }
+.chart-placeholder-sub { font-size: 14px; color: var(--c-text-secondary); margin-bottom: 32px; }
+.chart-mock-axes { display: flex; flex-direction: column; gap: 12px; border-left: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); padding-left: 8px; padding-bottom: 8px; height: 100%; justify-content: space-between; }
+.mock-y-line { height: 1px; background: #f0f0f0; width: 100%; position: relative; }
+.mock-y-line span { position: absolute; left: -30px; top: -8px; font-size: 12px; color: var(--c-text-secondary); }
+.mock-x-line { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--c-text-secondary); }
+
+/* API信息卡片 */
+.api-info-area { flex: 1; background: var(--c-white); border-radius: var(--radius-card); padding: 20px; box-shadow: var(--shadow-card); border: 1px solid var(--c-border); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; text-align: center; }
+.api-info-area svg { width: 80px; height: 80px; fill: #e5e7eb; margin-bottom: 12px; }
+.api-info-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.api-info-desc { font-size: 13px; color: var(--c-text-secondary); max-width: 200px; line-height: 1.5; }
+
+/* API 信息显示 */
+.api-info-list { width: 100%; }
+.api-info-item { background: var(--c-gray-hover); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.api-info-item-label { font-size: 12px; color: var(--c-text-secondary); margin-bottom: 4px; }
+.api-info-item-value { font-size: 14px; font-weight: 600; color: var(--c-text-main); word-break: break-all; }
+
+/* 水印 */
+.watermark { text-align: center; color: var(--c-text-secondary); font-size: 14px; margin-top: 12px; padding-bottom: 12px; }
+
+/* 加载状态 */
+.loading { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--c-border); border-top-color: var(--c-primary); border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* =========================================
+   5. 响应式适配
+   ========================================= */
+@media (max-width: 1024px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) {
+    .app-wrapper { flex-direction: column; } .sidebar { width: 100%; max-height: 200px; border-bottom: 1px solid var(--c-border); }
+    .sidebar.collapsed { display: none; }
+    .main-content { padding: 16px; }
+    .stat-grid { grid-template-columns: 1fr; }
+    .dashboard-main { flex-direction: column; }
+}
