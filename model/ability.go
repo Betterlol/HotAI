@@ -212,14 +212,31 @@ func filterAbilitiesByRequestPath(abilities []Ability, requestPath string) []Abi
 	return filtered
 }
 
+func resolveUpstreamModel(channel *Channel, model string, depth int) string {
+	if channel == nil || channel.ModelMapping == nil || *channel.ModelMapping == "" || depth > 10 {
+		return model
+	}
+	var m map[string]string
+	if err := common.UnmarshalJsonStr(*channel.ModelMapping, &m); err != nil {
+		return model
+	}
+	if mapped, ok := m[model]; ok && mapped != "" && mapped != model {
+		return resolveUpstreamModel(channel, mapped, depth+1)
+	}
+	return model
+}
+
 func getModelPrice(channel *Channel, model string) (pricePerToken *float64, pricePerRequest *float64) {
 	if channel == nil {
 		return nil, nil
 	}
+	// Resolve through ModelMapping to find the upstream model name.
+	// PriceMapping is always keyed by upstream model name.
+	upstreamModel := resolveUpstreamModel(channel, model, 0)
 	if channel.PriceMapping != nil && *channel.PriceMapping != "" {
 		var mapping map[string]map[string]float64
 		if err := common.UnmarshalJsonStr(*channel.PriceMapping, &mapping); err == nil {
-			if modelPrices, ok := mapping[model]; ok {
+			if modelPrices, ok := mapping[upstreamModel]; ok {
 				if v, ok := modelPrices["price_per_token"]; ok {
 					pricePerToken = &v
 				}

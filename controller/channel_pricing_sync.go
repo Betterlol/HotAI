@@ -16,6 +16,17 @@ import (
 
 const pricePerTokenFactor = 2.0 / 1000000.0
 
+func resolveModelMapping(channel *model.Channel) map[string]string {
+	if channel == nil || channel.ModelMapping == nil || *channel.ModelMapping == "" {
+		return nil
+	}
+	var m map[string]string
+	if err := common.UnmarshalJsonStr(*channel.ModelMapping, &m); err != nil {
+		return nil
+	}
+	return m
+}
+
 func SyncChannelPricing(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -113,16 +124,26 @@ func syncChannelPricing(channel *model.Channel) error {
 	models := strings.Split(channel.Models, ",")
 	mapping := make(map[string]map[string]float64)
 
+	modelMapping := resolveModelMapping(channel)
+
 	for _, modelName := range models {
 		modelName = strings.TrimSpace(modelName)
 		if modelName == "" {
 			continue
 		}
 
+		// Use upstream model name as the PriceMapping key.
+		// If the channel has a ModelMapping, resolve to the upstream name;
+		// otherwise the user-facing name is also the upstream name.
+		upstreamModel := modelName
+		if mapped, ok := modelMapping[modelName]; ok && mapped != "" {
+			upstreamModel = mapped
+		}
+
 		entry := make(map[string]float64)
 		hasPrice := false
 
-		if ratio, ok := modelRatioMap[modelName]; ok && ratio > 0 {
+		if ratio, ok := modelRatioMap[upstreamModel]; ok && ratio > 0 {
 			pricePerToken := ratio * pricePerTokenFactor
 			if pricePerToken > 0 {
 				entry["price_per_token"] = pricePerToken
@@ -130,13 +151,13 @@ func syncChannelPricing(channel *model.Channel) error {
 			}
 		}
 
-		if price, ok := modelPriceMap[modelName]; ok && price > 0 {
+		if price, ok := modelPriceMap[upstreamModel]; ok && price > 0 {
 			entry["price_per_request"] = price
 			hasPrice = true
 		}
 
 		if hasPrice {
-			mapping[modelName] = entry
+			mapping[upstreamModel] = entry
 		}
 	}
 
