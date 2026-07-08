@@ -60,6 +60,56 @@ func TestFastestPositiveResponseTimeSkipsMissingSamples(t *testing.T) {
 	assert.Equal(t, 120, fastest)
 }
 
+func TestCostAdjustedWeightDisabledKeepsBaseWeight(t *testing.T) {
+	weight := costAdjustedWeight(100, 10, 1, operation_setting.CostRoutingSetting{
+		Enabled:    false,
+		CostWeight: 1,
+	})
+
+	assert.Equal(t, 100, weight)
+}
+
+func TestCostAdjustedWeightPenalizesExpensiveChannel(t *testing.T) {
+	cheap := costAdjustedWeight(100, 1, 1, operation_setting.CostRoutingSetting{
+		Enabled:    true,
+		CostWeight: 1,
+	})
+	expensive := costAdjustedWeight(100, 10, 1, operation_setting.CostRoutingSetting{
+		Enabled:    true,
+		CostWeight: 1,
+	})
+
+	assert.Equal(t, 100, cheap)
+	assert.Equal(t, 10, expensive)
+}
+
+func TestCostAdjustedWeightBlendsWithConfiguredWeight(t *testing.T) {
+	weight := costAdjustedWeight(100, 10, 1, operation_setting.CostRoutingSetting{
+		Enabled:    true,
+		CostWeight: 0.2,
+	})
+
+	assert.Equal(t, 82, weight)
+}
+
+func TestAdjustedChannelWeightsApplyAbilityCosts(t *testing.T) {
+	oldIndex := channelCostIndex
+	channelCostIndex = map[string]map[string]map[int]float64{
+		"default": {"gpt-test": {1: 1, 2: 10}},
+	}
+	t.Cleanup(func() {
+		channelCostIndex = oldIndex
+	})
+	withCostRoutingSettingForModelTest(t, map[string]string{"enabled": "true", "cost_weight": "1"})
+
+	weights := adjustedChannelWeights("default", "gpt-test", []*Channel{
+		{Id: 1, Weight: common.GetPointer(uint(10))},
+		{Id: 2, Weight: common.GetPointer(uint(10))},
+	}, 1, 0)
+
+	assert.Equal(t, []int{10, 1}, weights)
+}
+
 func TestGetRandomSatisfiedChannelSkipsOpenCircuitBreaker(t *testing.T) {
 	withCircuitBreakerSettingForModelTest(t, map[string]string{
 		"enabled":              "true",
@@ -169,6 +219,21 @@ func withChannelLimiterSettingForModelTest(t *testing.T, values map[string]strin
 		}
 		_ = config.UpdateConfigFromMap(cfg, restore)
 		channellimiter.ResetForTest()
+	})
+}
+
+func withCostRoutingSettingForModelTest(t *testing.T, values map[string]string) {
+	t.Helper()
+	oldSetting := operation_setting.GetCostRoutingSetting()
+	cfg := config.GlobalConfig.Get("cost_routing_setting")
+	require.NotNil(t, cfg)
+	require.NoError(t, config.UpdateConfigFromMap(cfg, values))
+	t.Cleanup(func() {
+		restore := map[string]string{
+			"enabled":     boolStringForModelTest(oldSetting.Enabled),
+			"cost_weight": floatStringForModelTest(oldSetting.CostWeight),
+		}
+		_ = config.UpdateConfigFromMap(cfg, restore)
 	})
 }
 

@@ -21,6 +21,8 @@ import (
 
 var group2model2channels map[string]map[string][]int // enabled channel
 var channelsIDM map[int]*Channel                     // all channels include disabled
+var channelCostIndex map[string]map[string]map[int]float64
+
 // channel2advancedCustomConfig caches parsed Advanced Custom (type 58) configs so
 // path-aware selection avoids re-parsing JSON per request. Refreshed on full sync.
 var channel2advancedCustomConfig map[int]*dto.AdvancedCustomConfig
@@ -45,8 +47,20 @@ func InitChannelCache() {
 	var abilities []*Ability
 	DB.Find(&abilities)
 	groups := make(map[string]bool)
+	newChannelCostIndex := make(map[string]map[string]map[int]float64)
 	for _, ability := range abilities {
 		groups[ability.Group] = true
+		cost := ability.RoutingCost()
+		if cost <= 0 {
+			continue
+		}
+		if _, ok := newChannelCostIndex[ability.Group]; !ok {
+			newChannelCostIndex[ability.Group] = make(map[string]map[int]float64)
+		}
+		if _, ok := newChannelCostIndex[ability.Group][ability.Model]; !ok {
+			newChannelCostIndex[ability.Group][ability.Model] = make(map[int]float64)
+		}
+		newChannelCostIndex[ability.Group][ability.Model][ability.ChannelId] = cost
 	}
 	newGroup2model2channels := make(map[string]map[string][]int)
 	for group := range groups {
@@ -95,6 +109,7 @@ func InitChannelCache() {
 		}
 	}
 	channelsIDM = newChannelId2channel
+	channelCostIndex = newChannelCostIndex
 	channel2advancedCustomConfig = newChannel2advancedCustomConfig
 	channelSyncLock.Unlock()
 	common.SysLog("channels synced from database")
@@ -191,7 +206,7 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 		smoothingFactor = 100
 	}
 
-	adjustedWeights := adjustedChannelWeights(targetChannels, smoothingFactor, smoothingAdjustment)
+	adjustedWeights := adjustedChannelWeights(group, model, targetChannels, smoothingFactor, smoothingAdjustment)
 	totalWeight := 0
 	for _, weight := range adjustedWeights {
 		totalWeight += weight
@@ -232,15 +247,69 @@ func markChannelSelected(channelID int) bool {
 	return true
 }
 
-func adjustedChannelWeights(channels []*Channel, smoothingFactor int, smoothingAdjustment int) []int {
+func adjustedChannelWeights(group string, model string, channels []*Channel, smoothingFactor int, smoothingAdjustment int) []int {
 	weights := make([]int, len(channels))
-	setting := operation_setting.GetLatencyRoutingSetting()
+	latencySetting := operation_setting.GetLatencyRoutingSetting()
+	costSetting := operation_setting.GetCostRoutingSetting()
 	fastestResponseTime := fastestPositiveResponseTime(channels)
+	costs := costsForChannels(group, model, channels)
+	lowestCost := lowestPositiveCost(costs)
 	for index, channel := range channels {
 		baseWeight := channel.GetWeight()*smoothingFactor + smoothingAdjustment
-		weights[index] = latencyAdjustedWeight(baseWeight, channel.ResponseTime, fastestResponseTime, setting)
+		weight := latencyAdjustedWeight(baseWeight, channel.ResponseTime, fastestResponseTime, latencySetting)
+		weights[index] = costAdjustedWeight(weight, costs[channel.Id], lowestCost, costSetting)
 	}
 	return weights
+}
+
+func costsForChannels(group string, model string, channels []*Channel) map[int]float64 {
+	costs := make(map[int]float64, len(channels))
+	for _, channel := range channels {
+		if channel == nil {
+			continue
+		}
+		if cost := costForChannel(group, model, channel); cost > 0 {
+			costs[channel.Id] = cost
+		}
+	}
+	return costs
+}
+
+func costForChannel(group string, model string, channel *Channel) float64 {
+	if channelCostIndex != nil {
+		if modelCosts, ok := channelCostIndex[group]; ok {
+			if channelCosts, ok := modelCosts[model]; ok {
+				if cost := channelCosts[channel.Id]; cost > 0 {
+					return cost
+				}
+			}
+			normalizedModel := ratio_setting.FormatMatchingModelName(model)
+			if normalizedModel != model {
+				if channelCosts, ok := modelCosts[normalizedModel]; ok {
+					if cost := channelCosts[channel.Id]; cost > 0 {
+						return cost
+					}
+				}
+			}
+		}
+	}
+	if channel == nil {
+		return 0
+	}
+	return routingCost(channel.PricePerToken, channel.PricePerRequest)
+}
+
+func lowestPositiveCost(costs map[int]float64) float64 {
+	lowest := 0.0
+	for _, cost := range costs {
+		if cost <= 0 {
+			continue
+		}
+		if lowest == 0 || cost < lowest {
+			lowest = cost
+		}
+	}
+	return lowest
 }
 
 func fastestPositiveResponseTime(channels []*Channel) int {
@@ -272,6 +341,31 @@ func latencyAdjustedWeight(baseWeight int, responseTime int, fastestResponseTime
 	}
 	latencyRatio := float64(fastestResponseTime) / float64(responseTime)
 	adjusted := int(float64(baseWeight) * ((1 - factor) + factor*latencyRatio))
+	if adjusted < 1 {
+		return 1
+	}
+	return adjusted
+}
+
+func costAdjustedWeight(baseWeight int, channelCost float64, lowestCost float64, setting operation_setting.CostRoutingSetting) int {
+	if baseWeight <= 0 {
+		return 0
+	}
+	if !setting.Enabled || lowestCost <= 0 || channelCost <= 0 {
+		return baseWeight
+	}
+	factor := setting.CostWeight
+	if factor < 0 {
+		factor = 0
+	}
+	if factor > 1 {
+		factor = 1
+	}
+	costRatio := lowestCost / channelCost
+	if costRatio > 1 {
+		costRatio = 1
+	}
+	adjusted := int(float64(baseWeight) * ((1 - factor) + factor*costRatio))
 	if adjusted < 1 {
 		return 1
 	}

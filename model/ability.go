@@ -16,18 +16,38 @@ import (
 )
 
 type Ability struct {
-	Group     string  `json:"group" gorm:"type:varchar(64);primaryKey;autoIncrement:false"`
-	Model     string  `json:"model" gorm:"type:varchar(255);primaryKey;autoIncrement:false"`
-	ChannelId int     `json:"channel_id" gorm:"primaryKey;autoIncrement:false;index"`
-	Enabled   bool    `json:"enabled"`
-	Priority  *int64  `json:"priority" gorm:"bigint;default:0;index"`
-	Weight    uint    `json:"weight" gorm:"default:0;index"`
-	Tag       *string `json:"tag" gorm:"index"`
+	Group           string   `json:"group" gorm:"type:varchar(64);primaryKey;autoIncrement:false"`
+	Model           string   `json:"model" gorm:"type:varchar(255);primaryKey;autoIncrement:false"`
+	ChannelId       int      `json:"channel_id" gorm:"primaryKey;autoIncrement:false;index"`
+	Enabled         bool     `json:"enabled"`
+	Priority        *int64   `json:"priority" gorm:"bigint;default:0;index"`
+	Weight          uint     `json:"weight" gorm:"default:0;index"`
+	Tag             *string  `json:"tag" gorm:"index"`
+	PricePerToken   *float64 `json:"price_per_token"`
+	PricePerRequest *float64 `json:"price_per_request"`
 }
 
 type AbilityWithChannel struct {
 	Ability
 	ChannelType int `json:"channel_type"`
+}
+
+func (ability *Ability) RoutingCost() float64 {
+	if ability == nil {
+		return 0
+	}
+	return routingCost(ability.PricePerToken, ability.PricePerRequest)
+}
+
+func routingCost(pricePerToken *float64, pricePerRequest *float64) float64 {
+	cost := 0.0
+	if pricePerToken != nil && *pricePerToken > 0 {
+		cost += *pricePerToken
+	}
+	if pricePerRequest != nil && *pricePerRequest > 0 {
+		cost += *pricePerRequest
+	}
+	return cost
 }
 
 func GetAllEnableAbilityWithChannels() ([]AbilityWithChannel, error) {
@@ -192,6 +212,29 @@ func filterAbilitiesByRequestPath(abilities []Ability, requestPath string) []Abi
 	return filtered
 }
 
+func getModelPrice(channel *Channel, model string) (pricePerToken *float64, pricePerRequest *float64) {
+	if channel == nil {
+		return nil, nil
+	}
+	if channel.PriceMapping != nil && *channel.PriceMapping != "" {
+		var mapping map[string]map[string]float64
+		if err := common.UnmarshalJsonStr(*channel.PriceMapping, &mapping); err == nil {
+			if modelPrices, ok := mapping[model]; ok {
+				if v, ok := modelPrices["price_per_token"]; ok {
+					pricePerToken = &v
+				}
+				if v, ok := modelPrices["price_per_request"]; ok {
+					pricePerRequest = &v
+				}
+				if pricePerToken != nil || pricePerRequest != nil {
+					return pricePerToken, pricePerRequest
+				}
+			}
+		}
+	}
+	return channel.PricePerToken, channel.PricePerRequest
+}
+
 func (channel *Channel) AddAbilities(tx *gorm.DB) error {
 	models_ := strings.Split(channel.Models, ",")
 	groups_ := strings.Split(channel.Group, ",")
@@ -204,14 +247,17 @@ func (channel *Channel) AddAbilities(tx *gorm.DB) error {
 				continue
 			}
 			abilitySet[key] = struct{}{}
+			pricePerToken, pricePerRequest := getModelPrice(channel, model)
 			ability := Ability{
-				Group:     group,
-				Model:     model,
-				ChannelId: channel.Id,
-				Enabled:   channel.Status == common.ChannelStatusEnabled,
-				Priority:  channel.Priority,
-				Weight:    uint(channel.GetWeight()),
-				Tag:       channel.Tag,
+				Group:           group,
+				Model:           model,
+				ChannelId:       channel.Id,
+				Enabled:         channel.Status == common.ChannelStatusEnabled,
+				Priority:        channel.Priority,
+				Weight:          uint(channel.GetWeight()),
+				Tag:             channel.Tag,
+				PricePerToken:   pricePerToken,
+				PricePerRequest: pricePerRequest,
 			}
 			abilities = append(abilities, ability)
 		}
@@ -219,7 +265,6 @@ func (channel *Channel) AddAbilities(tx *gorm.DB) error {
 	if len(abilities) == 0 {
 		return nil
 	}
-	// choose DB or provided tx
 	useDB := DB
 	if tx != nil {
 		useDB = tx
@@ -237,11 +282,8 @@ func (channel *Channel) DeleteAbilities() error {
 	return DB.Where("channel_id = ?", channel.Id).Delete(&Ability{}).Error
 }
 
-// UpdateAbilities updates abilities of this channel.
-// Make sure the channel is completed before calling this function.
 func (channel *Channel) UpdateAbilities(tx *gorm.DB) error {
 	isNewTx := false
-	// 如果没有传入事务，创建新的事务
 	if tx == nil {
 		tx = DB.Begin()
 		if tx.Error != nil {
@@ -255,7 +297,6 @@ func (channel *Channel) UpdateAbilities(tx *gorm.DB) error {
 		}()
 	}
 
-	// First delete all abilities of this channel
 	err := tx.Where("channel_id = ?", channel.Id).Delete(&Ability{}).Error
 	if err != nil {
 		if isNewTx {
@@ -264,7 +305,6 @@ func (channel *Channel) UpdateAbilities(tx *gorm.DB) error {
 		return err
 	}
 
-	// Then add new abilities
 	models_ := strings.Split(channel.Models, ",")
 	groups_ := strings.Split(channel.Group, ",")
 	abilitySet := make(map[string]struct{})
@@ -276,14 +316,17 @@ func (channel *Channel) UpdateAbilities(tx *gorm.DB) error {
 				continue
 			}
 			abilitySet[key] = struct{}{}
+			pricePerToken, pricePerRequest := getModelPrice(channel, model)
 			ability := Ability{
-				Group:     group,
-				Model:     model,
-				ChannelId: channel.Id,
-				Enabled:   channel.Status == common.ChannelStatusEnabled,
-				Priority:  channel.Priority,
-				Weight:    uint(channel.GetWeight()),
-				Tag:       channel.Tag,
+				Group:           group,
+				Model:           model,
+				ChannelId:       channel.Id,
+				Enabled:         channel.Status == common.ChannelStatusEnabled,
+				Priority:        channel.Priority,
+				Weight:          uint(channel.GetWeight()),
+				Tag:             channel.Tag,
+				PricePerToken:   pricePerToken,
+				PricePerRequest: pricePerRequest,
 			}
 			abilities = append(abilities, ability)
 		}
@@ -301,7 +344,6 @@ func (channel *Channel) UpdateAbilities(tx *gorm.DB) error {
 		}
 	}
 
-	// 如果是新创建的事务，需要提交
 	if isNewTx {
 		return tx.Commit().Error
 	}
