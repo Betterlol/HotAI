@@ -76,4 +76,6 @@ var channelPermissionRoutes = []permissionRoute{
 	{method: http.MethodPost, path: "/upstream_updates/apply_all", permission: authz.ChannelWrite, handler: controller.ApplyAllChannelUpstreamModelUpdates},
 	{method: http.MethodPost, path: "/upstream_updates/detect", permission: authz.ChannelOperate, handler: controller.DetectChannelUpstreamModelUpdates},
 	{method: http.MethodPost, path: "/upstream_updates/detect_all", permission: authz.ChannelOperate, handler: controller.DetectAllChannelUpstreamModelUpdates},
+	{method: http.MethodPost, path: "/:id/sync_pricing", permission: authz.ChannelOperate, handler: controller.SyncChannelPricing},
+	{method: http.MethodPost, path: "/sync_pricing", permission: authz.ChannelOperate, handler: controller.SyncAllChannelPricing},
 }
