@@ -1,39 +1,12 @@
 /**
- * 控制台侧边栏共享组件
- * @param {string} activePage - 当前激活的页面标识
- * @param {Array} customMenuItems - 自定义菜单项（用于 profile 等特殊页面）
+ * 控制台侧边栏 - 统一版本
+ * 所有页面完全一致，仅高亮不同
  */
-function renderSidebar(activePage, customMenuItems = null) {
+function renderSidebar(activePage) {
     const sidebarEl = document.querySelector('.sidebar');
     if (!sidebarEl) return;
 
-    // 如果提供了自定义菜单项，只渲染自定义菜单
-    if (customMenuItems && customMenuItems.length > 0) {
-        let html = '<div class="menu-group"><div class="menu-group-title">个人设置</div>';
-        customMenuItems.forEach(item => {
-            html += `<a href="javascript:void(0)" class="menu-item" id="${item.id}" data-panel="${item.id.replace('profile-', '')}">
-                ${item.icon}<span>${item.label}</span>
-            </a>`;
-        });
-        html += '</div>';
-        sidebarEl.innerHTML = html;
-
-        // 绑定点击事件
-        customMenuItems.forEach(item => {
-            const el = document.getElementById(item.id);
-            if (el && item.onClick) {
-                el.addEventListener('click', item.onClick);
-            }
-        });
-
-        // 默认激活第一项
-        if (customMenuItems[0]) {
-            document.getElementById(customMenuItems[0].id)?.classList.add('active');
-        }
-        return;
-    }
-
-    // 标准侧边栏
+    // 完整菜单（与 console.html 完全一致）
     sidebarEl.innerHTML = `
         <div class="menu-group">
             <div class="menu-group-title">聊天</div>
@@ -120,89 +93,60 @@ function renderSidebar(activePage, customMenuItems = null) {
         </div>
     `;
 
-    // 根据用户角色显示/隐藏管理员菜单
+    // 管理员菜单显示控制
     checkAdminAccess();
-    
-    // 初始化侧边栏折叠功能
+    // 折叠功能初始化
     initSidebarToggle();
 }
 
-// 初始化侧边栏折叠功能
+// ========== 以下函数保持不变 ==========
 function initSidebarToggle() {
-    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    const btn = document.getElementById('sidebarToggleBtn');
     const sidebar = document.querySelector('.sidebar');
-    
-    if (!sidebarToggleBtn || !sidebar) return;
-    
-    // 从 localStorage 读取侧边栏状态
-    const savedState = localStorage.getItem('sidebarCollapsed');
-    if (savedState === 'true') {
+    if (!btn || !sidebar) return;
+
+    const saved = localStorage.getItem('sidebarCollapsed');
+    if (saved === 'true') {
         sidebar.classList.add('collapsed');
         updateToggleButton(true);
     }
-    
-    // 绑定点击事件
-    sidebarToggleBtn.addEventListener('click', () => {
-        const isCollapsed = sidebar.classList.toggle('collapsed');
-        
-        // 保存状态到 localStorage
-        localStorage.setItem('sidebarCollapsed', isCollapsed);
-        
-        // 更新按钮图标
-        updateToggleButton(isCollapsed);
-        
-        // 触发图表重绘（如果存在）
+
+    btn.addEventListener('click', function() {
+        const collapsed = sidebar.classList.toggle('collapsed');
+        localStorage.setItem('sidebarCollapsed', collapsed);
+        updateToggleButton(collapsed);
+        // 触发图表resize
         setTimeout(() => {
-            if (window._mainChartInstance) {
-                window._mainChartInstance.resize();
-            }
-            if (window._flowChartInstance) {
-                window._flowChartInstance.resize();
-            }
+            if (window._mainChartInstance) window._mainChartInstance.resize();
+            if (window._flowChartInstance) window._flowChartInstance.resize();
         }, 350);
     });
 }
 
-// 更新侧边栏折叠按钮的图标
-function updateToggleButton(isCollapsed) {
-    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
-    if (!sidebarToggleBtn) return;
-    
-    const svg = sidebarToggleBtn.querySelector('svg');
+function updateToggleButton(collapsed) {
+    const btn = document.getElementById('sidebarToggleBtn');
+    if (!btn) return;
+    const svg = btn.querySelector('svg');
     if (svg) {
-        if (isCollapsed) {
-            // 展开图标（向右双箭头）
-            svg.innerHTML = '<polyline points="6 17 11 12 6 7"></polyline><polyline points="13 17 18 12 13 7"></polyline>';
-        } else {
-            // 收起图标（向左双箭头）
-            svg.innerHTML = '<polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline>';
-        }
+        svg.innerHTML = collapsed
+            ? '<polyline points="6 17 11 12 6 7"></polyline><polyline points="13 17 18 12 13 7"></polyline>'
+            : '<polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline>';
     }
 }
 
 function checkAdminAccess() {
-    const user = Auth ? null : null; // will be updated after API call
-    API.getUserInfo().then(result => {
-        if (result.success && result.data) {
-            const role = result.data.role || 0;
-            if (role >= 10) {
-                // 管理员或超级管理员
-                const adminGroup = document.getElementById('adminMenuGroup');
-                if (adminGroup) {
-                    adminGroup.classList.add('show');
-                    adminGroup.querySelectorAll('.admin-only').forEach(el => {
-                        // 系统设置只对超级管理员（role >= 100）显示
-                        if (el.href && el.href.includes('setting.html')) {
-                            if (role >= 100) {
-                                el.classList.add('show');
-                            } else {
-                                el.style.display = 'none';
-                            }
-                        } else {
-                            el.classList.add('show');
-                        }
-                    });
-                }
+    API.getUserInfo().then(res => {
+        if (res.success && res.data && res.data.role >= 10) {
+            const group = document.getElementById('adminMenuGroup');
+            if (group) {
+                group.classList.add('show');
+                group.querySelectorAll('.admin-only').forEach(el => {
+                    if (el.href && el.href.includes('setting.html') && res.data.role < 100) {
+                        el.style.display = 'none';
+                    } else {
+                        el.classList.add('show');
+                    }
+                });
             }
         }
     }).catch(() => {});

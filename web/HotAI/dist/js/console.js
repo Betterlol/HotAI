@@ -367,9 +367,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const apiInfoArea = document.getElementById('apiInfoArea');
         const apiInfoContent = document.getElementById('apiInfoContent');
 
-        // 加载右侧面板
-        loadSidePanel(status);
-
         if (status.api_info && status.api_info.length > 0) {
             apiInfoArea.style.alignItems = 'flex-start';
             apiInfoArea.style.justifyContent = 'flex-start';

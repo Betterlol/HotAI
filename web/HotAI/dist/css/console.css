@@ -37,14 +37,14 @@ body {
     display: flex; flex-direction: column; padding: 16px 12px; overflow-y: auto; flex-shrink: 0;
     transition: width 0.3s ease, padding 0.3s ease;
 }
-.sidebar.collapsed { 
-    width: 80px; 
+.sidebar.collapsed {
+    width: 80px;
     padding: 16px 8px;
 }
 .menu-group { margin-bottom: 24px; }
-.menu-group-title { 
-    font-size: 12px; color: #9CA3AF; padding: 0 12px 8px 12px; 
-    font-weight: 500; letter-spacing: 1px; 
+.menu-group-title {
+    font-size: 12px; color: #9CA3AF; padding: 0 12px 8px 12px;
+    font-weight: 500; letter-spacing: 1px;
     transition: opacity 0.2s ease;
 }
 .menu-item {
@@ -88,33 +88,33 @@ body {
 .sidebar-toggle-btn span { transition: opacity 0.2s ease; }
 
 /* 侧边栏折叠时的样式优化 */
-.sidebar.collapsed .toggle-wrapper { 
-    padding: 0; 
-    display: flex; 
-    justify-content: center; 
+.sidebar.collapsed .toggle-wrapper {
+    padding: 0;
+    display: flex;
+    justify-content: center;
 }
-.sidebar.collapsed .sidebar-toggle-btn { 
-    justify-content: center; 
-    padding: 10px; 
-    border: none; 
+.sidebar.collapsed .sidebar-toggle-btn {
+    justify-content: center;
+    padding: 10px;
+    border: none;
     width: auto;
     gap: 0;
 }
-.sidebar.collapsed .sidebar-toggle-btn span { 
-    display: none; 
+.sidebar.collapsed .sidebar-toggle-btn span {
+    display: none;
     opacity: 0;
 }
 
 /* =========================================
    4. 右侧主内容区
    ========================================= */
-.main-content { 
-    flex: 1; 
-    padding: 24px; 
-    overflow-y: auto; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 24px; 
+.main-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
     min-height: 0;
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 #f1f5f9;
@@ -137,10 +137,11 @@ body {
 .stat-item .icon-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--c-primary-light); color: var(--c-primary); flex-shrink: 0; }
 .stat-item .val { font-weight: 700; color: var(--c-text-main); min-width: 80px; text-align: center; font-variant-numeric: tabular-nums; }
 
-/* 中间大块布局 (左: 图表, 中: API信息, 右: 侧边面板) */
+/* 中间大块布局 (左: 图表, 右: API信息) */
 .dashboard-main { display: flex; gap: 20px; flex: 1; min-width: 800px; }
 
-/* 右侧面板 */
+/* 右侧侧边面板 (已移除并隐藏) */
+#sidePanel { display: none !important; }
 .side-panel {
     width: 280px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px;
     overflow-y: auto; padding-right: 4px;
@@ -154,55 +155,70 @@ body {
 .announcement-item:last-child { border-bottom: none; }
 .announcement-date { font-size: 11px; color: var(--c-text-secondary); margin-bottom: 4px; }
 .announcement-content { color: var(--c-text-main); }
-.chart-area { 
-    flex: 1; 
+
+/* 图表区域 (占据 3/4 宽度) */
+.chart-area {
+    flex: 3 !important;   /* 修改！从 1 改为 3，分配释放出来的宽度 */
     min-width: 0;
-    background: var(--c-white); 
-    border-radius: var(--radius-card); 
-    padding: 20px; 
-    box-shadow: var(--shadow-card); 
-    border: 1px solid var(--c-border); 
-    display: flex; 
+    background: var(--c-white);
+    border-radius: var(--radius-card);
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--c-border);
+    display: flex;
     flex-direction: column;
     min-height: 0;
 }
-.chart-header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
     flex-shrink: 0;
+    flex-wrap: nowrap;      /* 强制头部整体不换行 */
+    gap: 12px;              /* 标题与选项卡之间留出间距 */
+    min-width: 0;           /* 允许收缩 */
 }
-.chart-title { font-size: 16px; font-weight: 700; }
-.chart-tabs { 
-    display: flex; 
-    gap: 12px;
-    overflow-x: auto;
+.chart-title {
+    font-size: 16px;
+    font-weight: 700;
+    flex-shrink: 0;         /* 标题宽度固定，绝不压缩 */
+    white-space: nowrap;    /* 标题文字不换行 */
+}
+.chart-tabs {
+    display: flex;
+    gap: 8px;               /* 按钮间隙略微缩小，腾出更多空间 */
+    overflow-x: auto;       /* 横向滚动 - 保留功能！ */
     white-space: nowrap;
-    flex-wrap: nowrap;
+    flex-wrap: nowrap;      /* 强制选项卡永不换行 */
+    flex: 1 1 auto;         /* 自动占据剩余宽度 */
+    min-width: 0;           /* 关键：允许收缩以触发滚动 */
+    justify-content: flex-end; /* 选项卡靠右对齐，更符合视觉习惯 */
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;
+    padding-bottom: 4px;    /* 给滚动条留点空间，避免遮挡 */
 }
 .chart-tabs::-webkit-scrollbar { height: 4px; }
 .chart-tabs::-webkit-scrollbar-track { background: transparent; }
 .chart-tabs::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-.chart-tab { 
-    padding: 6px 16px; 
-    border-radius: var(--radius-btn); 
-    background: var(--c-input-bg); 
-    border: none; 
-    color: var(--c-text-secondary); 
-    font-size: 13px; 
-    cursor: pointer; 
+.chart-tab {
+    padding: 6px 16px;
+    border-radius: var(--radius-btn);
+    background: var(--c-input-bg);
+    border: none;
+    color: var(--c-text-secondary);
+    font-size: 13px;
+    cursor: pointer;
     transition: 0.2s;
-    flex-shrink: 0;
+    flex-shrink: 0;         /* 按钮绝不收缩 */
+    white-space: nowrap;    /* 按钮文字强制单行 */
 }
 .chart-tab.active { background: var(--c-primary); color: var(--c-white); }
 .chart-tab:hover:not(.active) { background: #e5e7eb; }
-.chart-body { 
-    flex: 1; 
-    display: flex; 
-    flex-direction: column; 
+.chart-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     justify-content: flex-end;
     min-height: 0;
 }
@@ -213,8 +229,11 @@ body {
 .mock-y-line span { position: absolute; left: -30px; top: -8px; font-size: 12px; color: var(--c-text-secondary); }
 .mock-x-line { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--c-text-secondary); }
 
-/* API信息卡片 */
-.api-info-area { flex: 1; background: var(--c-white); border-radius: var(--radius-card); padding: 20px; box-shadow: var(--shadow-card); border: 1px solid var(--c-border); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; text-align: center; }
+/* API信息卡片 (占据 1/4 宽度) */
+.api-info-area {
+    flex: 1 !important;   /* 修改！确保仅占 1 份宽度 */
+    background: var(--c-white); border-radius: var(--radius-card); padding: 20px; box-shadow: var(--shadow-card); border: 1px solid var(--c-border); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; text-align: center;
+}
 .api-info-area svg { width: 80px; height: 80px; fill: #e5e7eb; margin-bottom: 12px; }
 .api-info-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
 .api-info-desc { font-size: 13px; color: var(--c-text-secondary); max-width: 200px; line-height: 1.5; }
@@ -354,6 +373,14 @@ body {
 .uptime-dot-up { background: #22C55E; }
 .uptime-dot-down { background: #EF4444; }
 .uptime-dot-pending { background: #F59E0B; }
+
+/* =========================================
+   新增：底部面板控制 (公告/FAQ/监控)
+   ========================================= */
+#infoPanels {
+    display: block !important;
+    margin-top: 20px;
+}
 
 /* =========================================
    5. 响应式适配
