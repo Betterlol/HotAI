@@ -105,6 +105,7 @@ func Distribute() func(c *gin.Context) {
 
 				if preferredChannelID, found := service.GetPreferredChannelByAffinity(c, modelRequest.Model, usingGroup); found {
 					affinityUsable := false
+					affinitySelectedGroup := ""
 					preferred, err := model.CacheGetChannel(preferredChannelID)
 					if err == nil && preferred != nil && preferred.Status == common.ChannelStatusEnabled &&
 						channelSupportsRequestPath(preferred, c.Request.URL.Path) {
@@ -117,7 +118,7 @@ func Distribute() func(c *gin.Context) {
 									common.SetContextKey(c, constant.ContextKeyAutoGroup, g)
 									channel = preferred
 									affinityUsable = true
-									service.MarkChannelAffinityUsed(c, g, preferred.Id)
+									affinitySelectedGroup = g
 									break
 								}
 							}
@@ -125,11 +126,19 @@ func Distribute() func(c *gin.Context) {
 							channel = preferred
 							selectGroup = usingGroup
 							affinityUsable = true
-							service.MarkChannelAffinityUsed(c, usingGroup, preferred.Id)
+							affinitySelectedGroup = usingGroup
 						}
 					}
 					if !affinityUsable && !service.ShouldKeepChannelAffinityOnChannelDisabled() {
 						service.ClearCurrentChannelAffinityCache(c)
+					}
+					if affinityUsable {
+						if acquireAffinityChannel(c, channel, affinitySelectedGroup, usingGroup) {
+							limiterAcquired = true
+						} else {
+							channel = nil
+							selectGroup = ""
+						}
 					}
 				}
 
@@ -180,6 +189,20 @@ func Distribute() func(c *gin.Context) {
 			service.RecordChannelAffinity(c, channel.Id)
 		}
 	}
+}
+
+func acquireAffinityChannel(c *gin.Context, channel *model.Channel, selectedGroup string, usingGroup string) bool {
+	if channel == nil {
+		return false
+	}
+	if !channellimiter.Acquire(channel.Id) {
+		if usingGroup == "auto" {
+			common.SetContextKey(c, constant.ContextKeyAutoGroup, "")
+		}
+		return false
+	}
+	service.MarkChannelAffinityUsed(c, selectedGroup, channel.Id)
+	return true
 }
 
 // channelSupportsRequestPath reports whether a channel can serve the request path.

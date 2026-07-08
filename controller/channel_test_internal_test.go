@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
@@ -10,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/types"
 	"github.com/gin-gonic/gin"
@@ -111,6 +114,34 @@ func TestSelectChannelsForAutomaticTestScheduledSkipsManualDisabled(t *testing.T
 	require.Equal(t, 2, selected[1].Id)
 }
 
+func TestShouldAutoDisableChannelSkipsWhenCircuitBreakerEnabled(t *testing.T) {
+	oldAutomaticDisable := common.AutomaticDisableChannelEnabled
+	common.AutomaticDisableChannelEnabled = true
+	t.Cleanup(func() {
+		common.AutomaticDisableChannelEnabled = oldAutomaticDisable
+	})
+	withCircuitBreakerEnabledForControllerTest(t, true)
+
+	err := types.NewOpenAIError(errors.New("invalid key"), types.ErrorCodeChannelInvalidKey, http.StatusUnauthorized)
+	channelError := types.ChannelError{ChannelId: 1, AutoBan: true}
+
+	require.False(t, shouldAutoDisableChannel(channelError, err))
+}
+
+func TestShouldAutoDisableChannelUsesLegacyAutoBanWhenCircuitBreakerDisabled(t *testing.T) {
+	oldAutomaticDisable := common.AutomaticDisableChannelEnabled
+	common.AutomaticDisableChannelEnabled = true
+	t.Cleanup(func() {
+		common.AutomaticDisableChannelEnabled = oldAutomaticDisable
+	})
+	withCircuitBreakerEnabledForControllerTest(t, false)
+
+	err := types.NewOpenAIError(errors.New("invalid key"), types.ErrorCodeChannelInvalidKey, http.StatusUnauthorized)
+	channelError := types.ChannelError{ChannelId: 1, AutoBan: true}
+
+	require.True(t, shouldAutoDisableChannel(channelError, err))
+}
+
 func TestTestAllChannelsRejectsExistingActiveTask(t *testing.T) {
 	db := setupModelListControllerTestDB(t)
 	require.NoError(t, db.AutoMigrate(&model.SystemTask{}, &model.SystemTaskLock{}))
@@ -127,4 +158,48 @@ func TestTestAllChannelsRejectsExistingActiveTask(t *testing.T) {
 	require.Equal(t, http.StatusConflict, recorder.Code)
 	require.Contains(t, recorder.Body.String(), existing.TaskID)
 	require.Contains(t, recorder.Body.String(), "已有通道测试任务正在运行或等待中")
+}
+
+func withCircuitBreakerEnabledForControllerTest(t *testing.T, enabled bool) {
+	t.Helper()
+	oldSetting := operation_setting.GetCircuitBreakerSetting()
+	cfg := config.GlobalConfig.Get("circuit_breaker_setting")
+	require.NotNil(t, cfg)
+	value := "false"
+	if enabled {
+		value = "true"
+	}
+	require.NoError(t, config.UpdateConfigFromMap(cfg, map[string]string{"enabled": value}))
+	t.Cleanup(func() {
+		restore := map[string]string{
+			"enabled":                     boolStringForControllerTest(oldSetting.Enabled),
+			"window_seconds":              intStringForControllerTest(oldSetting.WindowSeconds),
+			"bucket_seconds":              intStringForControllerTest(oldSetting.BucketSeconds),
+			"error_threshold":             floatStringForControllerTest(oldSetting.ErrorThreshold),
+			"min_request_count":           int64StringForControllerTest(oldSetting.MinRequestCount),
+			"open_timeout_seconds":        intStringForControllerTest(oldSetting.OpenTimeoutSeconds),
+			"half_open_max_requests":      intStringForControllerTest(oldSetting.HalfOpenMaxRequests),
+			"half_open_success_threshold": intStringForControllerTest(oldSetting.HalfOpenSuccessThreshold),
+		}
+		_ = config.UpdateConfigFromMap(cfg, restore)
+	})
+}
+
+func boolStringForControllerTest(value bool) string {
+	if value {
+		return "true"
+	}
+	return "false"
+}
+
+func intStringForControllerTest(value int) string {
+	return strconv.Itoa(value)
+}
+
+func int64StringForControllerTest(value int64) string {
+	return strconv.FormatInt(value, 10)
+}
+
+func floatStringForControllerTest(value float64) string {
+	return strconv.FormatFloat(value, 'f', -1, 64)
 }

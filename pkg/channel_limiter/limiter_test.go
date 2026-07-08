@@ -32,6 +32,20 @@ func TestLimiterEnforcesMaxConcurrentRequests(t *testing.T) {
 	assert.True(t, Acquire(1))
 }
 
+func TestReleaseClearsInFlightAfterLimiterDisabled(t *testing.T) {
+	withLimiterSetting(t, map[string]string{"enabled": "true", "max_concurrent_requests": "1"})
+	ResetForTest()
+	require.True(t, Acquire(1))
+	require.Equal(t, 1, InFlight(1))
+
+	cfg := config.GlobalConfig.Get("channel_limiter_setting")
+	require.NotNil(t, cfg)
+	require.NoError(t, config.UpdateConfigFromMap(cfg, map[string]string{"enabled": "false", "max_concurrent_requests": "1"}))
+
+	Release(1)
+	assert.Zero(t, InFlight(1))
+}
+
 func withLimiterSetting(t *testing.T, values map[string]string) {
 	t.Helper()
 	oldSetting := operation_setting.GetChannelLimiterSetting()

@@ -36,8 +36,7 @@ func Acquire(channelID int) bool {
 }
 
 func Release(channelID int) {
-	setting := operation_setting.GetChannelLimiterSetting()
-	if !setting.Enabled || setting.MaxConcurrentRequests <= 0 || channelID <= 0 {
+	if channelID <= 0 {
 		return
 	}
 	mu.Lock()
