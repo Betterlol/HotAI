@@ -52,7 +52,7 @@ body {
 .sidebar-bottom { margin-top: auto; border-top: 1px solid var(--c-border); padding-top: 12px; }
 
 /* 侧边栏收起按钮 */
-.toggle-wrapper { padding: 10px 12px; }
+.toggle-wrapper { padding: 10px 12px; transition: padding 0.3s ease; }
 .sidebar-toggle-btn {
     display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px;
     border-radius: var(--radius-btn); background: transparent; border: 1px solid var(--c-border);
@@ -60,11 +60,44 @@ body {
 }
 .sidebar-toggle-btn:hover { background: var(--c-gray-hover); border-color: var(--c-primary); color: var(--c-text-main); }
 .sidebar-toggle-btn svg { width: 18px; height: 18px; stroke: currentColor; flex-shrink: 0; }
+.sidebar-toggle-btn span { transition: opacity 0.2s ease; }
+
+/* 侧边栏折叠时的样式优化 */
+.sidebar.collapsed .toggle-wrapper { 
+    padding: 0; 
+    display: flex; 
+    justify-content: center; 
+}
+.sidebar.collapsed .sidebar-toggle-btn { 
+    justify-content: center; 
+    padding: 10px; 
+    border: none; 
+    width: auto;
+    gap: 0;
+}
+.sidebar.collapsed .sidebar-toggle-btn span { 
+    display: none; 
+    opacity: 0;
+}
 
 /* =========================================
    4. 右侧主内容区
    ========================================= */
-.main-content { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+.main-content { 
+    flex: 1; 
+    padding: 24px; 
+    overflow-y: auto; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 24px; 
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+.main-content::-webkit-scrollbar { width: 8px; }
+.main-content::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+.main-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.main-content::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 /* 顶部欢迎语 */
 .welcome-header { font-size: 24px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
@@ -96,14 +129,57 @@ body {
 .announcement-item:last-child { border-bottom: none; }
 .announcement-date { font-size: 11px; color: var(--c-text-secondary); margin-bottom: 4px; }
 .announcement-content { color: var(--c-text-main); }
-.chart-area { flex: 2; background: var(--c-white); border-radius: var(--radius-card); padding: 20px; box-shadow: var(--shadow-card); border: 1px solid var(--c-border); display: flex; flex-direction: column; }
-.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.chart-area { 
+    flex: 2; 
+    background: var(--c-white); 
+    border-radius: var(--radius-card); 
+    padding: 20px; 
+    box-shadow: var(--shadow-card); 
+    border: 1px solid var(--c-border); 
+    display: flex; 
+    flex-direction: column;
+    min-height: 0;
+}
+.chart-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 20px;
+    flex-shrink: 0;
+}
 .chart-title { font-size: 16px; font-weight: 700; }
-.chart-tabs { display: flex; gap: 12px; }
-.chart-tab { padding: 6px 16px; border-radius: var(--radius-btn); background: var(--c-input-bg); border: none; color: var(--c-text-secondary); font-size: 13px; cursor: pointer; transition: 0.2s; }
+.chart-tabs { 
+    display: flex; 
+    gap: 12px;
+    overflow-x: auto;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+.chart-tabs::-webkit-scrollbar { height: 4px; }
+.chart-tabs::-webkit-scrollbar-track { background: transparent; }
+.chart-tabs::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+.chart-tab { 
+    padding: 6px 16px; 
+    border-radius: var(--radius-btn); 
+    background: var(--c-input-bg); 
+    border: none; 
+    color: var(--c-text-secondary); 
+    font-size: 13px; 
+    cursor: pointer; 
+    transition: 0.2s;
+    flex-shrink: 0;
+}
 .chart-tab.active { background: var(--c-primary); color: var(--c-white); }
 .chart-tab:hover:not(.active) { background: #e5e7eb; }
-.chart-body { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; }
+.chart-body { 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: flex-end;
+    min-height: 0;
+}
 .chart-placeholder-text { font-size: 18px; font-weight: 600; color: var(--c-text-main); margin-bottom: 8px; }
 .chart-placeholder-sub { font-size: 14px; color: var(--c-text-secondary); margin-bottom: 32px; }
 .chart-mock-axes { display: flex; flex-direction: column; gap: 12px; border-left: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); padding-left: 8px; padding-bottom: 8px; height: 100%; justify-content: space-between; }

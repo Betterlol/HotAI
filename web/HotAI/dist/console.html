@@ -273,18 +273,18 @@
                     </div>
                 </div>
                 <div class="chart-body" id="chartBody">
-                    <div id="chartContainer" style="flex:1; min-height:300px; position:relative;">
-                        <div id="chartLoading" style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--c-text-secondary);">
+                    <div id="chartContainer" style="flex:1; min-height:0; position:relative; display:flex; flex-direction:column;">
+                        <div id="chartLoading" style="display:flex;align-items:center;justify-content:center;flex:1;min-height:300px;color:var(--c-text-secondary);">
                             <div class="loading"></div>
                             <span style="margin-left:8px;">加载中...</span>
                         </div>
-                        <canvas id="mainChart" style="display:none; width:100%; height:300px;"></canvas>
-                        <div id="chartEmpty" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:300px;color:var(--c-text-secondary); gap:12px;">
+                        <canvas id="mainChart" style="display:none; width:100%; height:100%; min-height:300px;"></canvas>
+                        <div id="chartEmpty" style="display:none;flex-direction:column;align-items:center;justify-content:center;flex:1;min-height:300px;color:var(--c-text-secondary); gap:12px;">
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="#E5E7EB"><path d="M4 10h3v7H4v-7zm6.5 0h3v7h-3v-7zM2 19h20v3H2v-3zm15-9h3v7h-3v-7zM4 5h16v3H4V5z"/></svg>
                             <span>暂无数据</span>
                         </div>
                     </div>
-                    <div class="chart-stats" id="chartStats" style="border-top:1px solid var(--c-border); padding:12px 0 0 0; display:flex; gap:24px; flex-wrap:wrap;">
+                    <div class="chart-stats" id="chartStats" style="border-top:1px solid var(--c-border); padding:12px 0 0 0; display:flex; gap:24px; flex-wrap:wrap; flex-shrink:0;">
                         <span style="color:var(--c-text-secondary); font-size:13px;">总计：<strong id="chartTotal" style="color:var(--c-primary);">$0.00</strong></span>
                         <span style="color:var(--c-text-secondary); font-size:13px;">时间范围：<strong id="chartTimeRange" style="color:var(--c-text-main);">最近7天</strong></span>
                     </div>

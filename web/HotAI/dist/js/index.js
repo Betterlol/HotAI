@@ -18,10 +18,43 @@ let allGroups = [];
 let chatMessages = [];
 let isGenerating = false;
 
-// ========== 配置持久化 ==========
+// ========== 会话管理状态 ==========
+let chatSessions = [];  // 所有会话列表
+let currentSessionId = null;  // 当前活跃的会话ID
+
+// ========== 工具函数：获取用户隔离的存储键 ==========
+function getStorageKey(baseKey) {
+    try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            if (user && user.id) {
+                return `${baseKey}_${user.id}`;
+            }
+        }
+    } catch (e) {
+        console.warn('无法解析用户信息:', e);
+    }
+    return baseKey; // 未登录时回退到默认键
+}
+
+// ========== 生成唯一会话ID ==========
+function generateSessionId() {
+    return `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// ========== 从消息内容生成会话标题 ==========
+function generateSessionTitle(firstMessage) {
+    if (!firstMessage) return '新对话';
+    const text = typeof firstMessage === 'string' ? firstMessage : firstMessage.text || '新对话';
+    return text.length > 30 ? text.substring(0, 30) + '...' : text;
+}
+
+// ========== 配置持久化（用户隔离） ==========
 function loadConfig() {
     try {
-        const saved = localStorage.getItem('playground_config');
+        const key = getStorageKey('playground_config');
+        const saved = localStorage.getItem(key);
         if (saved) {
             const parsed = JSON.parse(saved);
             playgroundConfig = { ...playgroundConfig, ...parsed.inputs };
@@ -35,12 +68,13 @@ function loadConfig() {
 
 function saveConfig() {
     try {
+        const key = getStorageKey('playground_config');
         const configToSave = {
             inputs: playgroundConfig,
             exportTime: new Date().toISOString(),
             version: '1.0'
         };
-        localStorage.setItem('playground_config', JSON.stringify(configToSave));
+        localStorage.setItem(key, JSON.stringify(configToSave));
     } catch (error) {
         console.error('保存配置失败:', error);
     }
@@ -48,7 +82,8 @@ function saveConfig() {
 
 function loadMessages() {
     try {
-        const saved = localStorage.getItem('playground_messages');
+        const key = getStorageKey('playground_messages');
+        const saved = localStorage.getItem(key);
         if (saved) {
             chatMessages = JSON.parse(saved);
             return true;
@@ -61,10 +96,140 @@ function loadMessages() {
 
 function saveMessages() {
     try {
-        localStorage.setItem('playground_messages', JSON.stringify(chatMessages));
+        const key = getStorageKey('playground_messages');
+        localStorage.setItem(key, JSON.stringify(chatMessages));
     } catch (error) {
         console.error('保存消息失败:', error);
     }
+}
+
+// ========== 会话管理（新增） ==========
+function loadSessions() {
+    try {
+        const key = getStorageKey('chat_sessions');
+        const saved = localStorage.getItem(key);
+        if (saved) {
+            chatSessions = JSON.parse(saved);
+            // 数据兼容性检查
+            if (!Array.isArray(chatSessions)) {
+                chatSessions = [];
+            }
+            return true;
+        }
+    } catch (error) {
+        console.error('加载会话失败:', error);
+    }
+    
+    // 尝试迁移旧的 chat_history 数据
+    try {
+        const oldKey = getStorageKey('chat_history');
+        const oldData = localStorage.getItem(oldKey);
+        if (oldData) {
+            const oldHistory = JSON.parse(oldData);
+            if (Array.isArray(oldHistory) && oldHistory.length > 0) {
+                console.log('检测到旧格式历史记录，正在迁移...');
+                // 将旧的单条记录转换为会话格式
+                oldHistory.forEach(item => {
+                    chatSessions.push({
+                        sessionId: generateSessionId(),
+                        title: generateSessionTitle(item.content),
+                        createdAt: item.timestamp || Date.now(),
+                        updatedAt: item.timestamp || Date.now(),
+                        messages: [
+                            { role: 'user', content: item.content }
+                        ]
+                    });
+                });
+                saveSessions();
+                console.log(`成功迁移 ${oldHistory.length} 条历史记录`);
+            }
+        }
+    } catch (e) {
+        console.warn('迁移旧数据失败:', e);
+    }
+    
+    return false;
+}
+
+function saveSessions() {
+    try {
+        const key = getStorageKey('chat_sessions');
+        localStorage.setItem(key, JSON.stringify(chatSessions));
+    } catch (error) {
+        console.error('保存会话失败:', error);
+    }
+}
+
+function getCurrentSession() {
+    if (!currentSessionId) return null;
+    return chatSessions.find(s => s.sessionId === currentSessionId) || null;
+}
+
+function createNewSession(firstUserMessage) {
+    const sessionId = generateSessionId();
+    const title = generateSessionTitle(firstUserMessage);
+    const now = Date.now();
+    
+    const newSession = {
+        sessionId: sessionId,
+        title: title,
+        createdAt: now,
+        updatedAt: now,
+        messages: []
+    };
+    
+    chatSessions.push(newSession);
+    currentSessionId = sessionId;
+    chatMessages = [];
+    
+    saveSessions();
+    return newSession;
+}
+
+function updateCurrentSession() {
+    const session = getCurrentSession();
+    if (session) {
+        session.messages = [...chatMessages];
+        session.updatedAt = Date.now();
+        saveSessions();
+    }
+}
+
+function switchSession(sessionId) {
+    const session = chatSessions.find(s => s.sessionId === sessionId);
+    if (session) {
+        currentSessionId = sessionId;
+        chatMessages = [...session.messages];
+        saveMessages();
+        renderChatMessages();
+        loadChatHistory();  // 刷新侧边栏高亮
+        return true;
+    }
+    return false;
+}
+
+function deleteSession(sessionId) {
+    const index = chatSessions.findIndex(s => s.sessionId === sessionId);
+    if (index > -1) {
+        chatSessions.splice(index, 1);
+        saveSessions();
+        
+        // 如果删除的是当前会话，切换到最新会话或创建新会话
+        if (currentSessionId === sessionId) {
+            if (chatSessions.length > 0) {
+                switchSession(chatSessions[chatSessions.length - 1].sessionId);
+            } else {
+                currentSessionId = null;
+                chatMessages = [];
+                saveMessages();
+                renderChatMessages();
+            }
+        }
+        
+        loadChatHistory();
+        return true;
+    }
+    return false;
 }
 
 // ========== 加载模型列表 ==========
@@ -116,7 +281,8 @@ async function loadGroups() {
         }
         
         const result = await API.getUserGroups();
-        if (result.success && result.data) {
+        // ✨ 防御性检查：确保 result.data 是数组
+        if (result.success && result.data && Array.isArray(result.data)) {
             allGroups = result.data.map(g => ({
                 value: g,
                 label: g
@@ -134,6 +300,11 @@ async function loadGroups() {
             }
             selectGroup(playgroundConfig.group);
             document.getElementById('configGroupSelector').disabled = false;
+        } else {
+            // 如果返回数据格式不正确，使用默认分组
+            console.warn('分组数据格式不正确:', result);
+            allGroups = [{ value: 'default', label: 'default' }];
+            document.getElementById('configSelectedGroup').textContent = 'default';
         }
     } catch (error) {
         console.error('加载分组失败:', error);
@@ -572,11 +743,14 @@ async function handleSendMessage() {
     
     chatMessages.push(userMessage);
     
-    // 显示用户消息
+    // 显示用户消息（立即渲染）
     appendChatMessage('user', message);
     
     // 清空输入框
     input.value = '';
+    
+    // 立即保存用户消息到历史记录
+    saveChatHistory(message);
     
     // 构建请求payload
     const payload = {
@@ -624,11 +798,23 @@ async function handleSendMessage() {
             }
         }
         
+        // ✨ 方向五：AI回复完成后更新会话
         saveMessages();
-        saveChatHistory(message);
+        updateCurrentSession();
     } catch (error) {
         console.error('聊天错误:', error);
-        aiContentDiv.textContent = '❌ ' + I18n.t('main.send_failed') + '：' + (error.message || I18n.t('main.network_error'));
+        
+        // 特殊处理 401 未授权错误
+        if (error.message === 'UNAUTHORIZED') {
+            aiContentDiv.textContent = '❌ 认证失败，请重新登录';
+            const confirmed = confirm(I18n.t('main.login_required'));
+            if (confirmed) {
+                window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.pathname);
+            }
+        } else {
+            aiContentDiv.textContent = '❌ ' + I18n.t('main.send_failed') + '：' + (error.message || I18n.t('main.network_error'));
+        }
+        
         chatMessages.pop(); // 移除失败的用户消息
     } finally {
         sendBtn.disabled = false;
@@ -639,16 +825,36 @@ async function handleSendMessage() {
 
 // ========== 流式请求 ==========
 async function sendStreamRequest(payload, contentDiv) {
+    // 构建请求头，添加认证信息
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    
+    // 从 localStorage 读取用户信息，附加 New-Api-User header
+    try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const userObj = JSON.parse(userStr);
+            if (userObj && userObj.id) {
+                headers['New-Api-User'] = String(userObj.id);
+            }
+        }
+    } catch (e) {
+        console.warn('无法读取用户信息:', e);
+    }
+    
     const response = await fetch('/pg/chat/completions', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: headers,
         credentials: 'include',
         body: JSON.stringify(payload)
     });
     
     if (!response.ok) {
+        // 401 需要特殊处理
+        if (response.status === 401) {
+            throw new Error('UNAUTHORIZED');
+        }
         throw new Error('请求失败');
     }
     
@@ -692,6 +898,10 @@ async function sendStreamRequest(payload, contentDiv) {
         role: 'assistant',
         content: fullContent
     });
+    
+    // ✨ 方向五：流式接收完成后立即持久化
+    saveMessages();
+    updateCurrentSession();
 }
 
 // ========== 添加聊天消息到界面 ==========
@@ -704,7 +914,41 @@ function appendChatMessage(role, content) {
     
     const avatarDiv = document.createElement('div');
     avatarDiv.className = 'message-avatar';
-    avatarDiv.textContent = role === 'user' ? 'U' : 'AI';
+    
+    // ✨ 方向四：动态渲染AI头像
+    if (role === 'assistant') {
+        // 尝试获取当前模型的供应商图标
+        if (window.AIProviders && AIProviders._loaded && playgroundConfig.model) {
+            const provider = AIProviders.getModelProvider(playgroundConfig.model);
+            if (provider && provider.icon) {
+                const iconUrl = AIProviders.getProviderIconUrl(provider.icon);
+                const img = document.createElement('img');
+                img.src = iconUrl;
+                img.alt = provider.name;
+                img.style.width = '32px';
+                img.style.height = '32px';
+                img.style.borderRadius = '50%';
+                img.style.objectFit = 'contain';
+                
+                img.onerror = () => {
+                    // 图标加载失败，使用缩写回退
+                    const abbr = AIProviders.getProviderAbbr(provider.name);
+                    const textNode = document.createTextNode(abbr);
+                    avatarDiv.innerHTML = '';
+                    avatarDiv.appendChild(textNode);
+                };
+                
+                avatarDiv.appendChild(img);
+            } else {
+                // 没有供应商信息，使用默认
+                avatarDiv.textContent = 'AI';
+            }
+        } else {
+            avatarDiv.textContent = 'AI';
+        }
+    } else {
+        avatarDiv.textContent = 'U';
+    }
     
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
@@ -757,27 +1001,45 @@ function loadChatHistory() {
     
     if (!historyList) return;
     
-    const history = JSON.parse(localStorage.getItem('chat_history') || '[]');
-    
-    if (history.length === 0) {
+    // ✨ 方向三：加载会话列表而非单条历史
+    if (chatSessions.length === 0) {
         historyPlaceholder.style.display = 'block';
+        historyList.innerHTML = '';
         return;
     }
     
     historyPlaceholder.style.display = 'none';
     historyList.innerHTML = '';
     
-    history.slice(-20).reverse().forEach(item => {
+    // 显示最近的20个会话，倒序展示（最新的在最上面）
+    const recentSessions = chatSessions.slice(-20).reverse();
+    
+    recentSessions.forEach(session => {
         const btn = document.createElement('button');
         btn.className = 'sidebar-btn';
-        btn.textContent = item.content.substring(0, 20) + (item.content.length > 20 ? '...' : '');
-        btn.title = item.content;
+        btn.setAttribute('data-session-id', session.sessionId);
         
+        // 如果是当前会话，添加高亮样式
+        if (session.sessionId === currentSessionId) {
+            btn.classList.add('active');
+        }
+        
+        btn.textContent = session.title;
+        btn.title = session.title;
+        
+        // ✨ 方向三：点击加载完整会话
         btn.addEventListener('click', () => {
-            const chatInput = document.getElementById('chatInput');
-            if (chatInput) {
-                chatInput.value = item.content;
-                chatInput.focus();
+            if (isGenerating) {
+                alert('正在生成回复，请稍候...');
+                return;
+            }
+            
+            if (switchSession(session.sessionId)) {
+                // 切换成功，更新侧边栏高亮
+                historyList.querySelectorAll('.sidebar-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
             }
         });
         
@@ -786,17 +1048,19 @@ function loadChatHistory() {
 }
 
 function saveChatHistory(content) {
-    const history = JSON.parse(localStorage.getItem('chat_history') || '[]');
-    history.push({
-        content,
-        timestamp: Date.now()
-    });
-    
-    if (history.length > 100) {
-        history.shift();
+    // ✨ 方向二+三：保存到会话而非单条记录
+    // 如果没有当前会话，创建新会话
+    if (!currentSessionId) {
+        createNewSession(content);
     }
     
-    localStorage.setItem('chat_history', JSON.stringify(history));
+    // 更新当前会话标题（仅第一条消息）
+    const session = getCurrentSession();
+    if (session && session.messages.length === 0) {
+        session.title = generateSessionTitle(content);
+    }
+    
+    // 刷新侧边栏
     loadChatHistory();
 }
 
@@ -877,9 +1141,18 @@ async function renderPlatformProviders() {
 
 // ========== 页面初始化 ==========
 document.addEventListener('DOMContentLoaded', async () => {
-    // 加载配置
+    // ✨ 方向二：加载会话列表
     loadConfig();
-    loadMessages();
+    loadSessions();
+    
+    // 如果有会话，加载最后一个活跃会话
+    if (chatSessions.length > 0) {
+        const lastSession = chatSessions[chatSessions.length - 1];
+        currentSessionId = lastSession.sessionId;
+        chatMessages = [...lastSession.messages];
+    } else {
+        loadMessages();  // 兼容性：尝试加载旧的 playground_messages
+    }
     
     // 加载数据
     await loadModels();
