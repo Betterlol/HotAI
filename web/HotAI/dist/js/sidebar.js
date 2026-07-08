@@ -106,6 +106,18 @@ function renderSidebar(activePage, customMenuItems = null) {
                 <span>个人设置</span>
             </a>
         </div>
+
+        <div class="sidebar-bottom">
+            <div class="toggle-wrapper">
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="11 17 6 12 11 7"></polyline>
+                        <polyline points="18 17 13 12 18 7"></polyline>
+                    </svg>
+                    <span>收起侧边栏</span>
+                </button>
+            </div>
+        </div>
     `;
 
     // 根据用户角色显示/隐藏管理员菜单

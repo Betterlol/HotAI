@@ -125,14 +125,32 @@
 <!-- 主体容器 -->
 <div class="app-wrapper">
     <!-- 左侧菜单栏 -->
-    <aside class="sidebar" id="sidebar"></aside>
+    <aside class="sidebar" id="sidebar">
+        <!-- 侧边栏内容由 sidebar.js 渲染 -->
+        <div class="sidebar-bottom">
+            <div class="toggle-wrapper">
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="11 17 6 12 11 7"></polyline>
+                        <polyline points="18 17 13 12 18 7"></polyline>
+                    </svg>
+                    <span>收起侧边栏</span>
+                </button>
+            </div>
+        </div>
+    </aside>
 
     <!-- 右侧主内容 -->
     <main class="main-content">
 
         <!-- 顶部标题行 -->
         <div style="display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
-            <h1 class="welcome-header" id="welcomeHeader">👋 你好，加载中...</h1>
+            <h1 class="welcome-header" id="welcomeHeader">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 18L22 12L17 6M3 12L13 12"/>
+                </svg>
+                你好，加载中...
+            </h1>
             <div style="display:flex; gap:10px;">
                 <button class="btn btn-secondary" id="searchBtn" title="筛选数据">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -281,6 +299,49 @@
                     <div class="api-info-desc">请联系管理员在系统设置中配置API信息</div>
                 </div>
             </div>
+
+            <!-- 右侧面板：公告/问答/可用性 -->
+            <aside class="side-panel" id="sidePanel">
+                <!-- 系统公告 -->
+                <div class="stat-card" id="sidePanelAnnouncements" style="display:none;">
+                    <div class="side-panel-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px;">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        系统公告
+                    </div>
+                    <div class="side-panel-content" id="sidePanelAnnouncementsContent">
+                        加载中...
+                    </div>
+                </div>
+
+                <!-- 常见问答 -->
+                <div class="stat-card" id="sidePanelFaq" style="display:none;">
+                    <div class="side-panel-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        常见问答
+                    </div>
+                    <div class="side-panel-content" id="sidePanelFaqContent">
+                    </div>
+                </div>
+
+                <!-- 服务可用性 -->
+                <div class="stat-card" id="sidePanelUptime" style="display:none;">
+                    <div class="side-panel-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px;">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                        服务可用性
+                    </div>
+                    <div class="side-panel-content" id="sidePanelUptimeContent">
+                    </div>
+                </div>
+            </aside>
         </div>
 
         </div><!-- end view-models -->

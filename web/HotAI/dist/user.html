@@ -218,7 +218,7 @@
             <div class="form-group"><label class="form-label">目标额度</label><input type="number" class="form-input"
                                                                                      id="topupAmount"
                                                                                      placeholder="想要修改的额度"
-                                                                                     value="0"></div>
+                                                                                     value="500000"></div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeTopupModal()">取消</button>
@@ -292,21 +292,21 @@
                     <button class="btn btn-secondary" onclick="loadUsers()">刷新</button>
                 </div>
             </div>
-            <div class="table-wrap">
-                <table>
+            <div class="table-wrap" style="overflow-x: auto;">
+                <table style="white-space: nowrap;">
                     <thead>
                     <tr>
-                        <th style="width:36px;"><input type="checkbox" onchange="toggleSelectAllUsers(this.checked)">
+                        <th style="width:36px;text-align:center;"><input type="checkbox" onchange="toggleSelectAllUsers(this.checked)">
                         </th>
-                        <th>ID</th>
-                        <th>用户名</th>
-                        <th>分组</th>
-                        <th>角色</th>
-                        <th style="min-width:140px;">额度使用</th>
-                        <th>注册时间</th>
-                        <th>最后登录</th>
-                        <th>状态</th>
-                        <th style="min-width:420px;">操作</th>
+                        <th style="min-width:60px;text-align:center;">ID</th>
+                        <th style="min-width:100px;text-align:center;">用户名</th>
+                        <th style="min-width:80px;text-align:center;">分组</th>
+                        <th style="min-width:80px;text-align:center;">角色</th>
+                        <th style="min-width:140px;text-align:center;">额度使用</th>
+                        <th style="min-width:150px;text-align:center;">注册时间</th>
+                        <th style="min-width:150px;text-align:center;">最后登录</th>
+                        <th style="min-width:80px;text-align:center;">状态</th>
+                        <th style="min-width:260px;text-align:center;">操作</th>
                     </tr>
                     </thead>
                     <tbody id="userTableBody">

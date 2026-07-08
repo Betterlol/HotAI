@@ -13,12 +13,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function quotaToDisplay(quota) {
-        if (quota === undefined || quota === null) return '--';
+        if (quota === undefined || quota === null || isNaN(quota)) return '$0.0000';
         return '$' + (quota / 500000).toFixed(4);
     }
 
     function formatNumber(n) {
-        if (n === undefined || n === null) return '--';
+        if (n === undefined || n === null || isNaN(n)) return '0';
         return Number(n).toLocaleString();
     }
 
@@ -48,6 +48,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ========== 初始化侧边栏 ==========
     renderSidebar('dashboard');
+    
+    // ========== 侧边栏收起/展开 ==========
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    const sidebar = document.getElementById('sidebar');
+    if (sidebarToggleBtn && sidebar) {
+        sidebarToggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            if (isCollapsed) {
+                sidebarToggleBtn.querySelector('span').textContent = '';
+                sidebarToggleBtn.querySelector('svg').innerHTML = '<polyline points="6 17 11 12 6 7"></polyline><polyline points="13 17 18 12 13 7"></polyline>';
+            } else {
+                sidebarToggleBtn.querySelector('span').textContent = '收起侧边栏';
+                sidebarToggleBtn.querySelector('svg').innerHTML = '<polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline>';
+            }
+        });
+    }
 
     // ========== 初始化时间筛选器默认值 ==========
     const startInput = document.getElementById('filterStartTime');
@@ -108,9 +125,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('statStatQuota').textContent = quotaToDisplay(quota);
             document.getElementById('statStatTokens').textContent = formatNumber(totalTokens);
 
-            const rpm = timeDiffMin > 0 ? (count / timeDiffMin).toFixed(3) : '0.000';
-            const tpm = timeDiffMin > 0 ? Math.round(totalTokens / timeDiffMin) : 0;
-            document.getElementById('statAvgRPM').textContent = rpm;
+            let rpm = timeDiffMin > 0 ? (count / timeDiffMin) : 0;
+            let tpm = timeDiffMin > 0 ? Math.round(totalTokens / timeDiffMin) : 0;
+            
+            // 确保 NaN 显示为 0
+            if (isNaN(rpm) || !isFinite(rpm)) rpm = 0;
+            if (isNaN(tpm) || !isFinite(tpm)) tpm = 0;
+            
+            document.getElementById('statAvgRPM').textContent = rpm.toFixed(3);
             document.getElementById('statAvgTPM').textContent = formatNumber(tpm);
         } else {
             ['statStatCount', 'statStatQuota', 'statStatTokens', 'statAvgRPM', 'statAvgTPM'].forEach(id => {
@@ -269,6 +291,91 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // ========== 加载右侧面板内容 ==========
+    async function loadSidePanel(status) {
+        const announcements = status.announcements || [];
+        const faq = status.faq || [];
+        const uptimeEnabled = status.uptime_kuma_enabled;
+
+        // 公告
+        if (announcements.length > 0 && status.announcements_enabled !== false) {
+            const panel = document.getElementById('sidePanelAnnouncements');
+            const content = document.getElementById('sidePanelAnnouncementsContent');
+            if (panel && content) {
+                panel.style.display = 'block';
+                content.innerHTML = announcements.slice(0, 10).map(a => `
+                    <div class="announcement-item">
+                        <div class="announcement-date">${a.publishDate || ''}</div>
+                        <div class="announcement-content">${a.content || ''}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // FAQ
+        if (faq.length > 0 && status.faq_enabled !== false) {
+            const panel = document.getElementById('sidePanelFaq');
+            const content = document.getElementById('sidePanelFaqContent');
+            if (panel && content) {
+                panel.style.display = 'block';
+                content.innerHTML = faq.map((f, i) => `
+                    <div class="faq-item" id="sideFaq-${i}">
+                        <div class="faq-question" onclick="toggleSideFaq(${i})">
+                            <span>${f.question || ''}</span>
+                            <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+                        </div>
+                        <div class="faq-answer">${f.answer || ''}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Uptime
+        if (uptimeEnabled !== false) {
+            loadSidePanelUptime();
+        }
+    }
+
+    // FAQ 折叠（右侧面板）
+    window.toggleSideFaq = function(idx) {
+        const item = document.getElementById(`sideFaq-${idx}`);
+        if (item) item.classList.toggle('open');
+    };
+
+    // 加载 Uptime（右侧面板）
+    async function loadSidePanelUptime() {
+        const res = await API.getUptimeStatus();
+        if (!res.success || !res.data || res.data.length === 0) return;
+
+        const panel = document.getElementById('sidePanelUptime');
+        const content = document.getElementById('sidePanelUptimeContent');
+
+        if (panel && content) {
+            panel.style.display = 'block';
+            let html = '';
+            res.data.forEach(category => {
+                if (category.categoryName) {
+                    html += `<div style="font-size:11px; font-weight:600; color:var(--c-text-secondary); padding:8px 0 4px 0; text-transform:uppercase; letter-spacing:0.5px;">${category.categoryName}</div>`;
+                }
+                (category.monitorList || []).forEach(m => {
+                    const status = m.activeBeat?.status;
+                    let dotClass = 'uptime-dot-pending';
+                    let statusText = '检测中';
+                    if (status === 1) { dotClass = 'uptime-dot-up'; statusText = '正常'; }
+                    else if (status === 0) { dotClass = 'uptime-dot-down'; statusText = '故障'; }
+                    html += `
+                        <div class="uptime-service">
+                            <span class="uptime-service-name">${m.name || ''}</span>
+                            <span style="font-size:12px; color:${status===1?'#22C55E':status===0?'#EF4444':'#F59E0B'};">${statusText}</span>
+                            <span class="uptime-dot ${dotClass}"></span>
+                        </div>
+                    `;
+                });
+            });
+            content.innerHTML = html || '<div style="padding:12px 0;color:var(--c-text-secondary);">暂无监控数据</div>';
+        }
+    }
+
     // ========== 加载 API 信息 ==========
     async function loadApiInfo() {
         const res = await API.getStatus();
@@ -276,6 +383,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const status = res.data;
         const apiInfoArea = document.getElementById('apiInfoArea');
         const apiInfoContent = document.getElementById('apiInfoContent');
+
+        // 加载右侧面板
+        loadSidePanel(status);
 
         if (status.api_info && status.api_info.length > 0) {
             apiInfoArea.style.alignItems = 'flex-start';

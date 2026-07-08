@@ -7,14 +7,37 @@ let currentUserId = 0;
 let sortField = 'id';
 let sortOrder = 'desc'; // 'asc' 或 'desc'
 
-function showToast(msg, type='info') {
-    const c=document.getElementById('toastContainer');if(!c)return;
-    const t=document.createElement('div');t.className=`toast toast-${type}`;t.textContent=msg;c.appendChild(t);setTimeout(()=>t.remove(),3500);
+function showToast(msg, type = 'info') {
+    const c = document.getElementById('toastContainer');
+    if (!c) return;
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
 }
-function escHtml(s){return String(s).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"');}
-function quotaToDisplay(q){return '$'+(Math.abs(q||0)/500000).toFixed(4);}
-function formatTime(ts){if(!ts||ts<=0)return '-';const d=new Date(ts*1000);return d.toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
-const roleNames={1:'普通用户',10:'管理员',100:'超管'};
+
+function escHtml(s) {
+    return String(s).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');
+}
+
+function quotaToDisplay(q) {
+    return '$' + (Math.abs(q || 0) / 500000).toFixed(4);
+}
+
+function formatTime(ts) {
+    if (!ts || ts <= 0) return '-';
+    const d = new Date(ts * 1000);
+    return d.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+const roleNames = {1: '普通用户', 10: '管理员', 100: '超管'};
 
 // 切换排序顺序
 function toggleSortOrder() {
@@ -44,7 +67,7 @@ function sortUsers(items) {
             aVal = a.created_time || 0;
             bVal = b.created_time || 0;
         }
-        
+
         if (sortOrder === 'asc') {
             return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
         } else {
@@ -60,11 +83,11 @@ function renderQuotaProgress(quota, usedQuota) {
     const percentage = total > 0 ? Math.min((used / total) * 100, 100) : 0;
     const displayUsed = quotaToDisplay(used);
     const displayTotal = quotaToDisplay(total);
-    
+
     let barColor = '#10b981'; // 绿色
     if (percentage >= 90) barColor = '#ef4444'; // 红色
     else if (percentage >= 70) barColor = '#f59e0b'; // 橙色
-    
+
     return `
         <div style="min-width:120px;">
             <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;">
@@ -112,11 +135,11 @@ async function loadUsers() {
     const groupFilter = document.getElementById('groupFilter').value;
     sortField = document.getElementById('sortField').value;
     const tbody = document.getElementById('userTableBody');
-    tbody.innerHTML='<tr><td colspan="10"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>';
 
     let res;
     let items = [];
-    
+
     if (search) {
         res = await API.searchUsers(search);
         if (res.success) {
@@ -132,7 +155,7 @@ async function loadUsers() {
     }
 
     if (!res.success) {
-        tbody.innerHTML=`<tr><td colspan="10"><div class="table-empty"><span>${res.message||'加载失败'}</span></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10"><div class="table-empty"><span>${res.message || '加载失败'}</span></div></td></tr>`;
         return;
     }
 
@@ -141,8 +164,9 @@ async function loadUsers() {
     document.getElementById('userPageInfo').textContent = `共 ${uTotal} 条`;
 
     if (items.length === 0) {
-        tbody.innerHTML='<tr><td colspan="10"><div class="table-empty"><span>暂无用户数据</span></div></td></tr>';
-        renderPagination(); return;
+        tbody.innerHTML = '<tr><td colspan="10"><div class="table-empty"><span>暂无用户数据</span></div></td></tr>';
+        renderPagination();
+        return;
     }
 
     tbody.innerHTML = items.map(u => {
@@ -153,45 +177,39 @@ async function loadUsers() {
         const roleBadge = u.role >= 10
             ? `<span class="badge badge-purple">${roleName}</span>`
             : `<span class="badge badge-gray">${roleName}</span>`;
-        
+
         const canManage = currentUserRole > u.role;
         const isSelf = u.id === currentUserId;
         const isDisabled = !canManage || isSelf;
         const disabledClass = isDisabled ? ' disabled' : '';
         const disabledStyle = isDisabled ? ' opacity:0.5;cursor:not-allowed;pointer-events:none;' : '';
-        
-        return `<tr>
-            <td><input type="checkbox" class="u-checkbox" data-id="${u.id}" onchange="toggleSelectUser(${u.id})" ${selectedUsers.has(u.id)?'checked':''}></td>
-            <td class="td-mono">${u.id}</td>
-            <td><strong>${escHtml(u.username||'-')}</strong></td>
-            <td><span class="badge badge-blue">${escHtml(u.group||'default')}</span></td>
-            <td>${roleBadge}</td>
-            <td>${renderQuotaProgress(u.quota, u.used_quota)}</td>
-            <td class="td-mono" style="font-size:12px;">${formatTime(u.created_at)}</td>
-            <td class="td-mono" style="font-size:12px;color:var(--c-text-secondary);">${formatTime(u.last_login_at||0)}</td>
-            <td>${statusBadge}</td>
-            <td>
-                <div class="td-actions" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
-                    <button class="btn btn-secondary btn-sm" onclick="showUserDetail(${u.id})">详情</button>
-                    <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="openEditUserModal(${u.id})">编辑</button>
-                    <button class="btn btn-success btn-sm${disabledClass}" style="${disabledStyle}" onclick="promoteUser(${u.id},${u.role},'${escHtml(u.username||'')}')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px;">
-                            <line x1="12" y1="19" x2="12" y2="5"/>
-                            <polyline points="5 12 12 5 19 12"/>
-                        </svg>提升
-                    </button>
-                    <button class="btn btn-warning btn-sm${disabledClass}" style="${disabledStyle}" onclick="demoteUser(${u.id},${u.role},'${escHtml(u.username||'')}')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px;">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <polyline points="19 12 12 19 5 12"/>
-                        </svg>降低
-                    </button>
-                    <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="openTopupModal(${u.id},'${escHtml(u.username||'')}')">充值</button>
-                    <button class="btn ${u.status===1?'btn-warning':'btn-success'} btn-sm${disabledClass}" style="${disabledStyle}" onclick="toggleUserStatus(${u.id},${u.status})">${u.status===1?'封禁':'解封'}</button>
-                    <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="manageSubscription(${u.id},'${escHtml(u.username||'')}')">订阅</button>
-                    <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="resetPasskey(${u.id},'${escHtml(u.username||'')}')">重置PK</button>
-                    <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="reset2FA(${u.id},'${escHtml(u.username||'')}')">重置2FA</button>
-                    <button class="btn btn-danger btn-sm${disabledClass}" style="${disabledStyle}" onclick="deleteUser(${u.id},'${escHtml(u.username||'')}')">删除</button>
+
+        return `<tr onclick="showUserDetail(${u.id})" style="cursor: pointer;">
+            <td style="text-align:center;"><input type="checkbox" class="u-checkbox" data-id="${u.id}" onchange="toggleSelectUser(${u.id})" onclick="event.stopPropagation();" ${selectedUsers.has(u.id) ? 'checked' : ''}></td>
+            <td class="td-mono" style="text-align:center;">${u.id}</td>
+            <td style="text-align:center;"><strong>${escHtml(u.username || '-')}</strong></td>
+            <td style="text-align:center;"><span class="badge badge-blue">${escHtml(u.group || 'default')}</span></td>
+            <td style="text-align:center;">${roleBadge}</td>
+            <td style="text-align:center;">${renderQuotaProgress(u.quota, u.used_quota)}</td>
+            <td class="td-mono" style="font-size:12px;text-align:center;">${formatTime(u.created_at)}</td>
+            <td class="td-mono" style="font-size:12px;color:var(--c-text-secondary);text-align:center;">${formatTime(u.last_login_at || 0)}</td>
+            <td style="text-align:center;">${statusBadge}</td>
+            <td style="text-align:center;">
+                <div class="td-actions" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;justify-content:center;">
+                    <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="event.stopPropagation();openEditUserModal(${u.id})">编辑</button>
+                    <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="event.stopPropagation();openTopupModal(${u.id},'${escHtml(u.username || '')}')">充值</button>
+                    <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="event.stopPropagation();manageSubscription(${u.id},'${escHtml(u.username || '')}')">订阅</button>
+                    <button class="btn btn-success btn-sm${disabledClass}" style="${disabledStyle}" onclick="event.stopPropagation();promoteUser(${u.id},${u.role},'${escHtml(u.username || '')}')">提升</button>
+                    <button class="btn btn-warning btn-sm${disabledClass}" style="${disabledStyle}" onclick="event.stopPropagation();demoteUser(${u.id},${u.role},'${escHtml(u.username || '')}')">降低</button>
+                    <button class="btn ${u.status === 1 ? 'btn-warning' : 'btn-success'} btn-sm${disabledClass}" style="${disabledStyle}" onclick="event.stopPropagation();toggleUserStatus(${u.id},${u.status})">${u.status === 1 ? '封禁' : '解封'}</button>
+                    <button class="btn btn-danger btn-sm${disabledClass}" style="${disabledStyle}" onclick="event.stopPropagation();deleteUser(${u.id},'${escHtml(u.username || '')}')">删除</button>
+                    <div style="position:relative;display:inline-block;">
+                        <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="event.stopPropagation();toggleUserDropdown(${u.id})" id="dropdownBtn${u.id}">⋯</button>
+                        <div id="dropdown${u.id}" class="user-action-dropdown" style="display:none;position:absolute;top:100%;right:0;margin-top:4px;background:white;border:1px solid var(--c-border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:120px;z-index:1000;">
+                            <button class="dropdown-item" onclick="event.stopPropagation();resetPasskey(${u.id},'${escHtml(u.username || '')}');closeAllDropdowns();" style="width:100%;text-align:left;padding:8px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--c-text-primary);border-bottom:1px solid var(--c-border);" onmouseover="this.style.background='var(--c-bg-secondary,#f3f4f6)'" onmouseout="this.style.background='none'">重置PK</button>
+                            <button class="dropdown-item" onclick="event.stopPropagation();reset2FA(${u.id},'${escHtml(u.username || '')}');closeAllDropdowns();" style="width:100%;text-align:left;padding:8px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--c-text-primary);border-bottom:1px solid var(--c-border);" onmouseover="this.style.background='var(--c-bg-secondary,#f3f4f6)'" onmouseout="this.style.background='none'">重置2FA</button>
+                        </div>
+                    </div>
                 </div>
             </td>
         </tr>`;
@@ -204,80 +222,89 @@ function renderPagination() {
     const pages = document.getElementById('userPages');
     if (!pages) return;
     const total = Math.ceil(uTotal / uPageSize);
-    let html = `<button class="page-btn" onclick="changeUPage(${uPage-1})" ${uPage<=1?'disabled':''}>‹</button>`;
-    for (let i = Math.max(1, uPage-2); i <= Math.min(total, uPage+2); i++) {
-        html += `<button class="page-btn ${i===uPage?'active':''}" onclick="changeUPage(${i})">${i}</button>`;
+    let html = `<button class="page-btn" onclick="changeUPage(${uPage - 1})" ${uPage <= 1 ? 'disabled' : ''}>‹</button>`;
+    for (let i = Math.max(1, uPage - 2); i <= Math.min(total, uPage + 2); i++) {
+        html += `<button class="page-btn ${i === uPage ? 'active' : ''}" onclick="changeUPage(${i})">${i}</button>`;
     }
-    html += `<button class="page-btn" onclick="changeUPage(${uPage+1})" ${uPage>=total?'disabled':''}>›</button>`;
+    html += `<button class="page-btn" onclick="changeUPage(${uPage + 1})" ${uPage >= total ? 'disabled' : ''}>›</button>`;
     pages.innerHTML = html;
 }
 
-function changeUPage(p) { if(p<1)return; uPage=p; loadUsers(); }
+function changeUPage(p) {
+    if (p < 1) return;
+    uPage = p;
+    loadUsers();
+}
 
 async function openEditUserModal(id) {
     const res = await API.getUser(id);
-    if (!res.success||!res.data) { showToast('获取用户失败','error'); return; }
+    if (!res.success || !res.data) {
+        showToast('获取用户失败', 'error');
+        return;
+    }
     const u = res.data;
-    
+
     document.getElementById('userId').value = u.id;
-    document.getElementById('editUsername').value = u.username||'';
-    document.getElementById('editEmail').value = u.email||'';
-    document.getElementById('editDisplayName').value = u.display_name||'';
-    document.getElementById('editRole').value = String(u.role||1);
-    document.getElementById('editGroup').value = u.group||'default';
-    document.getElementById('editQuota').value = u.quota||0;
+    document.getElementById('editUsername').value = u.username || '';
+    document.getElementById('editEmail').value = u.email || '';
+    document.getElementById('editDisplayName').value = u.display_name || '';
+    document.getElementById('editRole').value = String(u.role || 1);
+    document.getElementById('editGroup').value = u.group || 'default';
+    document.getElementById('editQuota').value = u.quota || 0;
     document.getElementById('editPassword').value = '';
     document.getElementById('editRemark').value = '';
-    document.getElementById('editStatus').value = String(u.status||1);
+    document.getElementById('editStatus').value = String(u.status || 1);
     document.getElementById('userModalTitle').textContent = '编辑用户';
-    
+
     const roleSelect = document.getElementById('editRole');
     Array.from(roleSelect.options).forEach(opt => {
         const roleValue = parseInt(opt.value);
         opt.disabled = roleValue > currentUserRole;
     });
-    
+
     document.getElementById('userModal').classList.remove('hidden');
 }
 
-function closeUserModal() { document.getElementById('userModal').classList.add('hidden'); }
+function closeUserModal() {
+    document.getElementById('userModal').classList.add('hidden');
+}
 
 async function saveUser() {
     const id = parseInt(document.getElementById('userId').value);
-    
+
     if (id) {
         // 编辑现有用户 - 需要获取原始数据以对比变化
         const originalUserRes = await API.getUser(id);
         if (!originalUserRes.success || !originalUserRes.data) {
-            showToast('获取原始用户数据失败','error');
+            showToast('获取原始用户数据失败', 'error');
             return;
         }
         const originalUser = originalUserRes.data;
-        
+
         // 基础信息payload (UpdateUser接口只支持这些字段)
         const basePayload = {
             id: id,
             username: document.getElementById('editUsername').value.trim(),
             display_name: document.getElementById('editDisplayName').value.trim(),
-            group: document.getElementById('editGroup').value.trim()||'default',
+            group: document.getElementById('editGroup').value.trim() || 'default',
         };
-        
+
         const email = document.getElementById('editEmail').value.trim();
         if (email) basePayload.email = email;
-        
+
         const pwd = document.getElementById('editPassword').value.trim();
         if (pwd) basePayload.password = pwd;
 
         const remark = document.getElementById('editRemark').value.trim();
         if (remark) basePayload.remark = remark;
-        
+
         // 更新基础信息
         const res = await API.updateUser(basePayload);
         if (!res.success) {
-            showToast(res.message||'更新失败','error');
+            showToast(res.message || '更新失败', 'error');
             return;
         }
-        
+
         // 检测并处理 role 变化 (通过 manageUser)
         const newRole = parseInt(document.getElementById('editRole').value);
         if (newRole !== originalUser.role) {
@@ -287,68 +314,74 @@ async function saveUser() {
             } else {
                 action = 'demote';
             }
-            const roleRes = await API.manageUser({ id, action });
+            const roleRes = await API.manageUser({id, action});
             if (!roleRes.success) {
-                showToast(`角色更新失败: ${roleRes.message}`,'warning');
+                showToast(`角色更新失败: ${roleRes.message}`, 'warning');
             }
         }
-        
+
         // 检测并处理 quota 变化 (通过 manageUser override)
-        const newQuota = parseInt(document.getElementById('editQuota').value)||0;
+        const newQuota = parseInt(document.getElementById('editQuota').value) || 0;
         if (newQuota !== originalUser.quota) {
             if (newQuota < 0) {
                 showToast('额度不能为负数', 'warning');
             }
-            const quotaRes = await API.manageUser({ id, action: 'add_quota', mode: 'override', value: newQuota });
+            const quotaRes = await API.manageUser({id, action: 'add_quota', mode: 'override', value: newQuota});
             if (!quotaRes.success) {
-                showToast(`额度更新失败: ${quotaRes.message}`,'warning');
+                showToast(`额度更新失败: ${quotaRes.message}`, 'warning');
             }
         }
-        
+
         // 检测并处理 status 变化 (通过 manageUser)
-        const newStatus = parseInt(document.getElementById('editStatus').value)||1;
+        const newStatus = parseInt(document.getElementById('editStatus').value) || 1;
         if (newStatus !== originalUser.status) {
             const action = newStatus === 1 ? 'enable' : 'disable';
-            const statusRes = await API.manageUser({ id, action });
+            const statusRes = await API.manageUser({id, action});
             if (!statusRes.success) {
-                showToast(`状态更新失败: ${statusRes.message}`,'warning');
+                showToast(`状态更新失败: ${statusRes.message}`, 'warning');
             }
         }
-        
-        showToast('用户已更新','success');
+
+        showToast('用户已更新', 'success');
         closeUserModal();
         loadUsers();
     } else {
         // 创建新用户
         const username = document.getElementById('editUsername').value.trim();
-        if (!username) { showToast('请输入用户名','warning'); return; }
-        
+        if (!username) {
+            showToast('请输入用户名', 'warning');
+            return;
+        }
+
         const pwd = document.getElementById('editPassword').value.trim();
-        if (!pwd) { showToast('请输入密码','warning'); return; }
-        
+        if (!pwd) {
+            showToast('请输入密码', 'warning');
+            return;
+        }
+
         const payload = {
             username: username,
             password: pwd,
             display_name: document.getElementById('editDisplayName').value.trim(),
             role: parseInt(document.getElementById('editRole').value),
-            group: document.getElementById('editGroup').value.trim()||'default',
-            quota: parseInt(document.getElementById('editQuota').value)||0,
-            status: parseInt(document.getElementById('editStatus').value)||1,
+            group: document.getElementById('editGroup').value.trim() || 'default',
+            quota: parseInt(document.getElementById('editQuota').value) || 0,
+            status: parseInt(document.getElementById('editStatus').value) || 1,
         };
-        
+
         const email = document.getElementById('editEmail').value.trim();
         if (email) payload.email = email;
-        
+
         const remark = document.getElementById('editRemark').value.trim();
         if (remark) payload.remark = remark;
-        
+
         const res = await API.createUser(payload);
         if (res.success) {
-            showToast('用户已创建','success');
+            showToast('用户已创建', 'success');
             closeUserModal();
             loadUsers();
         } else {
-            showToast(res.message||'创建失败','error');
+            showToast(res.message || '创建失败', 'error');
         }
     }
 }
@@ -360,30 +393,38 @@ function openTopupModal(id, username) {
     document.getElementById('topupModal').classList.remove('hidden');
 }
 
-function closeTopupModal() { document.getElementById('topupModal').classList.add('hidden'); }
+function closeTopupModal() {
+    document.getElementById('topupModal').classList.add('hidden');
+}
 
 async function doTopup() {
     const id = parseInt(document.getElementById('topupUserId').value);
-    const amount = parseInt(document.getElementById('topupAmount').value)||0;
-    if (!amount) { showToast('请输入充值额度','warning'); return; }
+    const amount = parseInt(document.getElementById('topupAmount').value) || 0;
+    if (!amount) {
+        showToast('请输入充值额度', 'warning');
+        return;
+    }
 
     const res = await API.topupUser(id, amount);
     if (res.success) {
-        showToast('充值成功','success');
+        showToast('充值成功', 'success');
         closeTopupModal();
         // Bug 修复 #3: 充值成功后强制刷新用户列表
         await loadUsers();
     } else {
-        showToast(res.message||'充值失败','error');
+        showToast(res.message || '充值失败', 'error');
     }
 }
 
 async function promoteUser(userId, currentRole, username) {
-    if (currentRole >= 100) { showToast('已是最高权限','info'); return; }
+    if (currentRole >= 100) {
+        showToast('已是最高权限', 'info');
+        return;
+    }
     const nextRoleName = currentRole === 1 ? roleNames[10] : roleNames[100];
     if (!confirm(`确定要将用户「${username}」提升为${nextRoleName}吗？`)) return;
-    
-    const res = await API.manageUser({ id: userId, action: 'promote' });
+
+    const res = await API.manageUser({id: userId, action: 'promote'});
     if (res.success) {
         showToast(`已将「${username}」提升为${nextRoleName}`, 'success');
         loadUsers();
@@ -393,11 +434,14 @@ async function promoteUser(userId, currentRole, username) {
 }
 
 async function demoteUser(userId, currentRole, username) {
-    if (currentRole <= 1) { showToast('已是最低权限','info'); return; }
+    if (currentRole <= 1) {
+        showToast('已是最低权限', 'info');
+        return;
+    }
     const prevRoleName = currentRole === 100 ? roleNames[10] : roleNames[1];
     if (!confirm(`确定要将用户「${username}」降低为${prevRoleName}吗？`)) return;
-    
-    const res = await API.manageUser({ id: userId, action: 'demote' });
+
+    const res = await API.manageUser({id: userId, action: 'demote'});
     if (res.success) {
         showToast(`已将「${username}」降低为${prevRoleName}`, 'success');
         loadUsers();
@@ -408,25 +452,27 @@ async function demoteUser(userId, currentRole, username) {
 
 async function toggleUserStatus(id, currentStatus) {
     if (id === currentUserId && currentStatus === 1) {
-        showToast('不能封禁自己','warning');
+        showToast('不能封禁自己', 'warning');
         return;
     }
-    
+
     const action = currentStatus === 1 ? 'disable' : 'enable';
-    const res = await API.manageUser({ id, action });
+    const res = await API.manageUser({id, action});
     if (res.success) {
-        showToast(action==='enable'?'已解封':'已封禁','success');
+        showToast(action === 'enable' ? '已解封' : '已封禁', 'success');
         loadUsers();
     } else {
-        showToast(res.message||'操作失败','error');
+        showToast(res.message || '操作失败', 'error');
     }
 }
 
 async function deleteUser(id, username) {
     if (!confirm(`确定删除用户「${username}」？此操作不可撤销。`)) return;
     const res = await API.deleteUser(id);
-    if (res.success) { showToast('用户已删除','success'); loadUsers(); }
-    else showToast(res.message||'删除失败','error');
+    if (res.success) {
+        showToast('用户已删除', 'success');
+        loadUsers();
+    } else showToast(res.message || '删除失败', 'error');
 }
 
 async function manageSubscription(userId, username) {
@@ -434,21 +480,21 @@ async function manageSubscription(userId, username) {
     document.getElementById('subUserId').value = userId;
     document.getElementById('subUsername').textContent = username;
     document.getElementById('subUserIdDisplay').textContent = ` (ID: ${userId})`;
-    
+
     // 加载订阅套餐列表到下拉框
     const planRes = await API.getSubscriptions(1, 100);
     const planSelect = document.getElementById('subPlanSelect');
     if (planSelect && planRes.success && planRes.data && planRes.data.items) {
         planSelect.innerHTML = '<option value="">-- 请选择套餐 --</option>' +
-            planRes.data.items.map(plan => 
+            planRes.data.items.map(plan =>
                 `<option value="${plan.id}">${escHtml(plan.name || '未命名套餐')}</option>`
             ).join('');
     }
-    
+
     // 加载用户订阅列表
     const res = await API.getUserSubscriptions(userId);
     const tbody = document.getElementById('subTableBody');
-    
+
     if (!res.success || !res.data || res.data.length === 0) {
         // Bug 修复 #1: 替换空状态为带图标的样式
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;">
@@ -465,19 +511,19 @@ async function manageSubscription(userId, username) {
     } else {
         // Bug 修复 #1: 修改表格列名和数据映射
         tbody.innerHTML = res.data.map(sub => {
-            const statusBadge = sub.status === 'active' 
+            const statusBadge = sub.status === 'active'
                 ? '<span class="badge badge-green">有效</span>'
                 : '<span class="badge badge-gray">失效</span>';
-            
+
             // 计算有效期显示
             const validPeriod = `${formatTime(sub.start_time)} ~ ${formatTime(sub.end_time)}`;
-            
+
             // 总额度显示 (假设后端有 quota 或 total_quota 字段)
             const totalQuota = quotaToDisplay(sub.quota || sub.total_quota || 0);
-            
+
             return `<tr>
                 <td>${sub.id}</td>
-                <td>${escHtml(sub.plan_name||'-')}</td>
+                <td>${escHtml(sub.plan_name || '-')}</td>
                 <td>${statusBadge}</td>
                 <td style="font-size:12px;">${validPeriod}</td>
                 <td>${totalQuota}</td>
@@ -488,7 +534,7 @@ async function manageSubscription(userId, username) {
             </tr>`;
         }).join('');
     }
-    
+
     document.getElementById('subscriptionModal').classList.remove('hidden');
 }
 
@@ -496,13 +542,13 @@ async function manageSubscription(userId, username) {
 async function addNewSubscription() {
     const userId = document.getElementById('subUserId').value;
     const planId = document.getElementById('subPlanSelect').value;
-    
+
     if (!planId) {
         showToast('请选择订阅套餐', 'warning');
         return;
     }
-    
-    const res = await API.createUserSubscription(userId, { subscription_id: parseInt(planId) });
+
+    const res = await API.createUserSubscription(userId, {subscription_id: parseInt(planId)});
     if (res.success) {
         showToast('订阅已添加', 'success');
         const username = document.getElementById('subUsername').textContent;
@@ -576,19 +622,22 @@ function openCreateUserModal() {
     document.getElementById('userModalTitle').textContent = '创建用户';
     const usernameField = document.getElementById('editUsername');
     if (usernameField) usernameField.removeAttribute('readonly');
-    
+
     const roleSelect = document.getElementById('editRole');
     Array.from(roleSelect.options).forEach(opt => {
         const roleValue = parseInt(opt.value);
         opt.disabled = roleValue > currentUserRole;
     });
-    
+
     document.getElementById('userModal').classList.remove('hidden');
 }
 
-window.showUserDetail = async function(id) {
+window.showUserDetail = async function (id) {
     const res = await API.getUser(id);
-    if (!res.success || !res.data) { showToast('获取用户失败', 'error'); return; }
+    if (!res.success || !res.data) {
+        showToast('获取用户失败', 'error');
+        return;
+    }
     const u = res.data;
     const modal = document.getElementById('userDetailModal');
     const content = document.getElementById('userDetailContent');
@@ -597,19 +646,19 @@ window.showUserDetail = async function(id) {
     content.innerHTML = `
         <div style="display:grid;grid-template-columns:120px 1fr;gap:8px 16px;font-size:14px;">
             ${[
-                ['用户ID', u.id],
-                ['用户名', u.username || '-'],
-                ['显示名称', u.display_name || '-'],
-                ['邮箱', u.email || '-'],
-                ['角色', roleNames[u.role] || `角色${u.role}`],
-                ['分组', u.group || 'default'],
-                ['状态', u.status === 1 ? '正常' : '封禁'],
-                ['账户余额', quotaToDisplay(u.quota)],
-                ['已用额度', quotaToDisplay(u.used_quota)],
-                ['请求次数', (u.request_count || 0).toLocaleString()],
-                ['注册时间', formatTime(u.created_at)],
-                ['最后登录', formatTime(u.last_login_at||0)],
-            ].map(([k, v]) => `
+        ['用户ID', u.id],
+        ['用户名', u.username || '-'],
+        ['显示名称', u.display_name || '-'],
+        ['邮箱', u.email || '-'],
+        ['角色', roleNames[u.role] || `角色${u.role}`],
+        ['分组', u.group || 'default'],
+        ['状态', u.status === 1 ? '正常' : '封禁'],
+        ['账户余额', quotaToDisplay(u.quota)],
+        ['已用额度', quotaToDisplay(u.used_quota)],
+        ['请求次数', (u.request_count || 0).toLocaleString()],
+        ['注册时间', formatTime(u.created_at)],
+        ['最后登录', formatTime(u.last_login_at || 0)],
+    ].map(([k, v]) => `
                 <div style="color:var(--c-text-secondary);padding:8px 0;border-bottom:1px solid var(--c-border);">${k}</div>
                 <div style="padding:8px 0;border-bottom:1px solid var(--c-border);font-weight:500;">${escHtml(String(v))}</div>
             `).join('')}
@@ -618,7 +667,7 @@ window.showUserDetail = async function(id) {
     modal.classList.remove('hidden');
 };
 
-window.closeUserDetail = function() {
+window.closeUserDetail = function () {
     document.getElementById('userDetailModal')?.classList.add('hidden');
 };
 
@@ -633,8 +682,13 @@ function toggleSelectUser(id) {
 function toggleSelectAllUsers(checked) {
     document.querySelectorAll('.u-checkbox').forEach(cb => {
         const id = parseInt(cb.dataset.id);
-        if (checked) { selectedUsers.add(id); cb.checked = true; }
-        else { selectedUsers.delete(id); cb.checked = false; }
+        if (checked) {
+            selectedUsers.add(id);
+            cb.checked = true;
+        } else {
+            selectedUsers.delete(id);
+            cb.checked = false;
+        }
     });
     updateUserBatchBar();
 }
@@ -649,23 +703,27 @@ function updateUserBatchBar() {
 async function batchBanUsers() {
     if (!selectedUsers.size) return;
     if (selectedUsers.has(currentUserId)) {
-        showToast('不能封禁自己，已从选择中排除','warning');
+        showToast('不能封禁自己，已从选择中排除', 'warning');
         selectedUsers.delete(currentUserId);
         if (selectedUsers.size === 0) {
             updateUserBatchBar();
             return;
         }
     }
-    await Promise.all([...selectedUsers].map(id => API.updateUserAdmin({ id, status: 2 })));
+    await Promise.all([...selectedUsers].map(id => API.updateUserAdmin({id, status: 2})));
     showToast(`已封禁 ${selectedUsers.size} 个用户`, 'success');
-    selectedUsers.clear(); updateUserBatchBar(); loadUsers();
+    selectedUsers.clear();
+    updateUserBatchBar();
+    loadUsers();
 }
 
 async function batchUnbanUsers() {
     if (!selectedUsers.size) return;
-    await Promise.all([...selectedUsers].map(id => API.updateUserAdmin({ id, status: 1 })));
+    await Promise.all([...selectedUsers].map(id => API.updateUserAdmin({id, status: 1})));
     showToast(`已解封 ${selectedUsers.size} 个用户`, 'success');
-    selectedUsers.clear(); updateUserBatchBar(); loadUsers();
+    selectedUsers.clear();
+    updateUserBatchBar();
+    loadUsers();
 }
 
 async function batchDeleteUsers() {
@@ -673,31 +731,74 @@ async function batchDeleteUsers() {
     if (!confirm(`确定删除选中的 ${selectedUsers.size} 个用户？`)) return;
     await Promise.all([...selectedUsers].map(id => API.deleteUser(id)));
     showToast(`已删除 ${selectedUsers.size} 个用户`, 'success');
-    selectedUsers.clear(); updateUserBatchBar(); loadUsers();
+    selectedUsers.clear();
+    updateUserBatchBar();
+    loadUsers();
 }
+
+// 下拉菜单控制函数
+function toggleUserDropdown(userId) {
+    const dropdown = document.getElementById(`dropdown${userId}`);
+    if (!dropdown) return;
+
+    // 关闭其他所有下拉菜单
+    document.querySelectorAll('.user-action-dropdown').forEach(dd => {
+        if (dd.id !== `dropdown${userId}`) {
+            dd.style.display = 'none';
+        }
+    });
+
+    // 切换当前下拉菜单
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+}
+
+function closeAllDropdowns() {
+    document.querySelectorAll('.user-action-dropdown').forEach(dd => {
+        dd.style.display = 'none';
+    });
+}
+
+// 点击页面其他地方关闭下拉菜单
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.user-action-dropdown') && !e.target.closest('[id^="dropdownBtn"]')) {
+        closeAllDropdowns();
+    }
+});
 
 let searchTimer;
 document.addEventListener('DOMContentLoaded', async () => {
     const res = await API.getUserInfo();
-    if (!res.success||!res.data||(res.data.role||0)<10) {
-        showToast('无权限访问','error');
-        setTimeout(()=>window.location.href='console.html',1500);
+    if (!res.success || !res.data || (res.data.role || 0) < 10) {
+        showToast('无权限访问', 'error');
+        setTimeout(() => window.location.href = 'console.html', 1500);
         return;
     }
-    
+
     currentUserRole = res.data.role || 0;
     currentUserId = res.data.id || 0;
-    
+
     renderSidebar('user');
     loadGroups();
     loadUsers();
 
     const si = document.getElementById('userSearch');
-    if(si) si.addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{uPage=1;loadUsers();},400);});
-    
+    if (si) si.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+            uPage = 1;
+            loadUsers();
+        }, 400);
+    });
+
     const gf = document.getElementById('groupFilter');
-    if(gf) gf.addEventListener('change',()=>{uPage=1;loadUsers();});
-    
+    if (gf) gf.addEventListener('change', () => {
+        uPage = 1;
+        loadUsers();
+    });
+
     const sf = document.getElementById('sortField');
-    if(sf) sf.addEventListener('change',()=>{uPage=1;loadUsers();});
+    if (sf) sf.addEventListener('change', () => {
+        uPage = 1;
+        loadUsers();
+    });
 });

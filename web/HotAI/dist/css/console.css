@@ -51,6 +51,16 @@ body {
 
 .sidebar-bottom { margin-top: auto; border-top: 1px solid var(--c-border); padding-top: 12px; }
 
+/* 侧边栏收起按钮 */
+.toggle-wrapper { padding: 10px 12px; }
+.sidebar-toggle-btn {
+    display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px;
+    border-radius: var(--radius-btn); background: transparent; border: 1px solid var(--c-border);
+    color: var(--c-text-secondary); font-size: 14px; cursor: pointer; transition: all 0.2s;
+}
+.sidebar-toggle-btn:hover { background: var(--c-gray-hover); border-color: var(--c-primary); color: var(--c-text-main); }
+.sidebar-toggle-btn svg { width: 18px; height: 18px; stroke: currentColor; flex-shrink: 0; }
+
 /* =========================================
    4. 右侧主内容区
    ========================================= */
@@ -66,11 +76,26 @@ body {
 .stat-card-header svg { width: 16px; height: 16px; fill: currentColor; }
 .stat-list { display: flex; flex-direction: column; gap: 12px; }
 .stat-item { display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: var(--c-text-secondary); }
-.stat-item .icon-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--c-primary-light); color: var(--c-primary); }
-.stat-item .val { font-weight: 700; color: var(--c-text-main); }
+.stat-item .icon-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--c-primary-light); color: var(--c-primary); flex-shrink: 0; }
+.stat-item .val { font-weight: 700; color: var(--c-text-main); min-width: 80px; text-align: center; font-variant-numeric: tabular-nums; }
 
-/* 中间大块布局 (左: 图表, 右: API信息) */
+/* 中间大块布局 (左: 图表, 中: API信息, 右: 侧边面板) */
 .dashboard-main { display: flex; gap: 20px; flex: 1; }
+
+/* 右侧面板 */
+.side-panel {
+    width: 280px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px;
+    overflow-y: auto; padding-right: 4px;
+}
+.side-panel .stat-card { height: fit-content; }
+.side-panel-section { margin-bottom: 16px; }
+.side-panel-section:last-child { margin-bottom: 0; }
+.side-panel-header { font-size: 14px; font-weight: 700; color: var(--c-text-main); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--c-border); }
+.side-panel-content { font-size: 13px; line-height: 1.6; color: var(--c-text-secondary); max-height: 250px; overflow-y: auto; }
+.announcement-item { padding: 10px 0; border-bottom: 1px solid var(--c-border); }
+.announcement-item:last-child { border-bottom: none; }
+.announcement-date { font-size: 11px; color: var(--c-text-secondary); margin-bottom: 4px; }
+.announcement-content { color: var(--c-text-main); }
 .chart-area { flex: 2; background: var(--c-white); border-radius: var(--radius-card); padding: 20px; box-shadow: var(--shadow-card); border: 1px solid var(--c-border); display: flex; flex-direction: column; }
 .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .chart-title { font-size: 16px; font-weight: 700; }
@@ -231,6 +256,9 @@ body {
 /* =========================================
    5. 响应式适配
    ========================================= */
+@media (max-width: 1200px) {
+    .side-panel { display: none; }
+}
 @media (max-width: 1024px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) {
     .app-wrapper { flex-direction: column; } .sidebar { width: 100%; max-height: 200px; border-bottom: 1px solid var(--c-border); }
@@ -238,4 +266,5 @@ body {
     .main-content { padding: 16px; }
     .stat-grid { grid-template-columns: 1fr; }
     .dashboard-main { flex-direction: column; }
+    .side-panel { display: none; }
 }
