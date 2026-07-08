@@ -167,15 +167,25 @@ async function loadUsers() {
             <td><span class="badge badge-blue">${escHtml(u.group||'default')}</span></td>
             <td>${roleBadge}</td>
             <td>${renderQuotaProgress(u.quota, u.used_quota)}</td>
-            <td class="td-mono" style="font-size:12px;">${formatTime(u.created_time)}</td>
-            <td class="td-mono" style="font-size:12px;color:var(--c-text-secondary);">${formatTime(u.last_login_time||0)}</td>
+            <td class="td-mono" style="font-size:12px;">${formatTime(u.created_at)}</td>
+            <td class="td-mono" style="font-size:12px;color:var(--c-text-secondary);">${formatTime(u.last_login_at||0)}</td>
             <td>${statusBadge}</td>
             <td>
                 <div class="td-actions" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
                     <button class="btn btn-secondary btn-sm" onclick="showUserDetail(${u.id})">详情</button>
                     <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="openEditUserModal(${u.id})">编辑</button>
-                    <button class="btn btn-success btn-sm${disabledClass}" style="${disabledStyle}" onclick="promoteUser(${u.id},${u.role},'${escHtml(u.username||'')}')">⬆️提升</button>
-                    <button class="btn btn-warning btn-sm${disabledClass}" style="${disabledStyle}" onclick="demoteUser(${u.id},${u.role},'${escHtml(u.username||'')}')">⬇️降低</button>
+                    <button class="btn btn-success btn-sm${disabledClass}" style="${disabledStyle}" onclick="promoteUser(${u.id},${u.role},'${escHtml(u.username||'')}')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px;">
+                            <line x1="12" y1="19" x2="12" y2="5"/>
+                            <polyline points="5 12 12 5 19 12"/>
+                        </svg>提升
+                    </button>
+                    <button class="btn btn-warning btn-sm${disabledClass}" style="${disabledStyle}" onclick="demoteUser(${u.id},${u.role},'${escHtml(u.username||'')}')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px;">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <polyline points="19 12 12 19 5 12"/>
+                        </svg>降低
+                    </button>
                     <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="openTopupModal(${u.id},'${escHtml(u.username||'')}')">充值</button>
                     <button class="btn ${u.status===1?'btn-warning':'btn-success'} btn-sm${disabledClass}" style="${disabledStyle}" onclick="toggleUserStatus(${u.id},${u.status})">${u.status===1?'封禁':'解封'}</button>
                     <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="manageSubscription(${u.id},'${escHtml(u.username||'')}')">订阅</button>
@@ -235,28 +245,81 @@ function closeUserModal() { document.getElementById('userModal').classList.add('
 async function saveUser() {
     const id = parseInt(document.getElementById('userId').value);
     
-    let res;
     if (id) {
-        const payload = {
+        // 编辑现有用户 - 需要获取原始数据以对比变化
+        const originalUserRes = await API.getUser(id);
+        if (!originalUserRes.success || !originalUserRes.data) {
+            showToast('获取原始用户数据失败','error');
+            return;
+        }
+        const originalUser = originalUserRes.data;
+        
+        // 基础信息payload (UpdateUser接口只支持这些字段)
+        const basePayload = {
             id: id,
+            username: document.getElementById('editUsername').value.trim(),
             display_name: document.getElementById('editDisplayName').value.trim(),
-            role: parseInt(document.getElementById('editRole').value),
             group: document.getElementById('editGroup').value.trim()||'default',
-            quota: parseInt(document.getElementById('editQuota').value)||0,
-            status: parseInt(document.getElementById('editStatus').value)||1,
         };
         
         const email = document.getElementById('editEmail').value.trim();
-        if (email) payload.email = email;
+        if (email) basePayload.email = email;
         
         const pwd = document.getElementById('editPassword').value.trim();
-        if (pwd) payload.password = pwd;
+        if (pwd) basePayload.password = pwd;
 
         const remark = document.getElementById('editRemark').value.trim();
-        if (remark) payload.remark = remark;
+        if (remark) basePayload.remark = remark;
         
-        res = await API.updateUser(payload);
+        // 更新基础信息
+        const res = await API.updateUser(basePayload);
+        if (!res.success) {
+            showToast(res.message||'更新失败','error');
+            return;
+        }
+        
+        // 检测并处理 role 变化 (通过 manageUser)
+        const newRole = parseInt(document.getElementById('editRole').value);
+        if (newRole !== originalUser.role) {
+            let action;
+            if (newRole > originalUser.role) {
+                action = 'promote';
+            } else {
+                action = 'demote';
+            }
+            const roleRes = await API.manageUser({ id, action });
+            if (!roleRes.success) {
+                showToast(`角色更新失败: ${roleRes.message}`,'warning');
+            }
+        }
+        
+        // 检测并处理 quota 变化 (通过 manageUser override)
+        const newQuota = parseInt(document.getElementById('editQuota').value)||0;
+        if (newQuota !== originalUser.quota) {
+            if (newQuota < 0) {
+                showToast('额度不能为负数', 'warning');
+            }
+            const quotaRes = await API.manageUser({ id, action: 'add_quota', mode: 'override', value: newQuota });
+            if (!quotaRes.success) {
+                showToast(`额度更新失败: ${quotaRes.message}`,'warning');
+            }
+        }
+        
+        // 检测并处理 status 变化 (通过 manageUser)
+        const newStatus = parseInt(document.getElementById('editStatus').value)||1;
+        if (newStatus !== originalUser.status) {
+            const action = newStatus === 1 ? 'enable' : 'disable';
+            const statusRes = await API.manageUser({ id, action });
+            if (!statusRes.success) {
+                showToast(`状态更新失败: ${statusRes.message}`,'warning');
+            }
+        }
+        
+        showToast('用户已更新','success');
+        closeUserModal();
+        loadUsers();
     } else {
+        // 创建新用户
         const username = document.getElementById('editUsername').value.trim();
         if (!username) { showToast('请输入用户名','warning'); return; }
         
@@ -279,15 +342,14 @@ async function saveUser() {
         const remark = document.getElementById('editRemark').value.trim();
         if (remark) payload.remark = remark;
         
-        res = await API.createUser(payload);
-    }
-
-    if (res.success) {
-        showToast(id ? '用户已更新' : '用户已创建','success');
-        closeUserModal();
-        loadUsers();
-    } else {
-        showToast(res.message||'操作失败','error');
+        const res = await API.createUser(payload);
+        if (res.success) {
+            showToast('用户已创建','success');
+            closeUserModal();
+            loadUsers();
+        } else {
+            showToast(res.message||'创建失败','error');
+        }
     }
 }
 
@@ -309,7 +371,8 @@ async function doTopup() {
     if (res.success) {
         showToast('充值成功','success');
         closeTopupModal();
-        loadUsers();
+        // Bug 修复 #3: 充值成功后强制刷新用户列表
+        await loadUsers();
     } else {
         showToast(res.message||'充值失败','error');
     }
@@ -317,11 +380,10 @@ async function doTopup() {
 
 async function promoteUser(userId, currentRole, username) {
     if (currentRole >= 100) { showToast('已是最高权限','info'); return; }
-    const newRole = currentRole === 1 ? 10 : 100;
-    const nextRoleName = roleNames[newRole];
+    const nextRoleName = currentRole === 1 ? roleNames[10] : roleNames[100];
     if (!confirm(`确定要将用户「${username}」提升为${nextRoleName}吗？`)) return;
     
-    const res = await API.updateUserAdmin({ id: userId, role: newRole });
+    const res = await API.manageUser({ id: userId, action: 'promote' });
     if (res.success) {
         showToast(`已将「${username}」提升为${nextRoleName}`, 'success');
         loadUsers();
@@ -332,11 +394,10 @@ async function promoteUser(userId, currentRole, username) {
 
 async function demoteUser(userId, currentRole, username) {
     if (currentRole <= 1) { showToast('已是最低权限','info'); return; }
-    const newRole = currentRole === 100 ? 10 : 1;
-    const prevRoleName = roleNames[newRole];
+    const prevRoleName = currentRole === 100 ? roleNames[10] : roleNames[1];
     if (!confirm(`确定要将用户「${username}」降低为${prevRoleName}吗？`)) return;
     
-    const res = await API.updateUserAdmin({ id: userId, role: newRole });
+    const res = await API.manageUser({ id: userId, action: 'demote' });
     if (res.success) {
         showToast(`已将「${username}」降低为${prevRoleName}`, 'success');
         loadUsers();
@@ -351,10 +412,10 @@ async function toggleUserStatus(id, currentStatus) {
         return;
     }
     
-    const newStatus = currentStatus === 1 ? 2 : 1;
-    const res = await API.updateUserAdmin({ id, status: newStatus });
+    const action = currentStatus === 1 ? 'disable' : 'enable';
+    const res = await API.manageUser({ id, action });
     if (res.success) {
-        showToast(newStatus===1?'已解封':'已封禁','success');
+        showToast(action==='enable'?'已解封':'已封禁','success');
         loadUsers();
     } else {
         showToast(res.message||'操作失败','error');
@@ -369,27 +430,57 @@ async function deleteUser(id, username) {
 }
 
 async function manageSubscription(userId, username) {
-    // 打开订阅管理对话框
+    // Bug 修复 #1: 订阅弹窗 UI 对齐 - 补全标题格式
     document.getElementById('subUserId').value = userId;
     document.getElementById('subUsername').textContent = username;
+    document.getElementById('subUserIdDisplay').textContent = ` (ID: ${userId})`;
+    
+    // 加载订阅套餐列表到下拉框
+    const planRes = await API.getSubscriptions(1, 100);
+    const planSelect = document.getElementById('subPlanSelect');
+    if (planSelect && planRes.success && planRes.data && planRes.data.items) {
+        planSelect.innerHTML = '<option value="">-- 请选择套餐 --</option>' +
+            planRes.data.items.map(plan => 
+                `<option value="${plan.id}">${escHtml(plan.name || '未命名套餐')}</option>`
+            ).join('');
+    }
     
     // 加载用户订阅列表
     const res = await API.getUserSubscriptions(userId);
     const tbody = document.getElementById('subTableBody');
     
     if (!res.success || !res.data || res.data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--c-text-secondary);padding:20px;">该用户暂无订阅</td></tr>';
+        // Bug 修复 #1: 替换空状态为带图标的样式
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--c-text-secondary);">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.4;">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span style="font-size:14px;">该用户暂无订阅</span>
+            </div>
+        </td></tr>`;
     } else {
+        // Bug 修复 #1: 修改表格列名和数据映射
         tbody.innerHTML = res.data.map(sub => {
             const statusBadge = sub.status === 'active' 
                 ? '<span class="badge badge-green">有效</span>'
                 : '<span class="badge badge-gray">失效</span>';
+            
+            // 计算有效期显示
+            const validPeriod = `${formatTime(sub.start_time)} ~ ${formatTime(sub.end_time)}`;
+            
+            // 总额度显示 (假设后端有 quota 或 total_quota 字段)
+            const totalQuota = quotaToDisplay(sub.quota || sub.total_quota || 0);
+            
             return `<tr>
                 <td>${sub.id}</td>
                 <td>${escHtml(sub.plan_name||'-')}</td>
-                <td>${formatTime(sub.start_time)}</td>
-                <td>${formatTime(sub.end_time)}</td>
                 <td>${statusBadge}</td>
+                <td style="font-size:12px;">${validPeriod}</td>
+                <td>${totalQuota}</td>
                 <td>
                     <button class="btn btn-warning btn-sm" onclick="invalidateSubscription(${sub.id})">使失效</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteSubscription(${sub.id})">删除</button>
@@ -399,6 +490,26 @@ async function manageSubscription(userId, username) {
     }
     
     document.getElementById('subscriptionModal').classList.remove('hidden');
+}
+
+// Bug 修复 #1: 新增订阅功能
+async function addNewSubscription() {
+    const userId = document.getElementById('subUserId').value;
+    const planId = document.getElementById('subPlanSelect').value;
+    
+    if (!planId) {
+        showToast('请选择订阅套餐', 'warning');
+        return;
+    }
+    
+    const res = await API.createUserSubscription(userId, { subscription_id: parseInt(planId) });
+    if (res.success) {
+        showToast('订阅已添加', 'success');
+        const username = document.getElementById('subUsername').textContent;
+        manageSubscription(userId, username);
+    } else {
+        showToast(res.message || '添加订阅失败', 'error');
+    }
 }
 
 function closeSubscriptionModal() {
@@ -496,8 +607,8 @@ window.showUserDetail = async function(id) {
                 ['账户余额', quotaToDisplay(u.quota)],
                 ['已用额度', quotaToDisplay(u.used_quota)],
                 ['请求次数', (u.request_count || 0).toLocaleString()],
-                ['注册时间', formatTime(u.created_time)],
-                ['最后登录', formatTime(u.last_login_time||0)],
+                ['注册时间', formatTime(u.created_at)],
+                ['最后登录', formatTime(u.last_login_at||0)],
             ].map(([k, v]) => `
                 <div style="color:var(--c-text-secondary);padding:8px 0;border-bottom:1px solid var(--c-border);">${k}</div>
                 <div style="padding:8px 0;border-bottom:1px solid var(--c-border);font-weight:500;">${escHtml(String(v))}</div>

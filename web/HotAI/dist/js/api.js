@@ -309,11 +309,11 @@ const API = {
             body: JSON.stringify(data)
         }),
 
-    // manually topup a user (admin)
+    // manually set user quota (admin) - override mode
     topupUser: (id, quota) =>
         apiRequest('/user/manage', {
             method: 'POST',
-            body: JSON.stringify({ id, action: 'topup', quota })
+            body: JSON.stringify({ id, action: 'add_quota', mode: 'override', value: quota })
         }),
 
     getAllTopUps: () => apiRequest('/user/topup'),
