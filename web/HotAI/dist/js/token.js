@@ -8,6 +8,7 @@ let tokenSortOrder = 'asc';
 let availableModels = [];
 let selectedModels = new Set();
 let allGroups = [];
+let currentUserGroup = '';
 
 function showToast(msg, type = 'info') {
     const c = document.getElementById('toastContainer');
@@ -89,7 +90,7 @@ async function loadGroups() {
         }
         
         if (modalSelect) {
-            modalSelect.innerHTML = '<option value="">默认（与用户分组一致）</option>';
+            modalSelect.innerHTML = '<option value="">留空使用用户分组</option>';
             allGroups.forEach(group => {
                 if (group && group !== '') {
                     const option = document.createElement('option');
@@ -420,6 +421,9 @@ async function saveToken() {
     const subnet = document.getElementById('tokenIps').value.trim().split(',').filter(Boolean);
     const group = document.getElementById('tokenGroup').value.trim();
 
+    // 留空时使用用户当前分组
+    const effectiveGroup = group || currentUserGroup;
+
     const payload = { 
         name, 
         remain_quota: quotaValue, 
@@ -428,9 +432,9 @@ async function saveToken() {
         subnet,
         unlimited_quota: quotaValue === 0,
         model_limits_enabled: models.length > 0,
-        model_limits: models.join(',')
+        model_limits: models.join(','),
+        group: effectiveGroup
     };
-    if (group) payload.group = group;
 
     let res;
     if (id) {
@@ -541,8 +545,15 @@ async function batchDeleteTokens() {
 
 // 搜索防抖
 let searchTimer;
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     renderSidebar('token');
+
+    // 获取当前用户分组
+    const userRes = await API.getUserInfo();
+    if (userRes.success && userRes.data) {
+        currentUserGroup = userRes.data.group || 'default';
+    }
+
     loadGroups();
     loadModels();
     loadTokens();

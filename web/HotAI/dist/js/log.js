@@ -1,9 +1,45 @@
-// 使用日志页面逻辑
+// 使用日志页面逻辑（统一老UI风格）
 let logPage = 1;
 const logPageSize = 20;
 let logTotal = 0;
 let isAdmin = false;
-let adminMode = false;
+
+// 列设置默认全部显示
+const defaultColumns = {
+    time: true,
+    channel: true,
+    user: true,
+    token: true,
+    group: true,
+    type: true,
+    model: true,
+    usetime: true,
+    input: true,
+    output: true,
+    cost: true,
+    ip: true,
+    retry: true,
+    detail: true
+};
+
+const columnNames = {
+    time: '时间',
+    channel: '渠道',
+    user: '用户',
+    token: '令牌',
+    group: '分组',
+    type: '类型',
+    model: '模型',
+    usetime: '用时/首字',
+    input: '输入',
+    output: '输出',
+    cost: '花费',
+    ip: 'IP',
+    retry: '重试',
+    detail: '详情'
+};
+
+let columnSettings = { ...defaultColumns };
 
 function showToast(msg, type = 'info') {
     const c = document.getElementById('toastContainer');
@@ -22,7 +58,19 @@ function quotaToDisplay(q) {
 
 function formatTime(ts) {
     if (!ts) return '-';
-    return new Date(ts * 1000).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return new Date(ts * 1000).toLocaleString('zh-CN', { 
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+    });
+}
+
+function formatUseTime(seconds) {
+    if (!seconds || seconds <= 0) return '-';
+    return seconds.toFixed(2) + 's';
 }
 
 const logTypes = { 1: '文本', 2: '图像', 3: '音频', 4: '视频', 5: '嵌入', 6: '缓存' };
@@ -31,21 +79,30 @@ const logTypeBadge = { 1: 'badge-blue', 2: 'badge-purple', 3: 'badge-yellow', 4:
 function getFilters() {
     const start = document.getElementById('filterStart').value;
     const end = document.getElementById('filterEnd').value;
-    return {
+    const params = {
         model_name: document.getElementById('filterModel').value.trim(),
         token_name: document.getElementById('filterToken').value.trim(),
-        username: adminMode ? (document.getElementById('filterUser').value.trim() || '') : '',
+        username: document.getElementById('filterUser').value.trim(),
         start_timestamp: start ? Math.floor(new Date(start).getTime() / 1000) : '',
         end_timestamp: end ? Math.floor(new Date(end).getTime() / 1000) : '',
+        group: document.getElementById('filterGroup').value.trim(),
+        request_id: document.getElementById('filterRequestId').value.trim(),
         p: logPage,
         page_size: logPageSize,
     };
+    
+    // 渠道ID筛选
+    const channelId = document.getElementById('filterChannelId').value.trim();
+    if (channelId) {
+        params.channel = channelId;
+    }
+    
+    return params;
 }
 
 async function loadLogs() {
     const tbody = document.getElementById('logTableBody');
-    const colCount = adminMode ? 9 : 8;
-    tbody.innerHTML = `<tr><td colspan="${colCount}"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>`;
 
     // 加载统计
     loadLogStat();
@@ -55,14 +112,14 @@ async function loadLogs() {
     Object.keys(params).forEach(k => { if (params[k] === '') delete params[k]; });
 
     let res;
-    if (adminMode) {
+    if (isAdmin) {
         res = await API.getAllLogs(params);
     } else {
         res = await API.getUserLogs(params);
     }
 
     if (!res.success) {
-        tbody.innerHTML = `<tr><td colspan="${colCount}"><div class="table-empty"><span>${res.message || '加载失败'}</span></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14"><div class="table-empty"><span>${res.message || '加载失败'}</span></div></td></tr>`;
         return;
     }
 
@@ -71,12 +128,8 @@ async function loadLogs() {
     document.getElementById('logTotal').textContent = logTotal;
     document.getElementById('logPageInfo').textContent = `第 ${logPage} 页`;
 
-    // 显示/隐藏用户列
-    const thUser = document.getElementById('thUser');
-    if (thUser) thUser.style.display = adminMode ? '' : 'none';
-
     if (logs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${colCount}"><div class="table-empty"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg><span>暂无日志数据</span></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14"><div class="table-empty"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg><span>暂无日志数据</span></div></td></tr>`;
         renderPagination();
         return;
     }
@@ -87,22 +140,33 @@ async function loadLogs() {
     tbody.innerHTML = logs.map((log, idx) => {
         const typeLabel = logTypes[log.type] || '其他';
         const typeBadge = logTypeBadge[log.type] || 'badge-gray';
-        const userCell = adminMode ? `<td>${escHtml(log.username || '-')}</td>` : '';
+        
+        const channelDisplay = log.channel_name || (log.channel ? `#${log.channel}` : '-');
+        const useTimeDisplay = formatUseTime(log.use_time);
+        
         return `
         <tr style="cursor:pointer;" onclick="showLogDetail(${idx})">
-            <td class="td-mono" style="white-space:nowrap;">${formatTime(log.created_at)}</td>
-            ${userCell}
-            <td>${escHtml(log.token_name || '-')}</td>
-            <td><span style="font-size:12px;font-weight:600;">${escHtml(log.model_name || '-')}</span></td>
-            <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
-            <td style="text-align:right;">${(log.prompt_tokens || 0).toLocaleString()}</td>
-            <td style="text-align:right;">${(log.completion_tokens || 0).toLocaleString()}</td>
-            <td style="text-align:right;font-weight:600;color:var(--c-primary);">${quotaToDisplay(log.quota)}</td>
-            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--c-text-secondary);font-size:12px;">${escHtml((log.content || '-').slice(0, 50))}</td>
+            <td data-col="time" class="td-mono" title="${formatTime(log.created_at)}">${formatTime(log.created_at)}</td>
+            <td data-col="channel" title="${escHtml(channelDisplay)}">${escHtml(channelDisplay)}</td>
+            <td data-col="user" title="${escHtml(log.username || '-')}">${escHtml(log.username || '-')}</td>
+            <td data-col="token" title="${escHtml(log.token_name || '-')}">${escHtml(log.token_name || '-')}</td>
+            <td data-col="group" title="${escHtml(log.group || '-')}">${escHtml(log.group || '-')}</td>
+            <td data-col="type"><span class="badge ${typeBadge}">${typeLabel}</span></td>
+            <td data-col="model" title="${escHtml(log.model_name || '-')}"><span style="font-size:12px;font-weight:600;">${escHtml(log.model_name || '-')}</span></td>
+            <td data-col="usetime" class="td-mono">${useTimeDisplay}</td>
+            <td data-col="input">${(log.prompt_tokens || 0).toLocaleString()}</td>
+            <td data-col="output">${(log.completion_tokens || 0).toLocaleString()}</td>
+            <td data-col="cost" style="font-weight:600;color:var(--c-primary);">${quotaToDisplay(log.quota)}</td>
+            <td data-col="ip" class="td-mono" title="${escHtml(log.ip || '-')}">${escHtml(log.ip || '-')}</td>
+            <td data-col="retry">-</td>
+            <td data-col="detail">
+                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showLogDetail(${idx})">查看</button>
+            </td>
         </tr>`;
     }).join('');
 
     renderPagination();
+    applyColumnSettings();
 }
 
 async function loadLogStat() {
@@ -111,24 +175,24 @@ async function loadLogStat() {
     const params = {};
     if (start) params.start_timestamp = Math.floor(new Date(start).getTime() / 1000);
     if (end) params.end_timestamp = Math.floor(new Date(end).getTime() / 1000);
-    if (adminMode && document.getElementById('filterUser').value.trim()) {
-        params.username = document.getElementById('filterUser').value.trim();
-    }
+    
+    const username = document.getElementById('filterUser').value.trim();
+    if (username) params.username = username;
+    
+    const group = document.getElementById('filterGroup').value.trim();
+    if (group) params.group = group;
 
-    const endpoint = adminMode ? API.getAllLogsStat : API.getUserLogsStat;
+    const endpoint = isAdmin ? API.getAllLogsStat : API.getUserLogsStat;
     const res = await endpoint(params);
     const bar = document.getElementById('logStatBar');
     if (!bar) return;
 
     if (res.success && res.data) {
         const d = res.data;
-        const total = (d.prompt_tokens || 0) + (d.completion_tokens || 0);
         bar.innerHTML = `
-            <span>统计次数：<strong>${(d.count || 0).toLocaleString()}</strong></span>
-            <span>提示Tokens：<strong>${(d.prompt_tokens || 0).toLocaleString()}</strong></span>
-            <span>补全Tokens：<strong>${(d.completion_tokens || 0).toLocaleString()}</strong></span>
-            <span>合计Tokens：<strong>${total.toLocaleString()}</strong></span>
             <span>消耗额度：<strong style="color:var(--c-primary);">${quotaToDisplay(d.quota)}</strong></span>
+            <span>RPM：<strong>${(d.rpm || 0).toLocaleString()}</strong></span>
+            <span>TPM：<strong>${(d.tpm || 0).toLocaleString()}</strong></span>
         `;
     } else {
         bar.innerHTML = '';
@@ -161,9 +225,13 @@ function searchLogs() {
 function resetFilters() {
     document.getElementById('filterModel').value = '';
     document.getElementById('filterToken').value = '';
+    document.getElementById('filterUser').value = '';
     document.getElementById('filterStart').value = '';
     document.getElementById('filterEnd').value = '';
-    if (document.getElementById('filterUser')) document.getElementById('filterUser').value = '';
+    document.getElementById('filterChannel').value = '';
+    document.getElementById('filterGroup').value = '';
+    document.getElementById('filterRequestId').value = '';
+    document.getElementById('filterChannelId').value = '';
     logPage = 1;
     loadLogs();
 }
@@ -177,21 +245,29 @@ window.showLogDetail = function(idx) {
     const content = document.getElementById('logDetailContent');
     if (!modal || !content) return;
 
+    const channelDisplay = log.channel_name || (log.channel ? `#${log.channel}` : '-');
+    
     const rows = [
         ['时间', formatTime(log.created_at)],
+        ['渠道', channelDisplay],
         ['用户名', log.username || '-'],
         ['令牌', log.token_name || '-'],
-        ['模型', log.model_name || '-'],
+        ['分组', log.group || '-'],
         ['类型', logTypes[log.type] || '其他'],
-        ['提示 Tokens', (log.prompt_tokens || 0).toLocaleString()],
-        ['补全 Tokens', (log.completion_tokens || 0).toLocaleString()],
-        ['消耗额度', quotaToDisplay(log.quota)],
-        ['渠道ID', log.channel_id || '-'],
+        ['模型', log.model_name || '-'],
+        ['用时/首字', formatUseTime(log.use_time)],
+        ['输入 Tokens', (log.prompt_tokens || 0).toLocaleString()],
+        ['输出 Tokens', (log.completion_tokens || 0).toLocaleString()],
+        ['花费', quotaToDisplay(log.quota)],
         ['IP 地址', log.ip || '-'],
-    ].filter(([, v]) => v !== '-' && v !== '');
+        ['重试次数', '-'],
+        ['渠道ID', log.channel || '-'],
+        ['RequestID', log.request_id || '-'],
+        ['上游RequestID', log.upstream_request_id || '-'],
+    ];
 
     content.innerHTML = `
-        <div style="display:grid;grid-template-columns:100px 1fr;gap:8px 16px;font-size:14px;">
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:8px 16px;font-size:14px;">
             ${rows.map(([k, v]) => `
                 <div style="color:var(--c-text-secondary);padding:8px 0;border-bottom:1px solid var(--c-border);">${k}</div>
                 <div style="padding:8px 0;border-bottom:1px solid var(--c-border);font-weight:500;word-break:break-all;">${escHtml(String(v))}</div>
@@ -220,25 +296,33 @@ window.exportLogs = async function() {
     params.page_size = 10000; // 尽量导出全部
     Object.keys(params).forEach(k => { if (params[k] === '') delete params[k]; });
 
-    const res = adminMode ? await API.getAllLogs(params) : await API.getUserLogs(params);
+    const res = isAdmin ? await API.getAllLogs(params) : await API.getUserLogs(params);
     if (!res.success || !res.data) {
         showToast('导出失败', 'error');
         return;
     }
 
     const logs = res.data?.items || [];
-    const header = ['时间', '用户名', '令牌', '模型', '类型', '提示Tokens', '补全Tokens', '消耗额度', '内容'];
-    const rows = logs.map(log => [
-        formatTime(log.created_at),
-        log.username || '',
-        log.token_name || '',
-        log.model_name || '',
-        logTypes[log.type] || '',
-        log.prompt_tokens || 0,
-        log.completion_tokens || 0,
-        (log.quota / 500000).toFixed(6),
-        (log.content || '').replace(/,/g, '，').replace(/\n/g, ' '),
-    ]);
+    const header = ['时间', '渠道', '用户', '令牌', '分组', '类型', '模型', '用时/首字', '输入', '输出', '花费', 'IP', '重试', 'RequestID'];
+    const rows = logs.map(log => {
+        const channelDisplay = log.channel_name || (log.channel ? `#${log.channel}` : '');
+        return [
+            formatTime(log.created_at),
+            channelDisplay,
+            log.username || '',
+            log.token_name || '',
+            log.group || '',
+            logTypes[log.type] || '',
+            log.model_name || '',
+            formatUseTime(log.use_time),
+            log.prompt_tokens || 0,
+            log.completion_tokens || 0,
+            (log.quota / 500000).toFixed(6),
+            log.ip || '',
+            '-',
+            log.request_id || '',
+        ].map(v => String(v).replace(/,/g, '，').replace(/\n/g, ' '));
+    });
 
     const csv = [header, ...rows].map(r => r.join(',')).join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -251,6 +335,76 @@ window.exportLogs = async function() {
     showToast(`已导出 ${logs.length} 条日志`, 'success');
 };
 
+// ========== 列设置功能 ==========
+function loadColumnSettings() {
+    const saved = localStorage.getItem('logColumnSettings');
+    if (saved) {
+        try {
+            columnSettings = { ...defaultColumns, ...JSON.parse(saved) };
+        } catch (e) {
+            columnSettings = { ...defaultColumns };
+        }
+    }
+}
+
+function saveColumnSettings() {
+    localStorage.setItem('logColumnSettings', JSON.stringify(columnSettings));
+}
+
+function applyColumnSettings() {
+    const table = document.querySelector('.log-table');
+    if (!table) return;
+    
+    // 显示/隐藏列
+    Object.keys(columnSettings).forEach(col => {
+        const isVisible = columnSettings[col];
+        const elements = table.querySelectorAll(`[data-col="${col}"]`);
+        elements.forEach(el => {
+            el.style.display = isVisible ? '' : 'none';
+        });
+    });
+}
+
+function renderColumnSettingsMenu() {
+    const menu = document.getElementById('columnSettingsMenu');
+    if (!menu) return;
+    
+    menu.innerHTML = Object.keys(columnNames).map(col => `
+        <label class="column-settings-item">
+            <input type="checkbox" 
+                   ${columnSettings[col] ? 'checked' : ''} 
+                   onchange="toggleColumn('${col}', this.checked)">
+            <span>${columnNames[col]}</span>
+        </label>
+    `).join('');
+}
+
+window.toggleColumnSettings = function(event) {
+    event.stopPropagation();
+    const menu = document.getElementById('columnSettingsMenu');
+    if (!menu) return;
+    
+    menu.classList.toggle('show');
+    if (menu.classList.contains('show')) {
+        renderColumnSettingsMenu();
+    }
+};
+
+window.toggleColumn = function(col, checked) {
+    columnSettings[col] = checked;
+    saveColumnSettings();
+    applyColumnSettings();
+};
+
+// 点击外部关闭列设置菜单
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('columnSettingsMenu');
+    const dropdown = document.querySelector('.column-settings-dropdown');
+    if (menu && dropdown && !dropdown.contains(e.target)) {
+        menu.classList.remove('show');
+    }
+});
+
 function escHtml(s) {
     return String(s).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');
 }
@@ -262,19 +416,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const res = await API.getUserInfo();
     if (res.success && res.data && (res.data.role || 0) >= 10) {
         isAdmin = true;
-        const adminActions = document.getElementById('adminActions');
-        if (adminActions) adminActions.style.display = 'flex';
-        const toggle = document.getElementById('adminModeToggle');
-        if (toggle) {
-            toggle.addEventListener('change', () => {
-                adminMode = toggle.checked;
-                const userFilter = document.getElementById('usernameFilterItem');
-                if (userFilter) userFilter.style.display = adminMode ? '' : 'none';
-                logPage = 1;
-                loadLogs();
-            });
-        }
     }
+
+    // 加载列设置
+    loadColumnSettings();
 
     // 设置默认时间范围（最近7天）
     const now = new Date();

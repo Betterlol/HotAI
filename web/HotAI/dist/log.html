@@ -8,6 +8,59 @@
     <title>控制台 - 使用日志</title>
     <link rel="stylesheet" href="css/head.css">
     <link rel="stylesheet" href="css/console-shared.css">
+    <style>
+        /* 表格列宽控制：允许内容撑开，外层容器横向滚动 */
+        .log-table { table-layout: auto; width: max-content; min-width: 100%; }
+        .log-table th, .log-table td { 
+            text-align: center !important;
+            white-space: nowrap;
+        }
+        .log-table th {
+            font-weight: 600;
+            padding: 12px 16px;
+        }
+        .log-table td {
+            padding: 12px 16px;
+        }
+        
+        /* 列设置下拉菜单 */
+        .column-settings-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .column-settings-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background: white;
+            border: 1px solid var(--c-border);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            min-width: 180px;
+            z-index: 1000;
+            padding: 8px 0;
+        }
+        .column-settings-menu.show {
+            display: block;
+        }
+        .column-settings-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .column-settings-item:hover {
+            background: var(--c-gray-hover);
+        }
+        .column-settings-item input[type="checkbox"] {
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 <header class="navbar">
@@ -45,13 +98,6 @@
         <div class="page-header">
             <div class="page-title">使用日志</div>
             <div class="page-actions" style="display:flex;gap:8px;align-items:center;">
-                <div id="adminActions" style="display:none;">
-                    <label class="form-switch" style="cursor:pointer;">
-                        <input type="checkbox" class="switch-input" id="adminModeToggle">
-                        <span class="switch-track"></span>
-                        <span class="switch-label">查看所有用户日志</span>
-                    </label>
-                </div>
                 <button class="btn btn-secondary" onclick="exportLogs()">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     导出 CSV
@@ -69,7 +115,7 @@
                 <label class="filter-label">令牌名称</label>
                 <input type="text" class="filter-input" id="filterToken" placeholder="令牌名称">
             </div>
-            <div class="filter-item" id="usernameFilterItem" style="display:none;">
+            <div class="filter-item">
                 <label class="filter-label">用户名</label>
                 <input type="text" class="filter-input" id="filterUser" placeholder="用户名">
             </div>
@@ -81,14 +127,37 @@
                 <label class="filter-label">结束时间</label>
                 <input type="datetime-local" class="filter-input" id="filterEnd">
             </div>
+            <div class="filter-item">
+                <label class="filter-label">控制台</label>
+                <input type="text" class="filter-input" id="filterChannel" placeholder="渠道名称">
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">分组</label>
+                <input type="text" class="filter-input" id="filterGroup" placeholder="分组名称">
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">RequestID</label>
+                <input type="text" class="filter-input" id="filterRequestId" placeholder="请求ID">
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">渠道ID</label>
+                <input type="text" class="filter-input" id="filterChannelId" placeholder="渠道编号">
+            </div>
             <div class="filter-actions">
                 <button class="btn btn-primary" onclick="searchLogs()">查询</button>
                 <button class="btn btn-secondary" onclick="resetFilters()">重置</button>
+                <div class="column-settings-dropdown">
+                    <button class="btn btn-secondary" onclick="toggleColumnSettings(event)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M1 12h6m6 0h6"/></svg>
+                        列设置
+                    </button>
+                    <div class="column-settings-menu" id="columnSettingsMenu"></div>
+                </div>
             </div>
         </div>
 
         <!-- 统计行 -->
-        <div id="logStatBar" style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--c-text-secondary);"></div>
+        <div id="logStatBar" style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--c-text-secondary);padding:12px 0;"></div>
 
         <div class="table-card">
             <div class="table-toolbar">
@@ -103,22 +172,43 @@
                 </div>
             </div>
             <div class="table-wrap">
-                <table>
+                <table class="log-table">
+                    <colgroup>
+                        <col data-col="time">
+                        <col data-col="channel">
+                        <col data-col="user">
+                        <col data-col="token">
+                        <col data-col="group">
+                        <col data-col="type">
+                        <col data-col="model">
+                        <col data-col="usetime">
+                        <col data-col="input">
+                        <col data-col="output">
+                        <col data-col="cost">
+                        <col data-col="ip">
+                        <col data-col="retry">
+                        <col data-col="detail">
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th>时间</th>
-                            <th id="thUser" style="display:none;">用户</th>
-                            <th>令牌</th>
-                            <th>模型</th>
-                            <th>类型</th>
-                            <th>提示Tokens</th>
-                            <th>补全Tokens</th>
-                            <th>消耗额度</th>
-                            <th>详情</th>
+                            <th data-col="time">时间</th>
+                            <th data-col="channel">渠道</th>
+                            <th data-col="user">用户</th>
+                            <th data-col="token">令牌</th>
+                            <th data-col="group">分组</th>
+                            <th data-col="type">类型</th>
+                            <th data-col="model">模型</th>
+                            <th data-col="usetime">用时/首字</th>
+                            <th data-col="input">输入</th>
+                            <th data-col="output">输出</th>
+                            <th data-col="cost">花费</th>
+                            <th data-col="ip">IP</th>
+                            <th data-col="retry">重试</th>
+                            <th data-col="detail">详情</th>
                         </tr>
                     </thead>
                     <tbody id="logTableBody">
-                        <tr><td colspan="9"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
+                        <tr><td colspan="14"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
                     </tbody>
                 </table>
             </div>

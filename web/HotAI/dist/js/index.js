@@ -160,6 +160,25 @@ function saveSessions() {
     }
 }
 
+// ========== 活跃会话持久化 ==========
+function saveActiveSession() {
+    const key = getStorageKey('active_session');
+    if (currentSessionId) {
+        localStorage.setItem(key, currentSessionId);
+    } else {
+        localStorage.removeItem(key);
+    }
+}
+
+function loadActiveSession() {
+    try {
+        const key = getStorageKey('active_session');
+        return localStorage.getItem(key) || null;
+    } catch (e) {
+        return null;
+    }
+}
+
 function getCurrentSession() {
     if (!currentSessionId) return null;
     return chatSessions.find(s => s.sessionId === currentSessionId) || null;
@@ -183,6 +202,7 @@ function createNewSession(firstUserMessage) {
     chatMessages = [];
     
     saveSessions();
+    saveActiveSession();
     return newSession;
 }
 
@@ -200,7 +220,7 @@ function switchSession(sessionId) {
     if (session) {
         currentSessionId = sessionId;
         chatMessages = [...session.messages];
-        saveMessages();
+        saveActiveSession();
         renderChatMessages();
         loadChatHistory();  // 刷新侧边栏高亮
         return true;
@@ -214,14 +234,14 @@ function deleteSession(sessionId) {
         chatSessions.splice(index, 1);
         saveSessions();
         
-        // 如果删除的是当前会话，切换到最新会话或创建新会话
+        // 如果删除的是当前会话，切换到最新会话或清空
         if (currentSessionId === sessionId) {
             if (chatSessions.length > 0) {
                 switchSession(chatSessions[chatSessions.length - 1].sessionId);
             } else {
                 currentSessionId = null;
                 chatMessages = [];
-                saveMessages();
+                saveActiveSession();
                 renderChatMessages();
             }
         }
@@ -982,7 +1002,17 @@ function renderChatMessages() {
     
     chatArea.innerHTML = '';
     
-    if (chatMessages.length === 0) return;
+    if (chatMessages.length === 0) {
+        // 恢复欢迎页面
+        chatArea.style.display = 'none';
+        const brandLogo = document.querySelector('.brand-logo');
+        const subtitle = document.querySelector('.subtitle');
+        const platformArea = document.querySelector('.platform-area');
+        if (brandLogo) brandLogo.style.display = '';
+        if (subtitle) subtitle.style.display = '';
+        if (platformArea) platformArea.style.display = '';
+        return;
+    }
     
     chatMessages.forEach(msg => {
         const content = typeof msg.content === 'string' ? msg.content : msg.content[0]?.text || '';
@@ -1139,14 +1169,44 @@ async function renderPlatformProviders() {
     }
 }
 
+// ========== 新建对话 ==========
+function handleNewChat() {
+    if (isGenerating) {
+        alert('正在生成回复，请稍候...');
+        return;
+    }
+    
+    chatMessages = [];
+    currentSessionId = null;
+    saveActiveSession();
+    
+    // 清空聊天面板，恢复欢迎页面
+    const chatArea = document.getElementById('chatArea');
+    if (chatArea) {
+        chatArea.innerHTML = '';
+        chatArea.style.display = 'none';
+    }
+    const brandLogo = document.querySelector('.brand-logo');
+    const subtitle = document.querySelector('.subtitle');
+    const platformArea = document.querySelector('.platform-area');
+    if (brandLogo) brandLogo.style.display = '';
+    if (subtitle) subtitle.style.display = '';
+    if (platformArea) platformArea.style.display = '';
+    
+    loadChatHistory(); // 刷新侧边栏高亮（清除active状态）
+}
+
 // ========== 页面初始化 ==========
 document.addEventListener('DOMContentLoaded', async () => {
-    // ✨ 方向二：加载会话列表
     loadConfig();
     loadSessions();
     
-    // 如果有会话，加载最后一个活跃会话
-    if (chatSessions.length > 0) {
+    // 优先使用持久化的活跃会话ID，找不到则回退到最新会话
+    const savedActiveId = loadActiveSession();
+    if (savedActiveId && chatSessions.find(s => s.sessionId === savedActiveId)) {
+        currentSessionId = savedActiveId;
+        chatMessages = [...chatSessions.find(s => s.sessionId === savedActiveId).messages];
+    } else if (chatSessions.length > 0) {
         const lastSession = chatSessions[chatSessions.length - 1];
         currentSessionId = lastSession.sessionId;
         chatMessages = [...lastSession.messages];
@@ -1196,5 +1256,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 handleSendMessage();
             }
         });
+    }
+    
+    // 新建对话按钮
+    const newChatBtn = document.getElementById('newChatBtn');
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', handleNewChat);
     }
 });
