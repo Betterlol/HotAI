@@ -39,159 +39,303 @@
 </div>
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- 编辑渠道模态框 -->
+<!-- ====================================================
+     渠道 创建/编辑 大模态框
+     ==================================================== -->
 <div class="modal-overlay hidden" id="channelModal">
-    <div class="modal modal-lg">
-        <div class="modal-header">
-            <div class="modal-title" id="channelModalTitle">创建渠道</div>
+    <div class="modal modal-xl" style="max-height:92vh;overflow:hidden;display:flex;flex-direction:column;">
+        <div class="modal-header" style="flex-shrink:0;">
+            <div class="modal-title" id="channelModalTitle" style="display:flex;align-items:center;gap:10px;">
+                <span id="chModalTypeIcon" style="font-size:20px;"></span>
+                <span id="chModalTitleText">创建渠道</span>
+                <span id="chModalTypeName" style="font-size:13px;font-weight:400;color:var(--c-text-secondary);"></span>
+            </div>
             <button class="modal-close" onclick="closeChannelModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         </div>
-        <div class="modal-body">
-            <input type="hidden" id="channelId">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">名称 <span>*</span></label>
-                    <input type="text" class="form-input" id="channelName" placeholder="渠道名称">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">类型 <span>*</span></label>
-                    <select class="form-select" id="channelType">
-                        <option value="1">OpenAI</option>
-                        <option value="14">Claude (Anthropic)</option>
-                        <option value="24">Gemini</option>
-                        <option value="3">Azure OpenAI</option>
-                        <option value="17">AWS Bedrock</option>
-                        <option value="33">Azure Claude</option>
-                        <option value="25">Moonshot</option>
-                        <option value="26">Baichuan</option>
-                        <option value="15">百度文心</option>
-                        <option value="16">讯飞星火</option>
-                        <option value="18">智谱 ChatGLM</option>
-                        <option value="19">阿里通义千问</option>
-                        <option value="23">腾讯混元</option>
-                        <option value="31">Deepseek</option>
-                        <option value="8">自定义</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">代理地址</label>
-                <input type="text" class="form-input" id="channelBaseUrl" placeholder="留空使用默认地址">
-            </div>
-            <div class="form-group">
-                <label class="form-label">密钥 <span>*</span></label>
-                <textarea class="form-textarea" id="channelKey" placeholder="每行一个密钥" rows="3"></textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label">模型列表</label>
-                <textarea class="form-textarea" id="channelModels" placeholder="支持的模型，每行一个" rows="3"></textarea>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">分组</label>
-                    <input type="text" class="form-input" id="channelGroup" placeholder="default">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">优先级</label>
-                    <input type="number" class="form-input" id="channelPriority" value="0">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">权重</label>
-                    <input type="number" class="form-input" id="channelWeight" value="0" placeholder="负载均衡权重">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">测试模型</label>
-                    <input type="text" class="form-input" id="channelTestModel" placeholder="用于测速的模型">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">标签</label>
-                    <input type="text" class="form-input" id="channelTag" placeholder="渠道标签">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">自动禁用</label>
-                    <select class="form-select" id="channelAutoBan">
-                        <option value="0">否</option>
-                        <option value="1">是</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">备注</label>
-                <input type="text" class="form-input" id="channelRemark" placeholder="渠道备注">
-            </div>
-            <div class="form-group">
-                <label class="form-label">模型映射</label>
-                <textarea class="form-textarea" id="channelModelMapping" placeholder='JSON格式，例如: {"gpt-3.5-turbo":"gpt-35-turbo"}' rows="3"></textarea>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeChannelModal()">取消</button>
-            <button class="btn btn-primary" onclick="saveChannel()">保存</button>
-        </div>
-    </div>
-</div>
-
-<div class="app-wrapper">
-    <aside class="sidebar" id="sidebar"></aside>
-    <main class="main-content">
-        <div class="page-header">
-            <div class="page-title">渠道管理</div>
-            <div class="page-actions">
-                <button class="btn btn-secondary" onclick="testAllChannels()">测试全部</button>
-                <button class="btn btn-secondary" onclick="updateAllBalance()">更新余额</button>
-                <button class="btn btn-primary" onclick="openCreateChannelModal()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    新建渠道
+        <div class="modal-channel-body" style="flex:1;min-height:0;overflow:hidden;">
+            <!-- 左侧导航 -->
+            <div class="channel-nav" id="channelNavPanel">
+                <button class="channel-nav-item active" data-section="sec-basic" onclick="switchChannelSection('sec-basic',this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                    基础信息
+                    <span class="channel-nav-status idle" id="nav-status-basic"></span>
+                </button>
+                <button class="channel-nav-item" data-section="sec-cred" onclick="switchChannelSection('sec-cred',this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    凭证
+                    <span class="channel-nav-status idle" id="nav-status-cred"></span>
+                </button>
+                <button class="channel-nav-item" data-section="sec-models" onclick="switchChannelSection('sec-models',this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                    模型与分组
+                    <span class="channel-nav-status idle" id="nav-status-models"></span>
+                </button>
+                <button class="channel-nav-item" data-section="sec-adv" onclick="switchChannelSection('sec-adv',this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                    高级设置
+                    <span class="channel-nav-status idle" id="nav-status-adv"></span>
                 </button>
             </div>
-        </div>
-        <div class="table-card">
-            <div class="table-toolbar">
-                <div class="table-toolbar-left">
-                    <div class="search-input-wrap">
-                        <svg viewBox="0 0 24 24"><path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
-                        <input type="text" class="search-input" id="channelSearch" placeholder="搜索渠道名称...">
+            <!-- 右侧表单区 -->
+            <div class="channel-form-area" id="channelFormArea">
+                <input type="hidden" id="chId">
+
+                <!-- ══ 区块1：基础信息 ══ -->
+                <div class="channel-section active" id="sec-basic">
+                    <div class="adv-section" style="margin-bottom:16px;">
+                        <div class="adv-section-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                            基础信息
+                        </div>
+                        <p class="adv-section-desc">渠道的基本配置，类型与名称</p>
+                        <div class="adv-section-body">
+                            <div class="ch-form-row">
+                                <div class="ch-form-group" style="margin:0;">
+                                    <label class="ch-form-label">类型 <span class="req">*</span></label>
+                                    <div class="type-combobox-wrap" id="typeComboboxWrap">
+                                        <div class="type-combobox-display" id="typeComboboxDisplay" onclick="toggleTypeDropdown()" style="padding:9px 32px 9px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;border:1px solid var(--c-border);border-radius:12px;background:var(--c-white);font-size:14px;color:var(--c-text-main);user-select:none;position:relative;">
+                                            <span id="typeComboboxLabel" style="flex:1;">请选择渠道类型</span>
+                                            <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--c-text-secondary);">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                                            </span>
+                                        </div>
+                                        <div class="type-combobox-dropdown" id="typeComboboxDropdown">
+                                            <div class="type-combobox-search">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                                                <input type="text" id="typeSearchInput" placeholder="搜索渠道类型..." oninput="filterTypeOptions(this.value)" autocomplete="off">
+                                            </div>
+                                            <div class="type-combobox-list" id="typeComboboxList"></div>
+                                        </div>
+                                        <input type="hidden" id="chType" value="0">
+                                    </div>
+                                </div>
+                                <div class="ch-form-group" style="margin:0;">
+                                    <label class="ch-form-label">名称 <span class="req">*</span></label>
+                                    <input type="text" class="ch-form-input" id="chName" placeholder="给渠道起个名称">
+                                </div>
+                            </div>
+                            <div class="ch-form-group" style="margin:0;" id="chStatusRow">
+                                <label class="ch-form-label">启用状态</label>
+                                <label class="capsule-switch-wrap" style="cursor:pointer;">
+                                    <span class="capsule-switch">
+                                        <input type="checkbox" id="chStatusSwitch" checked onchange="document.getElementById('chStatusLabel').textContent=this.checked?'启用':'禁用'">
+                                        <span class="capsule-slider"></span>
+                                    </span>
+                                    <span class="capsule-switch-label" id="chStatusLabel">启用</span>
+                                </label>
+                            </div>
+                            <div class="ch-form-group" style="margin:0;display:none;" id="chOrgRow">
+                                <label class="ch-form-label">OpenAI 组织 ID</label>
+                                <input type="text" class="ch-form-input" id="chOrg" placeholder="org-xxx（仅 OpenAI 类型需要）">
+                                <p class="ch-form-hint">仅 OpenAI 类型（type=1）需要填写，其他类型留空</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="table-toolbar-right">
-                    <button class="btn btn-secondary" onclick="loadChannels()">刷新</button>
+
+                <!-- ══ 区块2：凭证 ══ -->
+                <div class="channel-section" id="sec-cred">
+                    <div class="adv-section" id="chTypeWarningBox" style="margin-bottom:12px;display:none;background:#FFFBEB;border-color:#FDE68A;">
+                        <div class="adv-section-title" style="color:#D97706;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            注意
+                        </div>
+                        <p class="adv-section-desc" id="chTypeWarningText" style="margin-left:26px;color:#92400E;"></p>
+                    </div>
+                    <div class="adv-section">
+                        <div class="adv-section-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            凭证与API地址
+                        </div>
+                        <p class="adv-section-desc">渠道的密钥和访问端点配置</p>
+                        <div class="adv-section-body">
+                            <!-- Azure 专属：端点 -->
+                            <div class="ch-form-group" style="margin:0;display:none;" id="chAzureEndpointRow">
+                                <label class="ch-form-label">Azure OpenAI 端点 <span class="req">*</span></label>
+                                <input type="text" class="ch-form-input" id="chAzureEndpoint" placeholder="https://docs-test-001.openai.azure.com">
+                                <p class="ch-form-hint">Azure OpenAI 资源的端点地址（不含路径）</p>
+                            </div>
+                            <!-- 通用 base_url -->
+                            <div class="ch-form-group" style="margin:0;" id="chBaseUrlRow">
+                                <label class="ch-form-label" id="chBaseUrlLabel">代理/API 地址</label>
+                                <input type="text" class="ch-form-input" id="chBaseUrl" placeholder="留空使用官方默认地址">
+                                <p class="ch-form-hint" id="chBaseUrlHint">自定义转发地址，留空则使用官方默认</p>
+                            </div>
+                            <!-- 讯飞/Azure其他字段 -->
+                            <div class="ch-form-group" style="margin:0;display:none;" id="chOtherRow">
+                                <label class="ch-form-label" id="chOtherLabel">扩展字段 <span class="req">*</span></label>
+                                <input type="text" class="ch-form-input" id="chOther" placeholder="">
+                                <p class="ch-form-hint" id="chOtherHint"></p>
+                            </div>
+                            <!-- AWS 密钥类型 -->
+                            <div class="ch-form-group" style="margin:0;display:none;" id="chAwsKeyTypeRow">
+                                <label class="ch-form-label">AWS 密钥类型</label>
+                                <select class="ch-form-select" id="chAwsKeyType">
+                                    <option value="ak_sk">Access Key / Secret Key</option>
+                                    <option value="api_key">API Key</option>
+                                </select>
+                            </div>
+                            <!-- Vertex 密钥类型 -->
+                            <div class="ch-form-group" style="margin:0;display:none;" id="chVertexKeyTypeRow">
+                                <label class="ch-form-label">Vertex AI 密钥类型</label>
+                                <select class="ch-form-select" id="chVertexKeyType">
+                                    <option value="json">Service Account JSON</option>
+                                    <option value="api_key">API Key</option>
+                                </select>
+                            </div>
+                            <!-- 密钥 -->
+                            <div class="ch-form-group" style="margin:0;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                                    <label class="ch-form-label" style="margin:0;" id="chKeyLabel">API 密钥 <span class="req">*</span></label>
+                                    <div style="display:flex;gap:6px;">
+                                        <button class="btn btn-secondary btn-sm" onclick="deduplicateKeys()" title="去除重复密钥">去重</button>
+                                        <button class="btn btn-secondary btn-sm" id="chRevealKeyBtn" onclick="revealChannelKey()" style="display:none;" title="查看密钥">查看密钥</button>
+                                    </div>
+                                </div>
+                                <textarea class="ch-form-textarea" id="chKey" placeholder="每行一个密钥（支持批量粘贴）" rows="4"></textarea>
+                                <p class="ch-form-hint">如有多个密钥，每行输入一个，系统会自动轮询使用</p>
+                            </div>
+                            <!-- 添加模式（仅创建时） -->
+                            <div id="chAddModeRow">
+                                <div class="ch-form-row" style="margin-bottom:10px;">
+                                    <div class="ch-form-group" style="margin:0;">
+                                        <label class="ch-form-label">添加模式</label>
+                                        <select class="ch-form-select" id="chMultiKeyMode" onchange="onAddModeChange()">
+                                            <option value="single">单密钥</option>
+                                            <option value="batch">批量添加（每行一个密钥，创建多个渠道）</option>
+                                            <option value="multi_to_single">多密钥模式（多密钥共享一个渠道）</option>
+                                        </select>
+                                    </div>
+                                    <div class="ch-form-group" style="margin:0;" id="chPollingModeRow">
+                                        <label class="ch-form-label">多密钥轮询方式</label>
+                                        <select class="ch-form-select" id="chMultiKeyType">
+                                            <option value="random">随机</option>
+                                            <option value="polling">顺序轮询</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="ch-form-group" style="margin:0;display:none;" id="chBatchNameRow">
+                                    <label class="capsule-switch-wrap" style="cursor:pointer;">
+                                        <span class="capsule-switch">
+                                            <input type="checkbox" id="chBatchSetName">
+                                            <span class="capsule-slider"></span>
+                                        </span>
+                                        <span class="capsule-switch-label">批量添加时，用密钥前缀作为渠道名称</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>名称</th>
-                            <th>类型</th>
-                            <th>状态</th>
-                            <th>分组</th>
-                            <th>余额</th>
-                            <th>优先级</th>
-                            <th>响应时间</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="channelTableBody">
-                        <tr><td colspan="9"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="pagination">
-                <span id="channelPageInfo">共 0 条</span>
-                <div class="pagination-pages" id="channelPages"></div>
-            </div>
-        </div>
-    </main>
-</div>
-<script src="js/i18n.js"></script>
-<script src="js/api.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/sidebar.js"></script>
-<script src="js/channel.js"></script>
-</body>
-</html>
+
+                <!-- ══ 区块3：模型与分组 ══ -->
+                <div class="channel-section" id="sec-models">
+                    <div class="adv-section" style="margin-bottom:16px;">
+                        <div class="adv-section-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            用户分组
+                        </div>
+                        <p class="adv-section-desc">指定哪些用户分组可以使用该渠道</p>
+                        <div class="adv-section-body">
+                            <div>
+                                <div class="model-tags-wrap" id="groupTagsWrap" onclick="document.getElementById('groupTagsInput').focus()">
+                                    <input type="text" class="model-tags-input" id="groupTagsInput" placeholder="输入分组名后按回车..." autocomplete="off" oninput="onGroupInputChange(this.value)" onkeydown="onGroupKeyDown(event)">
+                                </div>
+                                <div style="position:relative;">
+                                    <div class="model-dropdown" id="groupDropdown" style="display:none;"></div>
+                                </div>
+                                <p class="ch-form-hint" style="margin-top:6px;">默认分组为 default，可添加多个分组</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="adv-section" style="margin-bottom:16px;">
+                        <div class="adv-section-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                            模型列表
+                        </div>
+                        <p class="adv-section-desc">该渠道支持的模型，用于请求分发匹配</p>
+                        <div class="adv-section-body">
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;" id="prefillGroupBtns"></div>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+                                <button class="prefill-btn" onclick="fillAllModels()">填入全部模型</button>
+                                <button class="prefill-btn" onclick="clearModels()">清空</button>
+                                <button class="prefill-btn" onclick="copyModels()">复制列表</button>
+                                <button class="prefill-btn" id="fetchModelsBtn" onclick="openFetchModelsDialog()" style="display:none;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    从上游获取
+                                </button>
+                            </div>
+                            <div>
+                                <div class="model-tags-wrap" id="modelTagsWrap" onclick="document.getElementById('modelTagsInput').focus()" style="min-height:80px;">
+                                    <input type="text" class="model-tags-input" id="modelTagsInput" placeholder="输入模型名称后按回车添加..." autocomplete="off" oninput="onModelInputChange(this.value)" onkeydown="onModelKeyDown(event)">
+                                </div>
+                                <div style="position:relative;">
+                                    <div class="model-dropdown" id="modelDropdown" style="display:none;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="adv-section">
+                        <div class="adv-section-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                            模型映射
+                        </div>
+                        <p class="adv-section-desc">将客户端请求的模型名映射为上游模型名</p>
+                        <div class="adv-section-body">
+                            <div class="kv-editor" id="modelMappingEditor"></div>
+                            <button class="kv-add-btn" onclick="addModelMappingRow()" style="margin-top:4px;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                添加映射
+                            </button>
+                            <p class="ch-form-hint">客户端模型名 → 实际发往上游的模型名（JSON 键值对格式）</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══ 区块4：高级设置 ══ -->
+                <div class="channel-section" id="sec-adv">
+                    <!-- 路由策略 -->
+                    <div class="adv-section" style="margin-bottom:14px;">
+                        <div class="adv-section-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            路由策略
+                        </div>
+                        <p class="adv-section-desc">优先级、权重与自动禁用策略</p>
+                        <div class="adv-section-body">
+                            <div class="ch-form-row">
+                                <div class="ch-form-group" style="margin:0;">
+                                    <label class="ch-form-label">优先级</label>
+                                    <input type="number" class="ch-form-input" id="chPriority" value="0" placeholder="0">
+                                    <p class="ch-form-hint">数值越大优先级越高</p>
+                                </div>
+                                <div class="ch-form-group" style="margin:0;">
+                                    <label class="ch-form-label">权重</label>
+                                    <input type="number" class="ch-form-input" id="chWeight" value="0" placeholder="0" min="0">
+                                    <p class="ch-form-hint">负载均衡权重，0 表示不参与</p>
+                                </div>
+                            </div>
+                            <div class="ch-form-row">
+                                <div class="ch-form-group" style="margin:0;">
+                                    <label class="ch-form-label">测试模型</label>
+                                    <input type="text" class="ch-form-input" id="chTestModel" placeholder="用于测速的默认模型名">
+                                </div>
+                                <div class="ch-form-group" style="margin:0;">
+                                    <label class="ch-form-label">自动禁用</label>
+                                    <label class="capsule-switch-wrap" style="cursor:pointer;margin-top:4px;">
+                                        <span class="capsule-switch">
+                                            <input type="checkbox" id="chAutoBan" checked>
+                                            <span class="capsule-slider"></span>
+                                        </span>
+                                        <span class="capsule-switch-label">连续失败时自动禁用</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 内部备注 -->
+                    <div class="adv-section" style="margin-bottom:14px;">
+                        <div class="adv-section-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v

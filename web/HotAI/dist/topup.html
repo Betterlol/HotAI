@@ -110,7 +110,7 @@
 
         <!-- 充值/兑换操作区 -->
         <div class="card" style="margin-bottom:24px;">
-            <div class="card-title">选择充值金额</div>
+            <div class="card-title" style="margin-bottom:16px;">选择充值金额</div>
             <div class="amount-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:20px;">
                 <button class="amount-btn" data-amount="10">¥10</button>
                 <button class="amount-btn" data-amount="20">¥20</button>
@@ -120,7 +120,9 @@
                 <button class="amount-btn" data-amount="500">¥500</button>
             </div>
 
-            <div class="card-title">或输入自定义金额</div>
+            <div style="border-top:1px solid var(--c-border);margin:24px 0;"></div>
+
+            <div class="card-title" style="margin-bottom:16px;">或输入自定义金额</div>
             <div style="max-width:400px;margin-bottom:20px;">
                 <div class="form-group">
                     <input type="number" class="form-input" id="customAmount" placeholder="输入充值金额（RMB）" min="1" step="1">
@@ -128,13 +130,15 @@
                 </div>
             </div>
 
-            <div style="text-align:center;margin:20px 0;color:var(--c-text-secondary);font-size:13px;">━━━ 或 ━━━</div>
+            <div style="border-top:1px solid var(--c-border);margin:24px 0;"></div>
 
-            <div class="card-title">使用兑换码</div>
+            <div class="card-title" style="margin-bottom:16px;">使用兑换码</div>
             <div style="max-width:400px;">
                 <div class="form-group">
-                    <input type="text" class="form-input" id="redemptionCode" placeholder="输入兑换码">
-                    <button class="btn btn-secondary" onclick="redeemCode()" style="margin-top:8px;">兑换</button>
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" class="form-input" id="redemptionCode" placeholder="输入兑换码" style="flex:1;">
+                        <button class="btn btn-primary" onclick="redeemCode()">兑换</button>
+                    </div>
                 </div>
             </div>
         </div>

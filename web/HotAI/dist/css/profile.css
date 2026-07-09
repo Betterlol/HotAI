@@ -107,6 +107,8 @@
     border: 1px solid var(--c-border);
     box-shadow: var(--shadow-card);
     overflow-x: auto;
+    width: 100%;           /* ← 新增，固定宽度防止随内容收缩 */
+    min-width: 0;          /* ← 确保 flex 子元素可正常缩放 */
 }
 
 .profile-tab-btn {
@@ -139,6 +141,7 @@
    ========================================= */
 .profile-tab-content {
     position: relative;
+    width: 100%;           /* ← 新增 */
 }
 
 .profile-tab-panel {

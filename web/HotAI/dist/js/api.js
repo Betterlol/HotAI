@@ -444,6 +444,140 @@ const API = {
 
     resetUser2FA: (userId) =>
         apiRequest(`/user/admin/${userId}/2fa`, { method: 'DELETE' }),
+
+    // ========== 渠道管理（增强版，全量接口）==========
+
+    // 搜索渠道（支持 keyword/model/group/status/type/sort_by/sort_order/p/page_size）
+    searchChannelsEx: (params) => {
+        const qs = new URLSearchParams(
+            Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== '' && v !== null).map(([k, v]) => [k, String(v)])
+        ).toString();
+        return apiRequest(`/channel/search?${qs}`);
+    },
+
+    // 获取渠道列表（增强版，支持多种筛选/排序参数）
+    getChannelsEx: (params) => {
+        const qs = new URLSearchParams(
+            Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== '' && v !== null).map(([k, v]) => [k, String(v)])
+        ).toString();
+        return apiRequest(`/channel/?${qs}`);
+    },
+
+    // 更新渠道状态（单个）
+    updateChannelStatus: (id, status) =>
+        apiRequest(`/channel/${id}/status`, {
+            method: 'POST',
+            body: JSON.stringify({ status })
+        }),
+
+    // 批量更新渠道状态
+    batchUpdateChannelStatus: (ids, status) =>
+        apiRequest('/channel/status/batch', {
+            method: 'POST',
+            body: JSON.stringify({ ids, status })
+        }),
+
+    // 批量删除渠道
+    batchDeleteChannels: (ids) =>
+        apiRequest('/channel/batch', {
+            method: 'POST',
+            body: JSON.stringify({ ids })
+        }),
+
+    // 批量设置渠道标签
+    batchSetChannelTag: (ids, tag) =>
+        apiRequest('/channel/batch/tag', {
+            method: 'POST',
+            body: JSON.stringify({ ids, tag: tag || null })
+        }),
+
+    // 复制/克隆渠道（支持 suffix, reset_balance 参数）
+    copyChannel: (id, params) => {
+        const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+        return apiRequest(`/channel/copy/${id}${qs}`, { method: 'POST' });
+    },
+
+    // 从上游获取模型列表（已存在的渠道）
+    fetchUpstreamModels: (id) =>
+        apiRequest(`/channel/fetch_models/${id}`),
+
+    // 从自定义端点获取模型（创建时用）
+    fetchModelsFromEndpoint: (type, key, base_url) =>
+        apiRequest('/channel/fetch_models', {
+            method: 'POST',
+            body: JSON.stringify({ type, key, base_url: base_url || '' })
+        }),
+
+    // 查看渠道密钥（需 2FA/Passkey 验证 code）
+    getChannelKey: (id, code) =>
+        apiRequest(`/channel/${id}/key`, {
+            method: 'POST',
+            body: code ? JSON.stringify({ code }) : undefined
+        }),
+
+    // 多密钥管理
+    manageMultiKeys: (params) =>
+        apiRequest('/channel/multi_key/manage', {
+            method: 'POST',
+            body: JSON.stringify(params)
+        }),
+
+    // 修复渠道能力
+    fixChannelAbilities: () =>
+        apiRequest('/channel/fix', { method: 'POST' }),
+
+    // 删除所有禁用渠道
+    deleteDisabledChannels: () =>
+        apiRequest('/channel/disabled', { method: 'DELETE' }),
+
+    // 获取全部模型列表
+    getAllChannelModels: () =>
+        apiRequest('/channel/models'),
+
+    // 获取启用的模型列表
+    getEnabledChannelModels: () =>
+        apiRequest('/channel/models_enabled'),
+
+    // 获取渠道运维摘要（重试次数等）
+    getChannelOps: () =>
+        apiRequest('/channel/ops'),
+
+    // 标签操作：按标签启用
+    enableTagChannels: (tag) =>
+        apiRequest('/channel/tag/enabled', {
+            method: 'POST',
+            body: JSON.stringify({ tag })
+        }),
+
+    // 标签操作：按标签禁用
+    disableTagChannels: (tag) =>
+        apiRequest('/channel/tag/disabled', {
+            method: 'POST',
+            body: JSON.stringify({ tag })
+        }),
+
+    // 批量编辑标签渠道的配置
+    editTagChannels: (params) =>
+        apiRequest('/channel/tag', {
+            method: 'PUT',
+            body: JSON.stringify(params)
+        }),
+
+    // 获取指定标签的模型列表
+    getTagModels: (tag) =>
+        apiRequest(`/channel/tag/models?tag=${encodeURIComponent(tag)}`),
+
+    // 预填分组（快速选模型）
+    getPrefillGroups: (type) =>
+        apiRequest(`/prefill_group?type=${type || 'model'}`),
+
+    // 仅检测上游模型更新（不同步）
+    checkUpstreamModelUpdate: (id) =>
+        apiRequest(`/channel/upstream_model_update/check/${id}`, { method: 'POST' }),
+
+    // 处理上游模型更新（同步最新模型列表）
+    syncUpstreamModelUpdate: (id) =>
+        apiRequest(`/channel/upstream_model_update/sync/${id}`, { method: 'POST' }),
 };
 
 // 导出 API（兼容模块和全局）
