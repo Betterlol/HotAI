@@ -212,7 +212,8 @@ func TestEngineCalculateLatencyAndCostBothEnabled(t *testing.T) {
 
 	latencySetting := operation_setting.LatencyRoutingSetting{Enabled: true, WeightFactor: 1}
 	costSetting := operation_setting.CostRoutingSetting{Enabled: true, CostWeight: 1}
-	engine := NewEngineWithSettings(latencySetting, costSetting)
+	srSetting := operation_setting.SuccessRateRoutingSetting{Enabled: false}
+	engine := NewEngineWithSettings(latencySetting, costSetting, srSetting)
 	scores := engine.Calculate(inputs)
 
 	require.Len(t, scores, 2)
@@ -226,6 +227,65 @@ func TestLatencyAdjustedWeightZeroBaseWeight(t *testing.T) {
 
 func TestCostAdjustedWeightZeroBaseWeight(t *testing.T) {
 	assert.Equal(t, 0, CostAdjustedWeight(0, 10, 1, operation_setting.CostRoutingSetting{Enabled: true, CostWeight: 1}))
+}
+
+func TestSuccessRateAdjustedWeightDisabled(t *testing.T) {
+	w := SuccessRateAdjustedWeight(100, 0.9, operation_setting.SuccessRateRoutingSetting{
+		Enabled: false,
+	})
+	assert.Equal(t, 100, w)
+}
+
+func TestSuccessRateAdjustedWeightPenalizesLowRate(t *testing.T) {
+	high := SuccessRateAdjustedWeight(100, 0.95, operation_setting.SuccessRateRoutingSetting{
+		Enabled:      true,
+		WeightFactor: 1,
+	})
+	low := SuccessRateAdjustedWeight(100, 0.5, operation_setting.SuccessRateRoutingSetting{
+		Enabled:      true,
+		WeightFactor: 1,
+	})
+
+	assert.Equal(t, 95, high)
+	assert.Equal(t, 50, low)
+}
+
+func TestSuccessRateAdjustedWeightInsufficientData(t *testing.T) {
+	w := SuccessRateAdjustedWeight(100, -1, operation_setting.SuccessRateRoutingSetting{
+		Enabled:      true,
+		WeightFactor: 1,
+	})
+	assert.Equal(t, 100, w)
+}
+
+func TestSuccessRateAdjustedWeightBlendsWithFactor(t *testing.T) {
+	w := SuccessRateAdjustedWeight(100, 0.5, operation_setting.SuccessRateRoutingSetting{
+		Enabled:      true,
+		WeightFactor: 0.3,
+	})
+	// 100 * ((1-0.3) + 0.3*0.5) = 100 * (0.7 + 0.15) = 100 * 0.85 = 85
+	assert.Equal(t, 85, w)
+}
+
+func TestEngineCalculateWithSuccessRate(t *testing.T) {
+	inputs := []ChannelData{
+		{ChannelID: 1, BaseWeight: 100, SuccessRate: 0.95},
+		{ChannelID: 2, BaseWeight: 100, SuccessRate: 0.5},
+	}
+
+	srSetting := operation_setting.SuccessRateRoutingSetting{Enabled: true, WeightFactor: 1}
+	engine := NewEngineWithSettings(
+		operation_setting.LatencyRoutingSetting{Enabled: false},
+		operation_setting.CostRoutingSetting{Enabled: false},
+		srSetting,
+	)
+	scores := engine.Calculate(inputs)
+
+	require.Len(t, scores, 2)
+	assert.Greater(t, scores[0].FinalWeight, scores[1].FinalWeight,
+		"higher success rate channel should score higher")
+	assert.Equal(t, 95, scores[0].FinalWeight)
+	assert.Equal(t, 50, scores[1].FinalWeight)
 }
 
 func TestEngineCalculateScoreExplanation(t *testing.T) {

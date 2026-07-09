@@ -215,6 +215,7 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 			Cost:         costForChannel(group, model, ch),
 		}
 	}
+	routing.FillSuccessRate(inputs)
 	scores := routing.NewEngine().Calculate(inputs)
 	adjustedWeights := make([]int, len(scores))
 	for i, s := range scores {

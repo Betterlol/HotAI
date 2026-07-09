@@ -16,6 +16,7 @@ import (
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	channellimiter "github.com/QuantumNous/new-api/pkg/channel_limiter"
+	channelsuccessrate "github.com/QuantumNous/new-api/pkg/channel_successrate"
 	"github.com/QuantumNous/new-api/pkg/circuitbreaker"
 	perfmetrics "github.com/QuantumNous/new-api/pkg/perf_metrics"
 	"github.com/QuantumNous/new-api/relay"
@@ -229,6 +230,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 		if newAPIError == nil {
 			circuitbreaker.MarkSuccess(channel.Id)
+			channelsuccessrate.Record(channel.Id, true)
 			relayInfo.LastError = nil
 			if releaseSelectedChannel {
 				channellimiter.Release(channel.Id)
@@ -239,6 +241,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		newAPIError = service.NormalizeViolationFeeError(newAPIError)
 		relayInfo.LastError = newAPIError
 		circuitbreaker.MarkFailure(channel.Id)
+		channelsuccessrate.Record(channel.Id, false)
 
 		processChannelError(c, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError)
 		if releaseSelectedChannel {
@@ -576,6 +579,7 @@ func RelayTask(c *gin.Context) {
 		result, taskErr = relay.RelayTaskSubmit(c, relayInfo)
 		if taskErr == nil {
 			circuitbreaker.MarkSuccess(channel.Id)
+			channelsuccessrate.Record(channel.Id, true)
 			if releaseSelectedChannel {
 				channellimiter.Release(channel.Id)
 			}
@@ -584,6 +588,7 @@ func RelayTask(c *gin.Context) {
 
 		if !taskErr.LocalError {
 			circuitbreaker.MarkFailure(channel.Id)
+			channelsuccessrate.Record(channel.Id, false)
 			processChannelError(c,
 				*types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey,
 					common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()),

@@ -5,18 +5,20 @@ import (
 )
 
 // Engine computes channel scores by combining latency, cost, and
-// health dimensions. Each dimension is a separate scoring function
+// success rate dimensions. Each dimension is a separate scoring function
 // so new dimensions can be added without changing the core logic.
 type Engine struct {
-	latencySetting operation_setting.LatencyRoutingSetting
-	costSetting    operation_setting.CostRoutingSetting
+	latencySetting    operation_setting.LatencyRoutingSetting
+	costSetting       operation_setting.CostRoutingSetting
+	successRateSetting operation_setting.SuccessRateRoutingSetting
 }
 
 // NewEngine creates an Engine with the current operation settings.
 func NewEngine() *Engine {
 	return &Engine{
-		latencySetting: operation_setting.GetLatencyRoutingSetting(),
-		costSetting:    operation_setting.GetCostRoutingSetting(),
+		latencySetting:     operation_setting.GetLatencyRoutingSetting(),
+		costSetting:        operation_setting.GetCostRoutingSetting(),
+		successRateSetting: operation_setting.GetSuccessRateRoutingSetting(),
 	}
 }
 
@@ -25,10 +27,12 @@ func NewEngine() *Engine {
 func NewEngineWithSettings(
 	latency operation_setting.LatencyRoutingSetting,
 	cost operation_setting.CostRoutingSetting,
+	successRate operation_setting.SuccessRateRoutingSetting,
 ) *Engine {
 	return &Engine{
-		latencySetting: latency,
-		costSetting:    cost,
+		latencySetting:     latency,
+		costSetting:        cost,
+		successRateSetting: successRate,
 	}
 }
 
@@ -36,10 +40,10 @@ func NewEngineWithSettings(
 //
 // The scoring pipeline is:
 //
-//	BaseWeight → LatencyAdjustedWeight → CostAdjustedWeight → FinalWeight
+//	BaseWeight → LatencyAdjustedWeight → CostAdjustedWeight
+//	→ SuccessRateAdjustedWeight → FinalWeight
 //
-// Future dimensions (SuccessRate, Balance, etc.) are inserted
-// between CostAdjustedWeight and FinalWeight.
+// Future dimensions (Balance, etc.) are inserted after SuccessRateAdjustedWeight.
 func (e *Engine) Calculate(channels []ChannelData) []ChannelScore {
 	if len(channels) == 0 {
 		return nil
@@ -56,13 +60,15 @@ func (e *Engine) Calculate(channels []ChannelData) []ChannelScore {
 	for i, ch := range channels {
 		latencyWeight := LatencyAdjustedWeight(ch.BaseWeight, ch.ResponseTime, fastestRT, e.latencySetting)
 		costWeight := CostAdjustedWeight(latencyWeight, ch.Cost, lowestCost, e.costSetting)
+		successRateWeight := SuccessRateAdjustedWeight(costWeight, ch.SuccessRate, e.successRateSetting)
 
 		scores[i] = ChannelScore{
-			ChannelID:             ch.ChannelID,
-			FinalWeight:           costWeight,
-			BaseWeight:            ch.BaseWeight,
-			LatencyAdjustedWeight: latencyWeight,
-			CostAdjustedWeight:    costWeight,
+			ChannelID:                  ch.ChannelID,
+			FinalWeight:                successRateWeight,
+			BaseWeight:                 ch.BaseWeight,
+			LatencyAdjustedWeight:      latencyWeight,
+			CostAdjustedWeight:         costWeight,
+			SuccessRateAdjustedWeight:  successRateWeight,
 		}
 	}
 	return scores
