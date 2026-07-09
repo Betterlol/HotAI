@@ -44,6 +44,9 @@ const ChannelState = {
 
 // ========== 页面初始化 ==========
 document.addEventListener('DOMContentLoaded', async () => {
+    // 渲染侧边栏
+    renderSidebar('channel');
+    
     // 权限检查（需要管理员权限）
     const user = Auth.getCurrentUser();
     if (!user || user.role < 10) {
@@ -60,8 +63,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     ]);
 
     // 初始化UI
-    initTypeDropdown();
-    initFilters();
+    updateTypeDropdownWithLogos(); // 使用带logo的类型下拉
+    await initFilters();
     initSearchListeners();
     
     // 加载渠道列表
@@ -316,8 +319,14 @@ async function saveChannel() {
     const isEdit = !!document.getElementById('chId').value;
     const formData = collectFormData();
     
+    // 验证必填字段：名称、类型、密钥（新建时）、模型
     if (!formData.name || !formData.type || (!isEdit && !formData.key)) {
-        showToast('请填写必填字段', 'error');
+        showToast('请填写必填字段：名称、类型、密钥', 'error');
+        return;
+    }
+    
+    if (!formData.models || formData.models.trim() === '') {
+        showToast('请至少选择一个模型', 'error');
         return;
     }
     
@@ -588,16 +597,6 @@ async function batchSetTag(tag) {
 }
 
 // ========== 类型下拉 ==========
-function initTypeDropdown() {
-    const list = document.getElementById('typeComboboxList');
-    list.innerHTML = ChannelState.channelTypes.map(t => `
-        <div class="type-combobox-option" data-type="${t.value}" onclick="selectChannelType(${t.value})">
-            <span style="font-size:18px;">${t.icon}</span>
-            <span>${t.label}</span>
-        </div>
-    `).join('');
-}
-
 function toggleTypeDropdown() {
     const dropdown = document.getElementById('typeComboboxDropdown');
     dropdown.classList.toggle('show');
@@ -608,23 +607,21 @@ function toggleTypeDropdown() {
 
 function filterTypeOptions(keyword) {
     const kw = keyword.toLowerCase();
-    document.querySelectorAll('.type-combobox-option').forEach(opt => {
-        const text = opt.textContent.toLowerCase();
-        opt.style.display = text.includes(kw) ? 'flex' : 'none';
+    document.querySelectorAll('#typeComboboxList .type-combobox-item').forEach(opt => {
+        const searchText = opt.getAttribute('data-search') || opt.textContent.toLowerCase();
+        opt.style.display = searchText.includes(kw) ? 'flex' : 'none';
     });
 }
 
-function selectChannelType(type) {
-    document.getElementById('chType').value = type;
-    updateTypeComboboxDisplay(type);
-    document.getElementById('typeComboboxDropdown').classList.remove('show');
-    onTypeChange(type);
-}
-
 function updateTypeComboboxDisplay(type) {
-    const typeInfo = ChannelState.channelTypes.find(t => t.value === type) || {icon:'📡', label:'未知类型'};
-    document.getElementById('typeComboboxLabel').innerHTML = `<span style="font-size:18px;margin-right:6px;">${typeInfo.icon}</span>${typeInfo.label}`;
-    document.getElementById('chModalTypeIcon').textContent = typeInfo.icon;
+    const typeInfo = ChannelState.channelTypes.find(t => t.value === type);
+    if (!typeInfo) return;
+    const iconName = getChannelTypeIcon(type);
+    const logoUrl = getProviderLogoUrl(iconName);
+    document.getElementById('typeComboboxLabel').innerHTML =
+        `<img src="${logoUrl}" style="width:18px;height:18px;margin-right:6px;vertical-align:middle;" onerror="this.style.display='none'"/><span>${typeInfo.label}</span>`;
+    document.getElementById('chModalTypeIcon').innerHTML =
+        `<img src="${logoUrl}" style="width:20px;height:20px;" onerror="this.style.display='none'"/>`;
     document.getElementById('chModalTypeName').textContent = typeInfo.label;
 }
 
@@ -640,14 +637,46 @@ function onTypeChange(type) {
 }
 
 // ========== 筛选与搜索 ==========
-function initFilters() {
-    const typeSelect = document.getElementById('filterType');
-    ChannelState.channelTypes.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.value;
-        opt.textContent = `${t.icon} ${t.label}`;
-        typeSelect.appendChild(opt);
-    });
+async function initFilters() {
+    // 初始化类型筛选器 - 只显示有渠道的供应商类型
+    await updateTypeFilter();
+}
+
+// 更新类型筛选器（只显示有渠道的类型）
+async function updateTypeFilter() {
+    try {
+        // 获取所有渠道（不分页）以统计类型分布
+        const res = await API.getChannelsEx({ p: 1, page_size: 2000 });
+        if (!res.success || !res.data || !res.data.length) return;
+        
+        const typeCounts = {};
+        res.data.forEach(ch => {
+            typeCounts[ch.type] = (typeCounts[ch.type] || 0) + 1;
+        });
+        
+        const typeSelect = document.getElementById('filterType');
+        typeSelect.innerHTML = '<option value="">全部类型</option>';
+        
+        ChannelState.channelTypes
+            .filter(t => typeCounts[t.value])
+            .forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.value;
+                opt.textContent = `${t.label} (${typeCounts[t.value]})`;
+                typeSelect.appendChild(opt);
+            });
+    } catch (err) {
+        console.error('更新类型筛选失败，使用默认列表:', err);
+        // 降级：显示所有类型
+        const typeSelect = document.getElementById('filterType');
+        typeSelect.innerHTML = '<option value="">全部类型</option>';
+        ChannelState.channelTypes.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.value;
+            opt.textContent = t.label;
+            typeSelect.appendChild(opt);
+        });
+    }
 }
 
 function initSearchListeners() {
@@ -683,6 +712,19 @@ function resetFilters() {
 
 function toggleSort() {
     ChannelState.filters.sort_order = ChannelState.filters.sort_order === 'asc' ? 'desc' : 'asc';
+    loadChannels();
+}
+
+// 与工具栏按钮对应的函数（与 user.html 一致）
+function toggleSortOrder() {
+    if (ChannelState.filters.sort_order === 'desc') {
+        ChannelState.filters.sort_order = 'asc';
+        document.getElementById('sortIcon').innerHTML = '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 5 19 12"/>';
+    } else {
+        ChannelState.filters.sort_order = 'desc';
+        document.getElementById('sortIcon').innerHTML = '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>';
+    }
+    ChannelState.currentPage = 1;
     loadChannels();
 }
 
@@ -990,8 +1032,10 @@ function formatTime(timestamp) {
 
 function getTypeLabel(type) {
     const t = ChannelState.channelTypes.find(t => t.value === type);
-    if (!t) return `<span class="badge badge-gray">类型${type}</span>`;
-    return `<span class="badge badge-blue">${t.icon} ${t.label}</span>`;
+    const label = t ? t.label : `类型${type}`;
+    const iconName = getChannelTypeIcon(type);
+    const logoUrl = getProviderLogoUrl(iconName);
+    return `<span class="badge badge-blue" style="display:inline-flex;align-items:center;gap:4px;"><img src="${logoUrl}" style="width:14px;height:14px;" onerror="this.style.display='none'"/> ${label}</span>`;
 }
 
 function getStatusBadge(status) {
