@@ -151,8 +151,8 @@ async function loadChannels() {
             : await API.getChannelsEx(params);
         
         if (res.success) {
-            ChannelState.channels = res.data || [];
-            ChannelState.totalCount = res.total || 0;
+            ChannelState.channels = (res.data && res.data.items) ? res.data.items : (Array.isArray(res.data) ? res.data : []);
+            ChannelState.totalCount = (res.data && res.data.total != null) ? res.data.total : (res.total || 0);
             renderChannelTable();
             renderPagination();
         } else {
@@ -369,6 +369,7 @@ async function saveChannel() {
     
     // 清理新建时不需要的字段
     if (!isEdit) {
+        delete formData.status;
         delete formData.id;
     }
 

@@ -573,11 +573,17 @@ const API = {
 
     // 仅检测上游模型更新（不同步）
     checkUpstreamModelUpdate: (id) =>
-        apiRequest(`/channel/upstream_model_update/check/${id}`, { method: 'POST' }),
+        apiRequest('/channel/upstream_updates/detect', {
+            method: 'POST',
+            body: JSON.stringify({ id })
+        }),
 
     // 处理上游模型更新（同步最新模型列表）
     syncUpstreamModelUpdate: (id) =>
-        apiRequest(`/channel/upstream_model_update/sync/${id}`, { method: 'POST' }),
+        apiRequest('/channel/upstream_updates/apply', {
+            method: 'POST',
+            body: JSON.stringify({ id })
+        }),
 };
 
 // 导出 API（兼容模块和全局）
