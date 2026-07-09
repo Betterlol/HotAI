@@ -72,7 +72,7 @@ function renderSidebar(activePage) {
             <div class="menu-group-title">个人中心</div>
             <a href="topup.html" class="menu-item ${activePage === 'topup' ? 'active' : ''}">
                 <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
-                <span>钱包</span>
+                <span>钱包管理</span>
             </a>
             <a href="profile.html" class="menu-item ${activePage === 'profile' ? 'active' : ''}">
                 <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
@@ -136,18 +136,53 @@ function updateToggleButton(collapsed) {
 
 function checkAdminAccess() {
     API.getUserInfo().then(res => {
+        const group = document.getElementById('adminMenuGroup');
+        if (!group) return;
         if (res.success && res.data && res.data.role >= 10) {
-            const group = document.getElementById('adminMenuGroup');
-            if (group) {
-                group.classList.add('show');
-                group.querySelectorAll('.admin-only').forEach(el => {
-                    if (el.href && el.href.includes('setting.html') && res.data.role < 100) {
-                        el.style.display = 'none';
-                    } else {
-                        el.classList.add('show');
-                    }
-                });
-            }
+            group.classList.add('show');
+            group.querySelectorAll('.admin-only').forEach(el => {
+                if (el.href && el.href.includes('setting.html') && res.data.role < 100) {
+                    el.style.display = 'none';
+                } else {
+                    el.classList.add('show');
+                }
+            });
+        } else {
+            // 权限不足时确保隐藏管理员菜单（防止缓存或竞态导致错误显示）
+            group.classList.remove('show');
+            group.querySelectorAll('.admin-only').forEach(el => {
+                el.classList.remove('show');
+            });
         }
-    }).catch(() => {});
+    }).catch(() => {
+        // 请求失败时也确保隐藏
+        const group = document.getElementById('adminMenuGroup');
+        if (group) {
+            group.classList.remove('show');
+            group.querySelectorAll('.admin-only').forEach(el => {
+                el.classList.remove('show');
+            });
+        }
+    });
+}
+
+// 根据已知 role 直接同步更新管理员菜单显示状态，避免异步竞态
+function applyAdminAccessByRole(role) {
+    const group = document.getElementById('adminMenuGroup');
+    if (!group) return;
+    if (role >= 10) {
+        group.classList.add('show');
+        group.querySelectorAll('.admin-only').forEach(el => {
+            if (el.href && el.href.includes('setting.html') && role < 100) {
+                el.style.display = 'none';
+            } else {
+                el.classList.add('show');
+            }
+        });
+    } else {
+        group.classList.remove('show');
+        group.querySelectorAll('.admin-only').forEach(el => {
+            el.classList.remove('show');
+        });
+    }
 }

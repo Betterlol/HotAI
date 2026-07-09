@@ -43,13 +43,6 @@
     <main class="main-content">
         <div class="page-header">
             <div class="page-title">任务日志</div>
-            <div class="page-actions" id="adminActions" style="display:none;">
-                <label class="form-switch">
-                    <input type="checkbox" class="switch-input" id="adminModeToggle">
-                    <span class="switch-track"></span>
-                    <span class="switch-label">查看所有用户</span>
-                </label>
-            </div>
         </div>
         <div class="filter-bar">
             <div class="filter-item">
@@ -72,13 +65,30 @@
                     <option value="NOT_START">未开始</option>
                 </select>
             </div>
-            <div class="filter-item" id="usernameFilterItem" style="display:none;">
+            <div class="filter-item" id="usernameFilterItem">
                 <label class="filter-label">用户名</label>
                 <input type="text" class="filter-input" id="filterUser" placeholder="用户名">
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">任务ID</label>
+                <input type="text" class="filter-input" id="filterTaskId" placeholder="任务ID">
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">渠道ID</label>
+                <input type="text" class="filter-input" id="filterChannelId" placeholder="渠道ID">
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">开始时间</label>
+                <input type="datetime-local" class="filter-input" id="filterStartTime">
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">结束时间</label>
+                <input type="datetime-local" class="filter-input" id="filterEndTime">
             </div>
             <div class="filter-actions">
                 <button class="btn btn-primary" onclick="searchTaskLogs()">查询</button>
                 <button class="btn btn-secondary" onclick="resetTaskFilters()">重置</button>
+                <button class="btn btn-secondary" id="colSettingsBtn">列设置 ▾</button>
             </div>
         </div>
         <div class="table-card">
@@ -86,21 +96,25 @@
                 <div class="table-toolbar-left"><span style="font-size:13px;color:var(--c-text-secondary);">共 <strong id="taskTotal">0</strong> 条</span></div>
                 <div class="table-toolbar-right"><button class="btn btn-secondary" onclick="loadTaskLogs()">刷新</button></div>
             </div>
-            <div class="table-wrap">
-                <table>
+            <div class="table-wrap" style="overflow-x: auto;">
+                <table style="table-layout: auto; width: 100%;">
                     <thead>
                         <tr>
-                            <th>时间</th>
-                            <th id="thUser" style="display:none;">用户</th>
-                            <th>任务ID</th>
-                            <th>平台</th>
-                            <th>操作</th>
-                            <th>状态</th>
-                            <th>结果</th>
+                            <th data-col="submit_time" style="text-align: center; white-space: nowrap;">提交时间</th>
+                            <th data-col="finish_time" style="text-align: center; white-space: nowrap;">结束时间</th>
+                            <th data-col="duration" style="text-align: center; white-space: nowrap;">花费时间</th>
+                            <th data-col="channel" id="thChannel" style="text-align: center; white-space: nowrap;">渠道</th>
+                            <th data-col="user" id="thUser" style="text-align: center; white-space: nowrap;">用户</th>
+                            <th data-col="platform" style="text-align: center; white-space: nowrap;">平台</th>
+                            <th data-col="type" style="text-align: center; white-space: nowrap;">类型</th>
+                            <th data-col="task_id" style="text-align: center; white-space: nowrap;">任务ID</th>
+                            <th data-col="status" style="text-align: center; white-space: nowrap;">任务状态</th>
+                            <th data-col="progress" style="text-align: center; white-space: nowrap;">进度</th>
+                            <th data-col="detail" style="text-align: center; white-space: nowrap;">详情</th>
                         </tr>
                     </thead>
                     <tbody id="taskTableBody">
-                        <tr><td colspan="7"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
+                        <tr><td colspan="11" style="text-align: center;"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
                     </tbody>
                 </table>
             </div>

@@ -75,6 +75,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         isAdmin = (user.role || 0) >= 10;
         updateWelcome(user.display_name || user.username);
+        // 同步更新侧边栏管理员菜单，避免与 checkAdminAccess() 的异步竞态导致显示错误
+        if (typeof applyAdminAccessByRole === 'function') {
+            applyAdminAccessByRole(user.role || 0);
+        }
 
         document.getElementById('statBalance').textContent = quotaToDisplay(user.quota);
         document.getElementById('statUsedQuota').textContent = quotaToDisplay(user.used_quota);

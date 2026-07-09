@@ -533,3 +533,126 @@ tbody td { padding: 12px 16px; color: var(--c-text-main); vertical-align: middle
     .amount-grid { grid-template-columns: repeat(2, 1fr); }
     .stat-grid { grid-template-columns: 1fr; }
 }
+
+/* =========================================
+   21. 绘图日志（mj-log）专用样式
+   ========================================= */
+
+/* 表格容器横向滚动 */
+.mj-table-wrap {
+    overflow-x: auto;
+    width: 100%;
+}
+
+/* 表格自适应内容宽度 */
+.mj-table {
+    table-layout: auto;
+    width: max-content;
+    min-width: 100%;
+}
+
+/* 表头和单元格全部居中、不换行 */
+.mj-table thead th,
+.mj-table tbody td {
+    text-align: center !important;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* 长文本列：限制最大宽度，超出省略 */
+.mj-text-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--c-text-secondary);
+    cursor: pointer;
+}
+
+/* 缩略图 */
+.mj-thumb {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--c-border);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: block;
+    margin: 0 auto;
+}
+.mj-thumb:hover {
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+}
+
+/* 进度条 */
+.mj-progress-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 120px;
+}
+.mj-progress-bar {
+    flex: 1;
+    min-width: 80px;
+    height: 6px;
+    background: var(--c-border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.mj-progress-fill {
+    height: 100%;
+    background: var(--c-primary);
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+.mj-progress-fail {
+    background: #F59E0B;
+}
+.mj-progress-label {
+    font-size: 11px;
+    color: var(--c-text-secondary);
+    white-space: nowrap;
+    min-width: 32px;
+    text-align: right;
+}
+
+/* 列设置下拉菜单 */
+.column-settings-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--c-white);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-card);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 1000;
+    min-width: 140px;
+    padding: 8px 0;
+}
+.column-settings-menu.show {
+    display: block;
+}
+.column-settings-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--c-text-main);
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+.column-settings-item:hover {
+    background: var(--c-gray-hover);
+}
+.column-settings-item input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: var(--c-primary);
+}
