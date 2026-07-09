@@ -206,8 +206,8 @@ async function loadUsers() {
                     <div style="position:relative;display:inline-block;">
                         <button class="btn btn-secondary btn-sm${disabledClass}" style="${disabledStyle}" onclick="event.stopPropagation();toggleUserDropdown(${u.id})" id="dropdownBtn${u.id}">⋯</button>
                         <div id="dropdown${u.id}" class="user-action-dropdown" style="display:none;position:absolute;top:100%;right:0;margin-top:4px;background:white;border:1px solid var(--c-border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);min-width:120px;z-index:1000;">
-                            <button class="dropdown-item" onclick="event.stopPropagation();resetPasskey(${u.id},'${escHtml(u.username || '')}');closeAllDropdowns();" style="width:100%;text-align:left;padding:8px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--c-text-primary);border-bottom:1px solid var(--c-border);" onmouseover="this.style.background='var(--c-bg-secondary,#f3f4f6)'" onmouseout="this.style.background='none'">重置PK</button>
-                            <button class="dropdown-item" onclick="event.stopPropagation();reset2FA(${u.id},'${escHtml(u.username || '')}');closeAllDropdowns();" style="width:100%;text-align:left;padding:8px 12px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--c-text-primary);border-bottom:1px solid var(--c-border);" onmouseover="this.style.background='var(--c-bg-secondary,#f3f4f6)'" onmouseout="this.style.background='none'">重置2FA</button>
+                            <button class="dropdown-item" onclick="event.stopPropagation();resetPasskey(${u.id},'${escHtml(u.username || '')}');closeAllDropdowns();">重置PK</button>
+                            <button class="dropdown-item" onclick="event.stopPropagation();reset2FA(${u.id},'${escHtml(u.username || '')}');closeAllDropdowns();">重置2FA</button>
                         </div>
                     </div>
                 </div>

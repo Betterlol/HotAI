@@ -110,8 +110,16 @@ const API = {
             body: JSON.stringify({ ids })
         }),
 
+    updateTokenStatus: (id, status) =>
+        apiRequest('/token/?status_only=true', {
+            method: 'PUT',
+            body: JSON.stringify({ id, status })
+        }),
+
     // ========== 模型相关 ==========
     getModels: () => apiRequest('/models'),
+
+    getPricing: () => apiRequest('/pricing'),
 
     // ========== 用户分组 ==========
     getUserGroups: () => apiRequest('/user/self/groups'),
