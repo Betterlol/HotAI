@@ -34,7 +34,7 @@ const ChannelState = {
         {value:50,label:'Stepfun',icon:'步'},{value:51,label:'Github',icon:'🐙'},{value:52,label:'VoyageAI',icon:'⛵'},
         {value:53,label:'JinaAI',icon:'🍱'},{value:54,label:'DeepL',icon:'🇩🇪'},{value:55,label:'FakeAI',icon:'🎪'},
         {value:56,label:'Luma',icon:'🎬'},{value:57,label:'Codex',icon:'📝'},{value:58,label:'高级自定义',icon:'⚙️'}
-    ],
+    ].sort((a, b) => a.label.localeCompare(b.label, 'zh-CN')),
     isEditing: false,
     editingId: null,
     modelTagsState: [],
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ]);
 
     // 初始化UI
-    updateTypeDropdownWithLogos(); // 使用带logo的类型下拉
+    initTypeDropdown(); // 初始化类型下拉
     await initFilters();
     initSearchListeners();
     
@@ -73,11 +73,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 点击外部关闭下拉
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.type-combobox-wrap')) {
-            document.getElementById('typeComboboxDropdown').classList.remove('show');
+            const dd = document.getElementById('typeComboboxDropdown');
+            if (dd) dd.classList.remove('show');
+        }
+        if (!e.target.closest('#modelSelectBtn') && !e.target.closest('#modelSelectDropdown')) {
+            const dd = document.getElementById('modelSelectDropdown');
+            if (dd) dd.style.display = 'none';
         }
         if (!e.target.closest('.action-dropdown')) {
             document.querySelectorAll('.action-menu.show').forEach(m => m.classList.remove('show'));
         }
+    });
+    // 筛选器 change 监听（合并，避免重复 DOMContentLoaded）
+    ['filterGroup','filterStatus','filterType'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('change', (e) => {
+            const key = id.replace('filter','').toLowerCase();
+            ChannelState.filters[key] = e.target.value;
+            ChannelState.currentPage = 1;
+            loadChannels();
+        });
     });
 });
 
@@ -239,6 +255,12 @@ function openChannelModal(editId = null) {
     
     document.getElementById('channelModal').classList.remove('hidden');
     renderPrefillGroupButtons();
+    // 加载带 logo 的模型列表（懒加载，只在首次打开时执行）
+    loadModelSelectList().then(() => {
+        // 刷新空状态显示
+        const empty = document.getElementById('modelTagsEmpty');
+        if (empty && ChannelState.modelTagsState.length === 0) empty.style.display = '';
+    });
 }
 
 function closeChannelModal() {
@@ -253,13 +275,28 @@ function resetChannelForm() {
     document.getElementById('chKey').value = '';
     document.getElementById('chBaseUrl').value = '';
     document.getElementById('chStatusSwitch').checked = true;
+    // 重置类型选择器显示
+    document.getElementById('typeComboboxLabel').innerHTML = '请选择渠道类型';
+    document.getElementById('chModalTypeIcon').innerHTML = '';
+    document.getElementById('chModalTypeName').textContent = '';
+    // 关闭高级设置
+    const advContent = document.getElementById('advancedSettingsContent');
+    if (advContent) advContent.style.display = 'none';
+    // 重置类型相关字段
+    ['chOrgRow','chAzureEndpointRow','chOtherRow','chAwsKeyTypeRow','chVertexKeyTypeRow'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    document.getElementById('fetchModelsBtn').style.display = 'none';
     ChannelState.modelTagsState = [];
     ChannelState.groupTagsState = ['default'];
     ChannelState.modelMappingRows = [];
     renderModelTags();
     renderGroupTags();
     renderModelMappingEditor();
-    switchChannelSection('sec-basic', document.querySelector('[data-section="sec-basic"]'));
+    // 滚动到顶部
+    const formArea = document.getElementById('channelFormArea');
+    if (formArea) formArea.scrollTop = 0;
 }
 
 async function loadChannelToForm(id) {
@@ -330,9 +367,14 @@ async function saveChannel() {
         return;
     }
     
+    // 清理新建时不需要的字段
+    if (!isEdit) {
+        delete formData.id;
+    }
+
     try {
         const res = isEdit 
-            ? await API.updateChannel({id: parseInt(formData.id), ...formData})
+            ? await API.updateChannel(formData)
             : await API.createChannel({
                 mode: formData.multi_key_mode || 'single',
                 channel: formData
@@ -352,8 +394,9 @@ async function saveChannel() {
 }
 
 function collectFormData() {
+    const idVal = document.getElementById('chId').value;
     return {
-        id: document.getElementById('chId').value,
+        id: idVal ? parseInt(idVal) : undefined,
         type: parseInt(document.getElementById('chType').value),
         name: document.getElementById('chName').value.trim(),
         status: document.getElementById('chStatusSwitch').checked ? 1 : 2,
@@ -597,6 +640,59 @@ async function batchSetTag(tag) {
 }
 
 // ========== 类型下拉 ==========
+// 渠道类型 -> lobehub icon 名称映射
+const CHANNEL_TYPE_TO_ICON = {
+    1:'OpenAI',6:'OpenAI',7:'OpenAI',8:'OpenAI',58:'NewAPI',3:'Azure',
+    14:'Claude',24:'Gemini',11:'Google',41:'Gemini',
+    33:'Aws',39:'Cloudflare',
+    15:'Baidu',46:'Baidu',16:'Zhipu',26:'Zhipu',17:'Qwen',18:'Spark',
+    23:'Hunyuan',19:'Ai360',25:'Moonshot',31:'Yi',35:'Minimax',45:'Volcengine',
+    4:'Ollama',30:'Ollama',27:'Perplexity',34:'Cohere',42:'Mistral',43:'DeepSeek',
+    28:'DeepSeek',48:'XAI',49:'Coze',40:'SiliconCloud',44:'Doubao',20:'OpenRouter',
+    2:'Midjourney',5:'Midjourney',50:'Kling',51:'Jimeng',52:'Vidu',
+    36:'Suno',55:'OpenAI',54:'Doubao',56:'Replicate',
+    37:'Dify',38:'Jina',22:'FastGPT',47:'Xinference',53:'OpenAI',
+    10:'OpenAI',21:'OpenAI',12:'OpenAI',13:'OpenAI',9:'OpenAI',
+    29:'Groq',32:'StepFun',36:'OpenRouter',47:'XAI'
+};
+
+function getChannelLogoUrl(type) {
+    const iconName = CHANNEL_TYPE_TO_ICON[type] || 'OpenAI';
+    if (window.AIProviders) {
+        return AIProviders.getProviderIconUrl(iconName);
+    }
+    // 降级：直接拼 CDN URL
+    const normalized = iconName.toLowerCase().replace(/\s+/g,'-').replace(/\./g,'-');
+    return `https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1/icons/${normalized}.svg`;
+}
+
+function buildLogoImg(type, size) {
+    const url = getChannelLogoUrl(type);
+    const abbr = (ChannelState.channelTypes.find(t=>t.value===type)||{label:'?'}).label.charAt(0);
+    return `<img src="${url}" style="width:${size}px;height:${size}px;flex-shrink:0;display:inline-block;vertical-align:middle;" alt="${escapeHtml(abbr)}" onerror="var p=this.parentNode;if(p){var s=document.createElement('span');s.textContent=this.alt||'?';s.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:'+${size}+'px;height:'+${size}+'px;border-radius:50%;background:var(--c-bg-secondary);font-size:'+${Math.round(size*0.55)}+'px;color:var(--c-text-secondary);flex-shrink:0;';p.replaceChild(s,this);}" />`;
+}
+
+function initTypeDropdown() {
+    const list = document.getElementById('typeComboboxList');
+    list.innerHTML = '';
+    ChannelState.channelTypes.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'type-combobox-item';
+        item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;';
+        item.setAttribute('data-search', t.label.toLowerCase());
+        item.innerHTML = buildLogoImg(t.value, 18) + `<span>${t.label}</span>`;
+        item.onclick = () => selectChannelType(t.value);
+        list.appendChild(item);
+    });
+}
+
+function selectChannelType(type) {
+    document.getElementById('chType').value = type;
+    updateTypeComboboxDisplay(type);
+    document.getElementById('typeComboboxDropdown').classList.remove('show');
+    onTypeChange(type);
+}
+
 function toggleTypeDropdown() {
     const dropdown = document.getElementById('typeComboboxDropdown');
     dropdown.classList.toggle('show');
@@ -608,7 +704,7 @@ function toggleTypeDropdown() {
 function filterTypeOptions(keyword) {
     const kw = keyword.toLowerCase();
     document.querySelectorAll('#typeComboboxList .type-combobox-item').forEach(opt => {
-        const searchText = opt.getAttribute('data-search') || opt.textContent.toLowerCase();
+        const searchText = opt.getAttribute('data-search') || '';
         opt.style.display = searchText.includes(kw) ? 'flex' : 'none';
     });
 }
@@ -616,13 +712,18 @@ function filterTypeOptions(keyword) {
 function updateTypeComboboxDisplay(type) {
     const typeInfo = ChannelState.channelTypes.find(t => t.value === type);
     if (!typeInfo) return;
-    const iconName = getChannelTypeIcon(type);
-    const logoUrl = getProviderLogoUrl(iconName);
     document.getElementById('typeComboboxLabel').innerHTML =
-        `<img src="${logoUrl}" style="width:18px;height:18px;margin-right:6px;vertical-align:middle;" onerror="this.style.display='none'"/><span>${typeInfo.label}</span>`;
-    document.getElementById('chModalTypeIcon').innerHTML =
-        `<img src="${logoUrl}" style="width:20px;height:20px;" onerror="this.style.display='none'"/>`;
+        buildLogoImg(type, 18) + `<span style="margin-left:4px;">${typeInfo.label}</span>`;
+    document.getElementById('chModalTypeIcon').innerHTML = buildLogoImg(type, 20);
     document.getElementById('chModalTypeName').textContent = typeInfo.label;
+}
+
+function toggleAdvancedSettings() {
+    const content = document.getElementById('advancedSettingsContent');
+    const icon = document.getElementById('advToggleIcon');
+    const isHidden = content.style.display === 'none';
+    content.style.display = isHidden ? 'block' : 'none';
+    icon.innerHTML = isHidden ? '<polyline points="18 15 12 9 6 15"/>' : '<polyline points="6 9 12 15 18 9"/>';
 }
 
 function onTypeChange(type) {
@@ -759,28 +860,127 @@ async function updateAllChannelsBalance() {
     }
 }
 
-// ========== 模型标签组件 ==========
-function onModelInputChange(value) {
-    if (!value) {
-        document.getElementById('modelDropdown').style.display = 'none';
-        return;
-    }
-    const kw = value.toLowerCase();
-    const results = ChannelState.allModels.filter(m => m.toLowerCase().includes(kw)).slice(0, 20);
-    const dd = document.getElementById('modelDropdown');
-    if (!results.length) { dd.style.display = 'none'; return; }
-    dd.innerHTML = results.map(m => `<div class="model-dropdown-item" onclick="addModel('${escapeHtml(m)}')">${escapeHtml(m)}</div>`).join('');
-    dd.style.display = 'block';
+// ========== 模型多选下拉组件 ==========
+// 所有可用模型列表（从 AIProviders 加载，含 logo 信息）
+let _allModelsList = []; // [{name, vendorName, vendorIcon}, ...]
+
+// 加载模型列表（使用 AIProviders.load() 获取带 logo 的模型）
+async function loadModelSelectList() {
+    if (_allModelsList.length > 0) return; // 已加载
+    try {
+        if (window.AIProviders) {
+            await AIProviders.load();
+            const models = AIProviders.getModels();
+            if (models && models.length > 0) {
+                _allModelsList = models.map(m => ({
+                    name: m.model_name || m.id || m,
+                    vendorName: m.vendor_name || '',
+                    vendorIcon: m.vendor_icon || ''
+                })).filter(m => m.name);
+            }
+        }
+    } catch(e) { /* 不影响基础功能 */ }
+    // 补充：把 allModels 中但不在 _allModelsList 的也加进来
+    const existingNames = new Set(_allModelsList.map(m => m.name));
+    ChannelState.allModels.forEach(name => {
+        if (!existingNames.has(name)) {
+            _allModelsList.push({name, vendorName:'', vendorIcon:''});
+        }
+    });
 }
 
-function onModelKeyDown(event) {
-    if (event.key === 'Enter' || event.key === ',') {
-        event.preventDefault();
-        const val = event.target.value.trim().replace(/,$/, '');
-        if (val) addModel(val);
-    } else if (event.key === 'Backspace' && !event.target.value) {
-        ChannelState.modelTagsState.pop();
-        renderModelTags();
+// 切换模型下拉
+function toggleModelSelect() {
+    const dd = document.getElementById('modelSelectDropdown');
+    const isOpen = dd.style.display !== 'none';
+    if (isOpen) {
+        dd.style.display = 'none';
+    } else {
+        dd.style.display = 'flex';
+        dd.style.flexDirection = 'column';
+        renderModelSelectList('');
+        setTimeout(() => document.getElementById('modelSelectSearch').focus(), 50);
+    }
+}
+
+// 渲染模型下拉列表
+function renderModelSelectList(keyword) {
+    const list = document.getElementById('modelSelectList');
+    if (!list) return;
+    
+    // 当前选中类型
+    const currentType = parseInt(document.getElementById('chType').value) || 0;
+    
+    let candidates = _allModelsList;
+    
+    // 如果已选供应商类型，且有对应的 vendorName，则优先显示该供应商的模型
+    let filteredByVendor = candidates;
+    if (currentType > 0) {
+        const iconName = CHANNEL_TYPE_TO_ICON[currentType] || '';
+        // 尝试按 vendor icon 或 vendor name 过滤
+        const vendorFiltered = candidates.filter(m => {
+            if (!m.vendorIcon && !m.vendorName) return false;
+            const vi = (m.vendorIcon || '').toLowerCase();
+            const vn = (m.vendorName || '').toLowerCase();
+            return vi.includes(iconName.toLowerCase()) || iconName.toLowerCase().includes(vi) || vn.includes(iconName.toLowerCase());
+        });
+        filteredByVendor = vendorFiltered.length > 0 ? vendorFiltered : candidates;
+    }
+    
+    // 搜索过滤
+    const kw = keyword.toLowerCase();
+    const filtered = kw 
+        ? filteredByVendor.filter(m => m.name.toLowerCase().includes(kw) || (m.vendorName||'').toLowerCase().includes(kw))
+        : filteredByVendor;
+
+    const sorted = filtered.slice(0).sort((a,b) => a.name.localeCompare(b.name));
+    const displayList = sorted; // 显示所有模型，不限制数量
+    
+    if (displayList.length === 0) {
+        list.innerHTML = '<div style="padding:16px;text-align:center;font-size:13px;color:var(--c-text-secondary);">无匹配模型</div>';
+        return;
+    }
+    
+    list.innerHTML = displayList.map(m => {
+        const checked = ChannelState.modelTagsState.includes(m.name) ? 'checked' : '';
+        const logoHtml = m.vendorIcon 
+            ? `<img src="${AIProviders.getProviderIconUrl(m.vendorIcon)}" style="width:16px;height:16px;flex-shrink:0;" onerror="this.style.display='none'"/>`
+            : '';
+        const vendorText = m.vendorName ? `<span style="font-size:11px;color:var(--c-text-secondary);margin-left:auto;flex-shrink:0;">${escapeHtml(m.vendorName)}</span>` : '';
+        return `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13px;" onmouseenter="this.style.background='var(--c-bg-secondary)'" onmouseleave="this.style.background=''">
+            <input type="checkbox" ${checked} onchange="toggleModelCheck('${escapeHtml(m.name)}', this.checked)" style="flex-shrink:0;">
+            ${logoHtml}
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(m.name)}</span>
+            ${vendorText}
+        </label>`;
+    }).join('');
+}
+
+// 搜索过滤模型列表
+function filterModelOptions(keyword) {
+    renderModelSelectList(keyword);
+}
+
+// 勾选/取消模型
+function toggleModelCheck(modelName, checked) {
+    if (checked) {
+        if (!ChannelState.modelTagsState.includes(modelName)) {
+            ChannelState.modelTagsState.push(modelName);
+        }
+    } else {
+        ChannelState.modelTagsState = ChannelState.modelTagsState.filter(m => m !== modelName);
+    }
+    renderModelTags();
+    updateModelSelectBtn();
+}
+
+// 更新选择按钮文字
+function updateModelSelectBtn() {
+    const count = ChannelState.modelTagsState.length;
+    const btn = document.getElementById('modelSelectText');
+    if (btn) {
+        btn.textContent = count > 0 ? `已选 ${count} 个模型` : '点击选择模型...';
+        btn.style.color = count > 0 ? 'var(--c-text-main)' : 'var(--c-text-secondary)';
     }
 }
 
@@ -789,36 +989,57 @@ function addModel(model) {
     if (model && !ChannelState.modelTagsState.includes(model)) {
         ChannelState.modelTagsState.push(model);
         renderModelTags();
+        updateModelSelectBtn();
     }
-    document.getElementById('modelTagsInput').value = '';
-    document.getElementById('modelDropdown').style.display = 'none';
 }
 
-function removeModel(idx) {
-    ChannelState.modelTagsState.splice(idx, 1);
+function removeModel(modelName) {
+    ChannelState.modelTagsState = ChannelState.modelTagsState.filter(m => m !== modelName);
     renderModelTags();
+    updateModelSelectBtn();
+    // 如果下拉是打开的，刷新列表中的勾选状态
+    const dd = document.getElementById('modelSelectDropdown');
+    if (dd && dd.style.display !== 'none') {
+        renderModelSelectList(document.getElementById('modelSelectSearch')?.value || '');
+    }
 }
 
 function renderModelTags() {
     const wrap = document.getElementById('modelTagsWrap');
-    const input = document.getElementById('modelTagsInput');
+    if (!wrap) return;
     wrap.querySelectorAll('.model-tag').forEach(t => t.remove());
-    ChannelState.modelTagsState.forEach((m, i) => {
-        const tag = document.createElement('span');
-        tag.className = 'model-tag';
-        tag.innerHTML = `${escapeHtml(m)} <span class="tag-del" onclick="removeModel(${i})">✕</span>`;
-        wrap.insertBefore(tag, input);
-    });
+    const emptySpan = document.getElementById('modelTagsEmpty');
+    
+    if (ChannelState.modelTagsState.length === 0) {
+        if (emptySpan) emptySpan.style.display = '';
+    } else {
+        if (emptySpan) emptySpan.style.display = 'none';
+        ChannelState.modelTagsState.forEach(m => {
+            const tag = document.createElement('span');
+            tag.className = 'model-tag';
+            const safeName = escapeHtml(m);
+            tag.innerHTML = `${safeName} <span class="tag-del" onclick="removeModel('${safeName}')">✕</span>`;
+            wrap.appendChild(tag);
+        });
+    }
+    updateModelSelectBtn();
 }
 
 function fillAllModels() {
-    ChannelState.modelTagsState = [...new Set([...ChannelState.modelTagsState, ...ChannelState.allModels])];
+    // 优先从已加载的模型列表填入，降级用 allModels
+    const allNames = _allModelsList.length > 0 ? _allModelsList.map(m => m.name) : ChannelState.allModels;
+    ChannelState.modelTagsState = [...new Set([...ChannelState.modelTagsState, ...allNames])];
     renderModelTags();
 }
 
 function clearModels() {
     ChannelState.modelTagsState = [];
     renderModelTags();
+    // 刷新下拉勾选状态
+    const dd = document.getElementById('modelSelectDropdown');
+    if (dd && dd.style.display !== 'none') {
+        renderModelSelectList(document.getElementById('modelSelectSearch')?.value || '');
+    }
 }
 
 async function copyModels() {
@@ -1033,9 +1254,7 @@ function formatTime(timestamp) {
 function getTypeLabel(type) {
     const t = ChannelState.channelTypes.find(t => t.value === type);
     const label = t ? t.label : `类型${type}`;
-    const iconName = getChannelTypeIcon(type);
-    const logoUrl = getProviderLogoUrl(iconName);
-    return `<span class="badge badge-blue" style="display:inline-flex;align-items:center;gap:4px;"><img src="${logoUrl}" style="width:14px;height:14px;" onerror="this.style.display='none'"/> ${label}</span>`;
+    return `<span class="badge badge-blue" style="display:inline-flex;align-items:center;gap:4px;">${buildLogoImg(type, 14)} <span>${label}</span></span>`;
 }
 
 function getStatusBadge(status) {
@@ -1251,34 +1470,3 @@ function applySuccessModels() {
     closeTestModal();
 }
 
-// ========== 修复筛选栏onChange ==========
-// 添加筛选器监听器（需更新filters对象）
-document.addEventListener('DOMContentLoaded', () => {
-    const filterGroup = document.getElementById('filterGroup');
-    const filterStatus = document.getElementById('filterStatus');
-    const filterType = document.getElementById('filterType');
-    
-    if (filterGroup) {
-        filterGroup.addEventListener('change', (e) => {
-            ChannelState.filters.group = e.target.value;
-            ChannelState.currentPage = 1;
-            loadChannels();
-        });
-    }
-    
-    if (filterStatus) {
-        filterStatus.addEventListener('change', (e) => {
-            ChannelState.filters.status = e.target.value;
-            ChannelState.currentPage = 1;
-            loadChannels();
-        });
-    }
-    
-    if (filterType) {
-        filterType.addEventListener('change', (e) => {
-            ChannelState.filters.type = e.target.value;
-            ChannelState.currentPage = 1;
-            loadChannels();
-        });
-    }
-});
