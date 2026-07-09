@@ -94,7 +94,16 @@
         <div class="table-card">
             <div class="table-toolbar">
                 <div class="table-toolbar-left"><span style="font-size:13px;color:var(--c-text-secondary);">共 <strong id="taskTotal">0</strong> 条</span></div>
-                <div class="table-toolbar-right"><button class="btn btn-secondary" onclick="loadTaskLogs()">刷新</button></div>
+                <div class="table-toolbar-right">
+                    <button class="btn btn-secondary" onclick="exportTaskCSV()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        导出CSV
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadTaskLogs()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.12"/></svg>
+                        刷新
+                    </button>
+                </div>
             </div>
             <div class="table-wrap" style="overflow-x: auto;">
                 <table style="table-layout: auto; width: 100%;">

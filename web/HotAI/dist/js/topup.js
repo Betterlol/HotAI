@@ -17,7 +17,10 @@ function formatTime(ts){if(!ts||ts<=0)return '-';return new Date(ts*1000).toLoca
 async function loadUserBalance() {
     const res = await API.getUserInfo();
     if (res.success && res.data) {
-        document.getElementById('currentBalance').textContent = quotaToDisplay(res.data.quota);
+        const user = res.data;
+        document.getElementById('currentBalance').textContent = quotaToDisplay(user.quota);
+        document.getElementById('usedQuota').textContent = quotaToDisplay(user.used_quota || 0);
+        document.getElementById('requestCount').textContent = (user.request_count || 0).toLocaleString();
     }
 }
 
@@ -28,6 +31,29 @@ async function loadSettings() {
         minTopup = parseFloat(res.data.MinTopUp) || 1;
         document.getElementById('ratioDisplay').textContent = topupRatio;
         document.getElementById('minTopupDisplay').textContent = minTopup;
+        
+        // 控制系统状态提示的显示
+        const enableOnlineTopup = res.data.EnableOnlineTopup !== false;
+        const enableRedemption = res.data.EnableRedemption !== false;
+        
+        const alertOnlineTopup = document.getElementById('alertOnlineTopup');
+        const alertRedemption = document.getElementById('alertRedemption');
+        
+        if (alertOnlineTopup) {
+            if (!enableOnlineTopup) {
+                alertOnlineTopup.classList.remove('hidden');
+            } else {
+                alertOnlineTopup.classList.add('hidden');
+            }
+        }
+        
+        if (alertRedemption) {
+            if (!enableRedemption) {
+                alertRedemption.classList.remove('hidden');
+            } else {
+                alertRedemption.classList.add('hidden');
+            }
+        }
     }
 }
 
@@ -114,9 +140,20 @@ async function loadAffiliateInfo() {
     const res = await API.getUserInfo();
     if (res.success && res.data) {
         const user = res.data;
-        document.getElementById('affBalance').textContent = quotaToDisplay(user.aff_quota || 0);
-        document.getElementById('affCount').textContent = user.aff_count || 0;
-        document.getElementById('affTotal').textContent = quotaToDisplay(user.aff_history_quota || 0);
+        // 更新双卡片中的邀请奖励数据（右卡片）
+        const affBalanceElements = document.querySelectorAll('#affBalance');
+        const affCountElements = document.querySelectorAll('#affCount');
+        const affTotalElements = document.querySelectorAll('#affTotal');
+        
+        affBalanceElements.forEach(el => {
+            el.textContent = quotaToDisplay(user.aff_quota || 0);
+        });
+        affCountElements.forEach(el => {
+            el.textContent = (user.aff_count || 0).toLocaleString();
+        });
+        affTotalElements.forEach(el => {
+            el.textContent = quotaToDisplay(user.aff_history_quota || 0);
+        });
         
         // 生成推广链接
         const affCode = user.aff_code || user.id;

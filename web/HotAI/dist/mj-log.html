@@ -119,8 +119,14 @@
                     <span style="font-size:13px;color:var(--c-text-secondary);">共 <strong id="mjTotal">0</strong> 条</span>
                 </div>
                 <div class="table-toolbar-right">
-                    <button class="btn btn-secondary" onclick="exportMjCSV()">导出CSV</button>
-                    <button class="btn btn-secondary" onclick="loadMjLogs()">刷新</button>
+                    <button class="btn btn-secondary" onclick="exportMjCSV()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        导出CSV
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadMjLogs()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.12"/></svg>
+                        刷新
+                    </button>
                 </div>
             </div>
             <div class="table-wrap mj-table-wrap">

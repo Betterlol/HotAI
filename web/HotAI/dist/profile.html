@@ -8,25 +8,7 @@
     <title>控制台 - 个人设置</title>
     <link rel="stylesheet" href="css/head.css">
     <link rel="stylesheet" href="css/console-shared.css">
-    <style>
-        .overview-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px; padding: 32px; color: #fff; margin-bottom: 24px;
-            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px;
-        }
-        .overview-left { display: flex; align-items: center; gap: 20px; }
-        .avatar-large {
-            width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.2);
-            display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700;
-        }
-        .overview-info h2 { font-size: 22px; margin-bottom: 6px; }
-        .overview-info p { font-size: 14px; opacity: 0.9; }
-        .overview-right { display: flex; gap: 32px; flex-wrap: wrap; }
-        .overview-stat { display: flex; flex-direction: column; gap: 4px; }
-        .overview-stat .label { font-size: 13px; opacity: 0.8; }
-        .overview-stat .val { font-size: 20px; font-weight: 700; }
-        .settings-section { margin-bottom: 24px; }
-    </style>
+    <link rel="stylesheet" href="css/profile.css">
 </head>
 <body>
 <header class="navbar">
@@ -59,131 +41,343 @@
             <div class="page-title">个人设置</div>
         </div>
 
-        <!-- 用户概览卡片 -->
-        <div class="overview-card">
-            <div class="overview-left">
-                <div class="avatar-large" id="avatarLarge">U</div>
-                <div class="overview-info">
-                    <h2><span id="usernameDisplay">加载中...</span></h2>
-                    <p id="emailDisplay">加载中...</p>
+        <!-- 用户信息横幅 -->
+        <div class="profile-header-card">
+            <div class="profile-header-left">
+                <div class="profile-avatar" id="profileAvatar">U</div>
+                <div class="profile-info">
+                    <h2 id="profileDisplayName">加载中...</h2>
+                    <p id="profileEmail">加载中...</p>
                 </div>
             </div>
-            <div class="overview-right">
-                <div class="overview-stat"><span class="label">账户余额</span><span class="val" id="balanceDisplay">$0.00</span></div>
-                <div class="overview-stat"><span class="label">已用额度</span><span class="val" id="usedDisplay">$0.00</span></div>
-                <div class="overview-stat"><span class="label">注册时间</span><span class="val" id="registerDateDisplay">--</span></div>
-            </div>
-        </div>
-
-        <!-- 个人资料编辑 -->
-        <div class="settings-section">
-            <div class="card">
-                <div class="card-header"><div class="card-title">个人资料</div></div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">显示名称</label>
-                        <input type="text" class="form-input" id="displayNameInput" placeholder="显示名称">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">用户名</label>
-                        <input type="text" class="form-input" id="usernameInput" placeholder="用户名" readonly>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">邮箱</label>
-                    <input type="email" class="form-input" id="emailInput" placeholder="邮箱地址">
-                </div>
-                <div style="display:flex; justify-content:flex-end; margin-top:16px;">
-                    <button class="btn btn-primary" onclick="updateProfile()">保存更改</button>
-                </div>
+            <div class="profile-header-right">
+                <div class="profile-stat"><span class="label">账户余额</span><span class="val" id="profileBalance">$0.00</span></div>
+                <div class="profile-stat"><span class="label">已用额度</span><span class="val" id="profileUsed">$0.00</span></div>
+                <div class="profile-stat"><span class="label">注册时间</span><span class="val" id="profileRegisterDate">--</span></div>
             </div>
         </div>
 
-        <!-- 修改密码 -->
-        <div class="settings-section">
-            <div class="card">
-                <div class="card-header"><div class="card-title">修改密码</div></div>
-                <div style="max-width:600px;">
-                    <div class="form-group">
-                        <label class="form-label">当前密码</label>
-                        <input type="password" class="form-input" id="currentPassword" placeholder="请输入当前密码">
+        <!-- Tab 导航 -->
+        <div class="profile-tabs">
+            <button class="profile-tab-btn active" data-tab="security">基础安全</button>
+            <button class="profile-tab-btn" data-tab="bindings">账户绑定</button>
+            <button class="profile-tab-btn" data-tab="settings">系统与通知</button>
+            <button class="profile-tab-btn" data-tab="rewards">福利与兑换</button>
+        </div>
+
+        <!-- Tab 内容容器 -->
+        <div class="profile-tab-content">
+            
+            <!-- Tab 1: 基础安全 -->
+            <div class="profile-tab-panel active" id="tab-security">
+                
+                <!-- 个人资料编辑 -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h3>个人资料</h3>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">新密码</label>
-                            <input type="password" class="form-input" id="newPassword" placeholder="至少8位">
+                    <div class="profile-card-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">显示名称</label>
+                                <input type="text" class="form-input" id="displayNameInput" placeholder="显示名称">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">用户名</label>
+                                <input type="text" class="form-input" id="usernameInput" placeholder="用户名" readonly>
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">确认新密码</label>
-                            <input type="password" class="form-input" id="confirmPassword" placeholder="再次输入新密码">
+                            <label class="form-label">邮箱</label>
+                            <input type="email" class="form-input" id="emailInput" placeholder="邮箱地址">
+                        </div>
+                        <div class="profile-card-actions">
+                            <button class="btn btn-primary" onclick="updateProfile()">保存更改</button>
                         </div>
                     </div>
-                    <div style="display:flex; justify-content:flex-end; margin-top:16px;">
-                        <button class="btn btn-primary" onclick="changePassword()">修改密码</button>
+                </div>
+
+                <!-- 修改密码 -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h3>修改密码</h3>
+                    </div>
+                    <div class="profile-card-body">
+                        <div class="form-group">
+                            <label class="form-label">当前密码</label>
+                            <input type="password" class="form-input" id="currentPassword" placeholder="请输入当前密码">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">新密码</label>
+                                <input type="password" class="form-input" id="newPassword" placeholder="至少8位">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">确认新密码</label>
+                                <input type="password" class="form-input" id="confirmPassword" placeholder="再次输入新密码">
+                            </div>
+                        </div>
+                        <div class="profile-card-actions">
+                            <button class="btn btn-primary" onclick="changePassword()">修改密码</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 系统访问令牌 -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h3>系统访问令牌</h3>
+                        <p>用于 API 调用的系统令牌</p>
+                    </div>
+                    <div class="profile-card-body">
+                        <div class="form-group">
+                            <label class="form-label">访问令牌</label>
+                            <input type="text" class="form-input" id="accessTokenInput" placeholder="点击生成令牌" readonly>
+                        </div>
+                        <div class="profile-card-actions">
+                            <button class="btn btn-primary" onclick="generateToken()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                                重新生成
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Passkey 与 2FA -->
+                <div class="security-grid">
+                    <!-- Passkey -->
+                    <div class="profile-card">
+                        <div class="profile-card-header">
+                            <h3>Passkey 通行密钥</h3>
+                            <p>使用 Passkey 可以更快速、更安全地登录</p>
+                        </div>
+                        <div class="profile-card-body">
+                            <div class="security-status">
+                                <div class="security-status-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                                </div>
+                                <div class="security-status-info">
+                                    <div class="security-status-title">
+                                        <span id="passkeyStatusText">未启用</span>
+                                        <span class="status-badge" id="passkeyStatusBadge">禁用</span>
+                                    </div>
+                                    <p id="passkeyLastUsed">从未使用</p>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" id="passkeyActionBtn" onclick="togglePasskey()">添加 Passkey</button>
+                            <div id="passkeyList" style="margin-top:12px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 2FA -->
+                    <div class="profile-card">
+                        <div class="profile-card-header">
+                            <h3>双因素认证 (2FA)</h3>
+                            <p>启用双因素认证后登录时需要输入动态验证码</p>
+                        </div>
+                        <div class="profile-card-body">
+                            <div class="security-status">
+                                <div class="security-status-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                </div>
+                                <div class="security-status-info">
+                                    <div class="security-status-title">
+                                        <span id="twoFAStatusText">未启用</span>
+                                        <span class="status-badge" id="twoFAStatusBadge">禁用</span>
+                                    </div>
+                                    <p id="twoFABackupCodes">备份码：--</p>
+                                </div>
+                            </div>
+                            <div id="twoFAActions">
+                                <button class="btn btn-primary" onclick="enable2FA()">启用 2FA</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 删除账户 -->
+                <div class="profile-card danger-card">
+                    <div class="profile-card-header">
+                        <h3>删除账户</h3>
+                        <p>永久删除您的账户和所有数据</p>
+                    </div>
+                    <div class="profile-card-body">
+                        <p class="warning-text">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            此操作不可撤销，将永久删除您的账户和所有相关数据。
+                        </p>
+                        <div class="profile-card-actions">
+                            <button class="btn btn-danger-solid" onclick="deleteAccount()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                删除账户
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Tab 2: 账户绑定 -->
+            <div class="profile-tab-panel" id="tab-bindings">
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h3>第三方账号绑定</h3>
+                        <p>绑定第三方账号以便快速登录</p>
+                    </div>
+                    <div class="profile-card-body">
+                        <div class="bindings-grid" id="bindingsList">
+                            <!-- 动态生成绑定项 -->
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 兑换码充值 -->
-        <div class="settings-section">
-            <div class="card">
-                <div class="card-header"><div class="card-title">兑换码充值</div></div>
-                <div style="max-width:400px;">
-                    <div class="form-group">
-                        <label class="form-label">兑换码</label>
-                        <input type="text" class="form-input" id="redeemCodeInput" placeholder="输入兑换码">
+            <!-- Tab 3: 系统与通知 -->
+            <div class="profile-tab-panel" id="tab-settings">
+                
+                <!-- 通知设置 -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h3>通知方式</h3>
+                        <p>选择接收额度预警通知的方式</p>
                     </div>
-                    <button class="btn btn-primary" onclick="redeemCode()">兑换</button>
-                </div>
-            </div>
-        </div>
+                    <div class="profile-card-body">
+                        <div class="notification-methods">
+                            <button class="notification-method active" data-method="email">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+                                <span>Email</span>
+                            </button>
+                            <button class="notification-method" data-method="webhook">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                <span>Webhook</span>
+                            </button>
+                            <button class="notification-method" data-method="bark">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                                <span>Bark</span>
+                            </button>
+                            <button class="notification-method" data-method="gotify">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                                <span>Gotify</span>
+                            </button>
+                        </div>
 
-        <!-- 签到日历 -->
-        <div class="settings-section">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">每日签到</div>
-                    <span class="badge badge-success" id="checkinBadge" style="display:none;">已签到</span>
-                </div>
-                <div class="card-body">
-                    <div style="margin-bottom:16px;">
-                        <span style="font-size:13px;color:var(--c-text-secondary);">连续签到：</span>
-                        <span style="font-size:20px;font-weight:700;color:var(--c-primary);" id="checkinStreak">0</span>
-                        <span style="font-size:13px;color:var(--c-text-secondary);margin-left:16px;">本月签到：</span>
-                        <span style="font-size:20px;font-weight:700;" id="checkinMonth">0</span>
+                        <div class="form-group" style="margin-top:20px;">
+                            <label class="form-label">额度预警阈值</label>
+                            <input type="number" class="form-input" id="quotaThreshold" placeholder="余额低于此值时发送通知">
+                            <p class="form-hint">当账户余额低于此值时，将通过选定的方式发送通知</p>
+                        </div>
+
+                        <!-- 动态通知配置区域 -->
+                        <div id="notificationConfig" style="margin-top:20px;"></div>
+
+                        <div class="profile-card-actions" style="margin-top:20px;">
+                            <button class="btn btn-primary" onclick="saveNotificationSettings()">保存通知设置</button>
+                        </div>
                     </div>
-                    <button class="btn btn-primary" onclick="doCheckin()" id="checkinBtn">立即签到</button>
-                    <div id="checkinCalendar" style="margin-top:20px;"></div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Passkey 管理 -->
-        <div class="settings-section">
-            <div class="card">
-                <div class="card-header"><div class="card-title">Passkey 通行密钥</div></div>
-                <div class="card-body">
-                    <p style="font-size:14px;color:var(--c-text-secondary);margin-bottom:16px;">
-                        使用 Passkey 可以更快速、更安全地登录，无需记住密码。
-                    </p>
-                    <button class="btn btn-primary" onclick="addPasskey()">添加 Passkey</button>
-                    <div id="passkeyList" style="margin-top:16px;"></div>
+                <!-- 偏好设置 -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h3>偏好设置</h3>
+                        <p>配置账户行为偏好</p>
+                    </div>
+                    <div class="profile-card-body">
+                        <div class="preference-item">
+                            <div class="preference-info">
+                                <span class="preference-label">接受未定价模型</span>
+                                <p class="preference-desc">允许使用没有价格配置的模型</p>
+                            </div>
+                            <label class="form-switch">
+                                <input type="checkbox" class="switch-input" id="acceptUnsetModel">
+                                <span class="switch-track"></span>
+                            </label>
+                        </div>
+                        <div class="preference-item">
+                            <div class="preference-info">
+                                <span class="preference-label">记录 IP 地址</span>
+                                <p class="preference-desc">在使用和错误日志中记录 IP 地址</p>
+                            </div>
+                            <label class="form-switch">
+                                <input type="checkbox" class="switch-input" id="recordIP">
+                                <span class="switch-track"></span>
+                            </label>
+                        </div>
+                        <div class="preference-item admin-only" id="upstreamNotifyItem" style="display:none;">
+                            <div class="preference-info">
+                                <span class="preference-label">上游模型更新通知</span>
+                                <p class="preference-desc">接收上游模型变化的通知（仅管理员）</p>
+                            </div>
+                            <label class="form-switch">
+                                <input type="checkbox" class="switch-input" id="upstreamNotify">
+                                <span class="switch-track"></span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- 双因素认证 -->
-        <div class="settings-section">
-            <div class="card">
-                <div class="card-header"><div class="card-title">双因素认证 (2FA)</div></div>
-                <div class="card-body">
-                    <p style="font-size:14px;color:var(--c-text-secondary);margin-bottom:16px;">
-                        启用双因素认证后，登录时需要输入动态验证码，增强账户安全。
-                    </p>
-                    <div id="twoFAStatus"></div>
+                <!-- 侧边栏设置 -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h3>侧边栏个性化</h3>
+                        <p>自定义侧边栏显示内容</p>
+                    </div>
+                    <div class="profile-card-body">
+                        <div id="sidebarModules">
+                            <!-- 动态生成侧边栏模块配置 -->
+                        </div>
+                        <div class="profile-card-actions" style="margin-top:20px;">
+                            <button class="btn btn-secondary" onclick="resetSidebarModules()">重置为默认</button>
+                            <button class="btn btn-primary" onclick="saveSidebarModules()">保存设置</button>
+                        </div>
+                    </div>
                 </div>
+
             </div>
+
+            <!-- Tab 4: 福利与兑换 -->
+            <div class="profile-tab-panel" id="tab-rewards">
+                
+                <!-- 兑换码充值 -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h3>兑换码充值</h3>
+                    </div>
+                    <div class="profile-card-body">
+                        <div class="form-group">
+                            <label class="form-label">兑换码</label>
+                            <input type="text" class="form-input" id="redeemCodeInput" placeholder="输入兑换码">
+                        </div>
+                        <button class="btn btn-primary" onclick="redeemCode()">兑换</button>
+                    </div>
+                </div>
+
+                <!-- 每日签到 -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <div>
+                            <h3>每日签到</h3>
+                        </div>
+                        <span class="badge badge-success" id="checkinBadge" style="display:none;">已签到</span>
+                    </div>
+                    <div class="profile-card-body">
+                        <div class="checkin-stats">
+                            <div class="checkin-stat-item">
+                                <span class="checkin-stat-label">连续签到</span>
+                                <span class="checkin-stat-value" id="checkinStreak">0</span>
+                            </div>
+                            <div class="checkin-stat-item">
+                                <span class="checkin-stat-label">本月签到</span>
+                                <span class="checkin-stat-value" id="checkinMonth">0</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="doCheckin()" id="checkinBtn">立即签到</button>
+                        <div id="checkinCalendar" style="margin-top:20px;"></div>
+                    </div>
+                </div>
+
+            </div>
+
         </div>
 
     </main>
@@ -211,6 +405,33 @@
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="close2FAModal()">取消</button>
             <button class="btn btn-primary" onclick="confirm2FA()">确认启用</button>
+        </div>
+    </div>
+</div>
+
+<!-- 邮箱绑定对话框 -->
+<div class="modal-overlay hidden" id="emailBindModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">绑定/修改邮箱</div>
+            <button class="modal-close" onclick="closeEmailBindModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">邮箱地址</label>
+                <input type="email" class="form-input" id="bindEmailInput" placeholder="输入邮箱地址">
+            </div>
+            <div class="form-group">
+                <label class="form-label">验证码</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="text" class="form-input" id="bindEmailCode" placeholder="输入验证码" style="flex:1;">
+                    <button class="btn btn-secondary" id="sendEmailCodeBtn" onclick="sendEmailCode()">发送验证码</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeEmailBindModal()">取消</button>
+            <button class="btn btn-primary" onclick="confirmEmailBind()">确认绑定</button>
         </div>
     </div>
 </div>

@@ -386,6 +386,68 @@ window.closeTaskDetail = function() {
     document.getElementById('taskDetailModal')?.classList.add('hidden');
 };
 
+// ========== CSV 导出 ==========
+window.exportTaskCSV = async function() {
+    showToast('正在导出，请稍候...', 'info');
+
+    const params = { p: 1, page_size: 10000 };
+    
+    // 应用当前筛选参数
+    const platform = document.getElementById('filterPlatform')?.value;
+    const status = document.getElementById('filterStatus')?.value;
+    const username = document.getElementById('filterUser')?.value.trim();
+    const taskId = document.getElementById('filterTaskId')?.value.trim();
+    const channelId = document.getElementById('filterChannelId')?.value.trim();
+    const startTime = document.getElementById('filterStartTime')?.value;
+    const endTime = document.getElementById('filterEndTime')?.value;
+
+    if (platform) params.platform = platform;
+    if (status) params.status = status;
+    if (username) params.username = username;
+    if (taskId) params.task_id = taskId;
+    if (channelId) params.channel_id = channelId;
+    if (startTime) params.start_timestamp = Math.floor(new Date(startTime).getTime() / 1000);
+    if (endTime) params.end_timestamp = Math.floor(new Date(endTime).getTime() / 1000);
+
+    const endpoint = taskIsAdmin ? API.getAllTask : API.getUserTask;
+    const res = await endpoint(params);
+
+    if (!res.success || !res.data) {
+        showToast('导出失败', 'error');
+        return;
+    }
+
+    const items = res.data?.items || [];
+    const header = ['提交时间', '结束时间', '花费时间', '渠道', '用户', '平台', '类型', '任务ID', '任务状态', '进度', '失败原因', '结果URL'];
+    const rows = items.map(item => {
+        const duration = formatDuration(item.submit_time, item.finish_time);
+        return [
+            formatTime(item.submit_time),
+            formatTime(item.finish_time),
+            duration,
+            item.channel_id || '',
+            item.username || '',
+            item.platform || '',
+            item.action || '',
+            item.task_id || '',
+            statusText[item.status] || item.status || '',
+            item.progress || '',
+            item.fail_reason || '',
+            item.result_url || '',
+        ].map(v => String(v).replace(/,/g, '，').replace(/\n/g, ' '));
+    });
+
+    const csv = [header, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `task_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`已导出 ${items.length} 条记录`, 'success');
+};
+
 // ========== 初始化 ==========
 document.addEventListener('DOMContentLoaded', async () => {
     renderSidebar('task-log');
