@@ -240,6 +240,34 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 		newAPIError = service.NormalizeViolationFeeError(newAPIError)
 		relayInfo.LastError = newAPIError
+
+		// Classify error before deciding how to record it.
+		// 429 (rate limit) and 401/403 (auth) should NOT pollute
+		// the breaker or success rate statistics.
+		if types.IsRateLimit(newAPIError) {
+			chErr := *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan())
+			processChannelError(c, chErr, newAPIError)
+			if releaseSelectedChannel {
+				channellimiter.Release(channel.Id)
+			}
+			retrySetting := operation_setting.GetRetrySetting()
+			if retryParam.GetRetry() < retrySetting.RateLimitRetryTimes {
+				time.Sleep(time.Duration(retrySetting.RateLimitRetryInterval) * time.Millisecond)
+				continue
+			}
+			break
+		}
+
+		if types.IsAuthError(newAPIError) {
+			chErr := *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan())
+			processChannelError(c, chErr, newAPIError)
+			if releaseSelectedChannel {
+				channellimiter.Release(channel.Id)
+			}
+			break
+		}
+
+		// timeout / 5xx / other: record to breaker + success rate
 		circuitbreaker.MarkFailure(channel.Id)
 		channelsuccessrate.Record(channel.Id, false)
 
