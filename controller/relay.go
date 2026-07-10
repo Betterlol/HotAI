@@ -252,8 +252,14 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			}
 			retrySetting := operation_setting.GetRetrySetting()
 			if retryParam.GetRetry() < retrySetting.RateLimitRetryTimes {
-				time.Sleep(time.Duration(retrySetting.RateLimitRetryInterval) * time.Millisecond)
-				continue
+				delay := time.Duration(retrySetting.RateLimitRetryInterval) * time.Millisecond
+				select {
+				case <-c.Request.Context().Done():
+					// Client disconnected or request timed out — don't waste a goroutine
+					return
+				case <-time.After(delay):
+					continue
+				}
 			}
 			break
 		}
@@ -615,12 +621,19 @@ func RelayTask(c *gin.Context) {
 		}
 
 		if !taskErr.LocalError {
-			circuitbreaker.MarkFailure(channel.Id)
-			channelsuccessrate.Record(channel.Id, false)
-			processChannelError(c,
-				*types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey,
-					common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()),
-				types.NewOpenAIError(taskErr.Error, types.ErrorCodeBadResponseStatusCode, taskErr.StatusCode))
+			// Classify error for the RelayTask path to avoid polluting
+			// breaker/success rate with rate limits and auth failures.
+			taskAPIErr := types.NewOpenAIError(taskErr.Error, types.ErrorCodeBadResponseStatusCode, taskErr.StatusCode)
+			chErr := *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey,
+				common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan())
+
+			if types.IsRateLimit(taskAPIErr) || types.IsAuthError(taskAPIErr) {
+				processChannelError(c, chErr, taskAPIErr)
+			} else {
+				circuitbreaker.MarkFailure(channel.Id)
+				channelsuccessrate.Record(channel.Id, false)
+				processChannelError(c, chErr, taskAPIErr)
+			}
 		}
 		if releaseSelectedChannel {
 			channellimiter.Release(channel.Id)
