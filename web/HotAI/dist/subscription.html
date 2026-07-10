@@ -40,53 +40,130 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- 创建/编辑订阅套餐模态框 -->
-<div class="modal-overlay hidden" id="subscriptionModal">
-    <div class="modal">
+<div class="modal-overlay hidden" id="planModal">
+    <div class="modal" style="max-width:660px;">
         <div class="modal-header">
-            <div class="modal-title" id="subscriptionModalTitle">创建订阅套餐</div>
-            <button class="modal-close" onclick="closeSubscriptionModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+            <div class="modal-title" id="planModalTitle">创建订阅套餐</div>
+            <button class="modal-close" onclick="closePlanModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         </div>
-        <div class="modal-body">
-            <input type="hidden" id="subscriptionId">
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">套餐名称 <span>*</span></label>
-                    <input type="text" class="form-input" id="subscriptionName" placeholder="如：基础版">
+        <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+            <input type="hidden" id="planId">
+            <!-- 基础信息 -->
+            <div style="background:#eff6ff;border:1px solid var(--c-border);border-radius:12px;padding:20px;margin-bottom:16px;">
+                <div style="font-weight:600;font-size:14px;color:var(--c-text-main);margin-bottom:14px;">基础信息</div>
+                <div class="form-row">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">套餐标题 <span>*</span></label>
+                        <input type="text" class="form-input" id="planTitle" placeholder="如：基础版">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">副标题</label>
+                        <input type="text" class="form-input" id="planSubtitle" placeholder="可选描述">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">价格 <span>*</span></label>
-                    <input type="number" class="form-input" id="subscriptionPrice" placeholder="单位：元" step="0.01">
+                <div class="form-row" style="margin-top:12px;">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">价格 (USD) <span>*</span></label>
+                        <input type="number" class="form-input" id="planPrice" placeholder="0.00" step="0.01" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">优先级 (sort_order)</label>
+                        <input type="number" class="form-input" id="planSortOrder" placeholder="0" value="0">
+                    </div>
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">周期 <span>*</span></label>
-                    <select class="form-select" id="subscriptionPeriod">
-                        <option value="month">月付</option>
-                        <option value="quarter">季付</option>
-                        <option value="year">年付</option>
-                    </select>
+            <!-- 有效期与重置 -->
+            <div style="background:#eff6ff;border:1px solid var(--c-border);border-radius:12px;padding:20px;margin-bottom:16px;">
+                <div style="font-weight:600;font-size:14px;color:var(--c-text-main);margin-bottom:14px;">有效期与额度重置</div>
+                <div class="form-row">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">有效期单位 <span>*</span></label>
+                        <select class="form-select" id="planDurationUnit">
+                            <option value="month">月</option>
+                            <option value="year">年</option>
+                            <option value="day">天</option>
+                            <option value="hour">小时</option>
+                            <option value="custom">自定义(秒)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">有效期数值 <span>*</span></label>
+                        <input type="number" class="form-input" id="planDurationValue" placeholder="1" value="1" min="1">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">额度 <span>*</span></label>
-                    <input type="number" class="form-input" id="subscriptionQuota" placeholder="每周期赠送的额度">
+                <div class="form-group" style="margin-top:12px;margin-bottom:0;" id="planCustomSecondsGroup" style="display:none;">
+                    <label class="form-label">自定义秒数</label>
+                    <input type="number" class="form-input" id="planCustomSeconds" placeholder="0" min="0">
+                </div>
+                <div class="form-row" style="margin-top:12px;">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">额度重置周期</label>
+                        <select class="form-select" id="planResetPeriod">
+                            <option value="never">从不重置</option>
+                            <option value="daily">每天</option>
+                            <option value="weekly">每周</option>
+                            <option value="monthly">每月</option>
+                            <option value="custom">自定义(秒)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;" id="planResetCustomGroup">
+                        <label class="form-label">重置自定义秒数</label>
+                        <input type="number" class="form-input" id="planResetCustomSeconds" placeholder="0" min="0">
+                    </div>
                 </div>
             </div>
-            <div class="form-group">
-                <label class="form-label">描述</label>
-                <textarea class="form-textarea" id="subscriptionDescription" rows="3" placeholder="套餐说明"></textarea>
+            <!-- 额度与限制 -->
+            <div style="background:#eff6ff;border:1px solid var(--c-border);border-radius:12px;padding:20px;margin-bottom:16px;">
+                <div style="font-weight:600;font-size:14px;color:var(--c-text-main);margin-bottom:14px;">额度与限制</div>
+                <div class="form-row">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">总额度 (0=不限)</label>
+                        <input type="number" class="form-input" id="planTotalAmount" placeholder="0" value="0" min="0">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">购买上限 (0=不限)</label>
+                        <input type="number" class="form-input" id="planMaxPurchase" placeholder="0" value="0" min="0">
+                    </div>
+                </div>
+                <div class="form-row" style="margin-top:12px;">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">升级分组</label>
+                        <input type="text" class="form-input" id="planUpgradeGroup" placeholder="留空不升级">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">降级分组</label>
+                        <input type="text" class="form-input" id="planDowngradeGroup" placeholder="留空不降级">
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
+            <!-- 支付渠道 -->
+            <div style="background:#eff6ff;border:1px solid var(--c-border);border-radius:12px;padding:20px;margin-bottom:16px;">
+                <div style="font-weight:600;font-size:14px;color:var(--c-text-main);margin-bottom:14px;">支付渠道配置</div>
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label class="form-label">Stripe Price ID</label>
+                    <input type="text" class="form-input" id="planStripeId" placeholder="price_xxx">
+                </div>
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label class="form-label">Creem Product ID</label>
+                    <input type="text" class="form-input" id="planCreemId" placeholder="creem_xxx">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">Waffo Pancake Product ID</label>
+                    <input type="text" class="form-input" id="planWaffoId" placeholder="waffo_xxx">
+                </div>
+            </div>
+            <!-- 状态 -->
+            <div class="form-group" style="margin:0;">
                 <label class="form-switch">
-                    <input type="checkbox" class="switch-input" id="subscriptionEnabled" checked>
+                    <input type="checkbox" class="switch-input" id="planEnabled" checked>
                     <span class="switch-track"></span>
                     <span class="switch-label">启用套餐</span>
                 </label>
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeSubscriptionModal()">取消</button>
-            <button class="btn btn-primary" onclick="saveSubscription()">保存</button>
+            <button class="btn btn-secondary" onclick="closePlanModal()">取消</button>
+            <button class="btn btn-primary" onclick="savePlan()">保存</button>
         </div>
     </div>
 </div>
@@ -94,51 +171,112 @@
 <div class="app-wrapper">
     <aside class="sidebar" id="sidebar"></aside>
     <main class="main-content">
+
+        <!-- 上半部分标题 -->
         <div class="page-header">
             <div class="page-title">订阅管理</div>
             <div class="page-actions">
-                <button class="btn btn-primary" onclick="openCreateSubscriptionModal()">
+                <button class="btn btn-primary" onclick="openCreatePlanModal()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     新建套餐
                 </button>
             </div>
         </div>
 
-        <!-- 订阅套餐列表 -->
-        <div class="settings-grid">
-            <div id="subscriptionPlansContainer">
-                <!-- 动态生成套餐卡片 -->
+        <!-- 上半部分卡片：订阅套餐列表 -->
+        <div class="table-card">
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <h3 style="font-size:15px;font-weight:600;margin:0;color:var(--c-text-main);">订阅套餐列表</h3>
+                </div>
+                <div class="table-toolbar-right" style="display:flex;align-items:center;gap:8px;">
+                    <div class="search-input-wrap">
+                        <svg viewBox="0 0 24 24"><path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+                        <input type="text" class="search-input" id="planSearch" placeholder="搜索套餐名称...">
+                    </div>
+                    <select class="form-select" id="planSortField" style="width:120px;border-radius:999px;padding:7px 28px 7px 12px;font-size:13px;">
+                        <option value="id">ID排序</option>
+                        <option value="price">价格排序</option>
+                        <option value="sort_order">优先级排序</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="togglePlanSortOrder()" id="planSortOrderBtn" title="切换排序">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" id="planSortIcon">
+                            <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadPlans()">刷新</button>
+                </div>
+            </div>
+            <div class="table-wrap" style="overflow-x:auto;">
+                <table style="white-space:nowrap;">
+                    <thead>
+                        <tr>
+                            <th style="text-align:center;">ID</th>
+                            <th style="text-align:center;">套餐</th>
+                            <th style="text-align:center;">价格</th>
+                            <th style="text-align:center;">购买上限</th>
+                            <th style="text-align:center;">优先级</th>
+                            <th style="text-align:center;">有效期</th>
+                            <th style="text-align:center;">重置</th>
+                            <th style="text-align:center;">状态</th>
+                            <th style="text-align:center;">支付渠道</th>
+                            <th style="text-align:center;">总额度</th>
+                            <th style="text-align:center;">升级分组</th>
+                            <th style="text-align:center;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="planTableBody">
+                        <tr><td colspan="12"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <!-- 订阅用户列表 -->
-        <div class="table-card" style="margin-top:24px;">
+        <!-- 浅灰色分割线 -->
+        <div style="height:1px;background:var(--c-border);margin:4px 0;"></div>
+
+        <!-- 下半部分标题（容器外） -->
+        <div class="page-header" style="margin-top:4px;">
+            <div class="page-title" style="font-size:18px;">订阅用户列表</div>
+        </div>
+
+        <!-- 下半部分卡片：订阅用户列表 -->
+        <div class="table-card">
             <div class="table-toolbar">
-                <div class="table-toolbar-left">
-                    <h3 style="font-size:16px;font-weight:600;margin:0;">订阅用户列表</h3>
-                </div>
-                <div class="table-toolbar-right">
+                <div class="table-toolbar-left" style="flex:1;">
                     <div class="search-input-wrap">
                         <svg viewBox="0 0 24 24"><path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
                         <input type="text" class="search-input" id="userSearch" placeholder="搜索用户...">
                     </div>
+                    <select class="form-select" id="userSortField" style="width:120px;border-radius:999px;padding:7px 28px 7px 12px;font-size:13px;">
+                        <option value="id">ID排序</option>
+                        <option value="username">用户名排序</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="toggleUserSortOrder()" id="userSortOrderBtn" title="切换排序">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" id="userSortIcon">
+                            <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="table-toolbar-right">
                     <button class="btn btn-secondary" onclick="loadSubscriptionUsers()">刷新</button>
                 </div>
             </div>
-            <div class="table-wrap">
-                <table>
+            <div class="table-wrap" style="overflow-x:auto;">
+                <table style="white-space:nowrap;">
                     <thead>
                         <tr>
-                            <th>用户名</th>
-                            <th>套餐</th>
-                            <th>状态</th>
-                            <th>开始时间</th>
-                            <th>到期时间</th>
-                            <th>操作</th>
+                            <th style="text-align:center;">用户ID</th>
+                            <th style="text-align:center;">用户名</th>
+                            <th style="text-align:center;">套餐</th>
+                            <th style="text-align:center;">状态</th>
+                            <th style="text-align:center;">开始时间</th>
+                            <th style="text-align:center;">到期时间</th>
+                            <th style="text-align:center;">操作</th>
                         </tr>
                     </thead>
                     <tbody id="subscriptionUsersTableBody">
-                        <tr><td colspan="6"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
+                        <tr><td colspan="7"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -147,6 +285,7 @@
                 <div class="pagination-pages" id="subscriptionUsersPages"></div>
             </div>
         </div>
+
     </main>
 </div>
 

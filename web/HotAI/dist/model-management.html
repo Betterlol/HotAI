@@ -29,6 +29,7 @@
         .vendor-dropdown-item:hover { background:var(--c-primary-light);color:var(--c-primary); }
         .prefill-group-item { border:1px solid var(--c-border);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;background:var(--c-white); }
         .endpoint-tag { display:inline-flex;align-items:center;padding:2px 8px;background:#EFF6FF;color:#1D4ED8;border-radius:999px;font-size:11px;margin:2px; }
+        code { font-family:monospace;background:#F3F4F6;border-radius:4px;padding:1px 5px;font-size:12px; }
     </style>
 </head>
 <body>
@@ -259,17 +260,32 @@
     </div>
 </div>
 
-<!-- 新增供应商弹窗 -->
+<!-- 新增/编辑供应商弹窗 -->
 <div class="modal-overlay hidden" id="vendorModal">
-    <div class="modal" style="max-width:440px;width:92vw;">
+    <div class="modal" style="max-width:520px;width:92vw;">
         <div class="modal-header">
-            <div class="modal-title">新增供应商</div>
+            <div class="modal-title" id="vendorModalTitle">新增供应商</div>
             <button class="modal-close" onclick="closeVendorModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         </div>
         <div class="modal-body">
+            <input type="hidden" id="vendorId">
             <div class="form-group">
                 <label class="form-label">供应商名称 <span style="color:#EF4444;">*</span></label>
-                <input type="text" class="form-input" id="vendorName" placeholder="输入供应商名称" style="border-radius:12px;">
+                <input type="text" class="form-input" id="vendorName" placeholder="输入供应商名称，如 OpenAI" style="border-radius:12px;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">描述</label>
+                <textarea class="form-textarea" id="vendorDescription" placeholder="请输入供应商描述" rows="3" style="border-radius:12px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">供应商图标</label>
+                <input type="text" class="form-input" id="vendorIcon" placeholder="如：OpenAI、Claude.Color、OpenRouter.Avatar" style="border-radius:12px;">
+                <p class="form-hint" style="margin-top:6px;">
+                    图标使用 <a href="https://lobehub.com/icons" target="_blank" style="color:var(--c-primary);">@lobehub/icons</a> 库，
+                    如：<code>OpenAI</code>、<code>Claude.Color</code>，支持链式参数：
+                    <code>OpenAI.Avatar.type={'platform'}</code>、<code>OpenRouter.Avatar.shape={'square'}</code>。
+                    <a href="https://lobehub.com/icons" target="_blank" style="color:var(--c-primary);">查询所有可用图标请点击我</a>
+                </p>
             </div>
             <div class="form-group" style="margin-bottom:0;">
                 <label class="capsule-switch-wrap" style="cursor:pointer;">
@@ -343,6 +359,11 @@
                     <select class="form-select" id="filterVendor" onchange="loadModels()" style="width:180px;margin-left:12px;border-radius:999px;padding:7px 30px 7px 12px;">
                         <option value="">全部供应商</option>
                     </select>
+                    <select class="form-select" id="sortField" onchange="loadModels()" style="width:130px;margin-left:12px;">
+                        <option value="id">ID排序</option>
+                        <option value="model_name">名称排序</option>
+                        <option value="created_time">创建时间排序</option>
+                    </select>
                     <button class="btn btn-secondary" onclick="toggleSortOrder()" style="margin-left:8px;" id="sortOrderBtn" title="切换排序">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" id="sortIcon"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
                     </button>
@@ -361,26 +382,22 @@
                     <thead>
                         <tr>
                             <th style="text-align:center;white-space:nowrap;width:50px;">图标</th>
-                            <th class="th-sortable" style="text-align:center;white-space:nowrap;min-width:180px;" onclick="setSortBy('model_name')">
-                                模型名称<span class="sort-indicator" id="sort_model_name">↕</span>
-                            </th>
-                            <th class="th-sortable" style="text-align:center;white-space:nowrap;min-width:100px;" onclick="setSortBy('name_rule')">
-                                匹配类型<span class="sort-indicator" id="sort_name_rule">↕</span>
-                            </th>
-                            <th class="th-sortable" style="text-align:center;white-space:nowrap;min-width:100px;" onclick="setSortBy('vendor_id')">
-                                供应商<span class="sort-indicator" id="sort_vendor_id">↕</span>
-                            </th>
+                            <th style="text-align:center;white-space:nowrap;min-width:180px;">模型名称</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:100px;">匹配类型</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:100px;">供应商</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:120px;">标签</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:140px;">已绑定渠道</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:120px;">可用分组</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:100px;">计费类型</th>
                             <th style="text-align:center;white-space:nowrap;min-width:80px;">官方同步</th>
                             <th style="text-align:center;white-space:nowrap;min-width:60px;">状态</th>
                             <th style="text-align:center;white-space:nowrap;min-width:120px;">端点</th>
-                            <th class="th-sortable" style="text-align:center;white-space:nowrap;min-width:140px;" onclick="setSortBy('created_time')">
-                                创建时间<span class="sort-indicator" id="sort_created_time">↕</span>
-                            </th>
+                            <th style="text-align:center;white-space:nowrap;min-width:140px;">创建时间</th>
                             <th style="text-align:center;white-space:nowrap;min-width:200px;">操作</th>
                         </tr>
                     </thead>
                     <tbody id="modelTableBody">
-                        <tr><td colspan="9" style="text-align:center;padding:60px 20px;color:var(--c-text-secondary);">加载中...</td></tr>
+                        <tr><td colspan="13" style="text-align:center;padding:60px 20px;color:var(--c-text-secondary);">加载中...</td></tr>
                     </tbody>
                 </table>
             </div>

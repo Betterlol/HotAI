@@ -2,6 +2,8 @@
 let rdPage = 1;
 const rdPageSize = 20;
 let rdTotal = 0;
+let rdSortField = 'id';  // id, name, created_time
+let rdSortOrder = 'desc'; // asc, desc
 
 function showToast(msg, type='info') {
     const c=document.getElementById('toastContainer');if(!c)return;
@@ -10,11 +12,12 @@ function showToast(msg, type='info') {
 function escHtml(s){return String(s).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"');}
 function quotaToDisplay(q){if(!q)return '$0.0000';return '$'+(q/500000).toFixed(4);}
 function formatTime(ts){if(!ts||ts<=0)return '-';return new Date(ts*1000).toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
+function formatExpireTime(ts){if(!ts||ts<=0)return '永不过期';const now=Math.floor(Date.now()/1000);const isExpired=ts<now;const timeStr=formatTime(ts);return isExpired?`<span style="color:#dc2626;">${timeStr}</span>`:timeStr;}
 
 async function loadRd() {
     const search = document.getElementById('rdSearch').value.trim();
     const tbody = document.getElementById('rdTableBody');
-    tbody.innerHTML = '<tr><td colspan="7"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>';
 
     let res;
     if (search) {
@@ -24,34 +27,36 @@ async function loadRd() {
     }
 
     if (!res.success) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="table-empty"><span>${res.message||'加载失败'}</span></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9"><div class="table-empty"><span>${res.message||'加载失败'}</span></div></td></tr>`;
         return;
     }
 
-    const items = res.data?.items || [];
+    let items = res.data?.items || [];
     rdTotal = res.data?.total || items.length;
     document.getElementById('rdPageInfo').textContent = `共 ${rdTotal} 条`;
 
     if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7"><div class="table-empty"><span>暂无兑换码</span></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9"><div class="table-empty"><span>暂无兑换码</span></div></td></tr>';
         renderPagination(); return;
     }
+
+    // 前端排序
+    items = sortRedemptions(items);
 
     tbody.innerHTML = items.map(rd => {
         const statusBadge = rd.status === 1
             ? '<span class="badge badge-green">可用</span>'
-            : '<span class="badge badge-red">已使用</span>';
-        return `<tr>
-            <td><input type="checkbox" class="rd-checkbox" data-id="${rd.id}" onchange="toggleSelectRd(${rd.id})" ${selectedRds.has(rd.id)?'checked':''}></td>
-            <td><strong>${escHtml(rd.name||'-')}</strong></td>
-            <td class="td-mono" style="font-size:12px;">${escHtml(rd.key||'-')}
-                <button class="btn btn-secondary btn-sm" style="margin-left:4px;" onclick="navigator.clipboard.writeText('${escHtml(rd.key||'')}').then(()=>showToast('已复制','success'))">复制</button>
-            </td>
-            <td style="font-weight:600;">${quotaToDisplay(rd.quota)}</td>
-            <td>${statusBadge}</td>
-            <td>${escHtml(rd.used_username||'-')}</td>
-            <td class="td-mono">${formatTime(rd.used_time)}</td>
-            <td>
+            : (rd.status === 2 ? '<span class="badge badge-gray">禁用</span>' : '<span class="badge badge-red">已使用</span>');
+        return `<tr data-key="${escHtml(rd.key||'')}">
+            <td style="text-align:center;"><input type="checkbox" class="rd-checkbox" data-id="${rd.id}" onchange="toggleSelectRd(${rd.id})" ${selectedRds.has(rd.id)?'checked':''}></td>
+            <td style="text-align:center;">${rd.id}</td>
+            <td style="text-align:center;"><strong>${escHtml(rd.name||'-')}</strong></td>
+            <td style="text-align:center;">${statusBadge}</td>
+            <td style="text-align:center;font-weight:600;">${quotaToDisplay(rd.quota)}</td>
+            <td style="text-align:center;" class="td-mono">${formatTime(rd.created_time)}</td>
+            <td style="text-align:center;" class="td-mono">${formatExpireTime(rd.expired_time)}</td>
+            <td style="text-align:center;">${rd.used_user_id > 0 ? rd.used_user_id : '-'}</td>
+            <td style="text-align:center;">
                 <div class="td-actions">
                     <button class="btn btn-danger btn-sm" onclick="deleteRd(${rd.id},'${escHtml(rd.name||'')}')">删除</button>
                 </div>
@@ -60,6 +65,7 @@ async function loadRd() {
     }).join('');
 
     renderPagination();
+    updateCopyBtnState();
 }
 
 function renderPagination() {
@@ -149,6 +155,80 @@ async function batchDeleteRds() {
     selectedRds.clear(); updateRdBatchBar(); loadRd();
 }
 
+// ========== 排序功能 ==========
+function sortRedemptions(items) {
+    return items.sort((a, b) => {
+        let valA, valB;
+        if (rdSortField === 'id') {
+            valA = a.id; valB = b.id;
+        } else if (rdSortField === 'name') {
+            valA = (a.name || '').toLowerCase(); valB = (b.name || '').toLowerCase();
+        } else if (rdSortField === 'created_time') {
+            valA = a.created_time || 0; valB = b.created_time || 0;
+        }
+        if (rdSortOrder === 'asc') {
+            return valA > valB ? 1 : valA < valB ? -1 : 0;
+        } else {
+            return valA < valB ? 1 : valA > valB ? -1 : 0;
+        }
+    });
+}
+
+function toggleRdSortOrder() {
+    rdSortOrder = rdSortOrder === 'asc' ? 'desc' : 'asc';
+    const icon = document.getElementById('rdSortIcon');
+    if (icon) {
+        if (rdSortOrder === 'asc') {
+            icon.innerHTML = '<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>';
+        } else {
+            icon.innerHTML = '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>';
+        }
+    }
+    loadRd();
+}
+
+function resetRdFilters() {
+    rdSortField = 'id';
+    rdSortOrder = 'desc';
+    document.getElementById('rdSortField').value = 'id';
+    const icon = document.getElementById('rdSortIcon');
+    if (icon) icon.innerHTML = '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>';
+    document.getElementById('rdSearch').value = '';
+    rdPage = 1;
+    loadRd();
+}
+
+// ========== 复制功能 ==========
+function updateCopyBtnState() {
+    const btn = document.getElementById('copySelectedBtn');
+    if (btn) btn.disabled = selectedRds.size === 0;
+}
+
+async function copySelectedRds() {
+    if (!selectedRds.size) {
+        showToast('请至少选择一条兑换码', 'warning');
+        return;
+    }
+    const codes = [];
+    document.querySelectorAll('tr[data-key]').forEach(row => {
+        const checkbox = row.querySelector('.rd-checkbox');
+        if (checkbox && selectedRds.has(parseInt(checkbox.dataset.id))) {
+            const key = row.getAttribute('data-key');
+            if (key) codes.push(key);
+        }
+    });
+    if (codes.length === 0) {
+        showToast('未找到兑换码', 'error');
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(codes.join('\n'));
+        showToast(`已复制 ${codes.length} 个兑换码`, 'success');
+    } catch (err) {
+        showToast('复制失败', 'error');
+    }
+}
+
 // ========== 导出兑换码 ==========
 async function exportRds() {
     showToast('正在导出...', 'info');
@@ -156,14 +236,16 @@ async function exportRds() {
     if (!res.success || !res.data) { showToast('导出失败', 'error'); return; }
 
     const items = res.data?.items || [];
-    const header = ['名称', '兑换码', '额度', '状态', '使用者', '使用时间'];
+    const header = ['ID', '名称', '状态', '额度', '创建时间', '过期时间', '兑换人ID', '兑换码'];
     const rows = items.map(rd => [
+        rd.id || '',
         rd.name || '',
-        rd.key || '',
+        rd.status === 1 ? '可用' : (rd.status === 2 ? '禁用' : '已使用'),
         (rd.quota / 500000).toFixed(4),
-        rd.status === 1 ? '可用' : '已使用',
-        rd.used_username || '',
-        rd.used_time ? formatTime(rd.used_time) : '',
+        rd.created_time ? formatTime(rd.created_time) : '',
+        rd.expired_time ? (rd.expired_time > 0 ? formatTime(rd.expired_time) : '永不过期') : '',
+        rd.used_user_id > 0 ? rd.used_user_id : '',
+        rd.key || '',
     ]);
 
     const csv = [header, ...rows].map(r => r.join(',')).join('\n');

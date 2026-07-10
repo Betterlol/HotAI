@@ -15,6 +15,7 @@ const ChannelState = {
         sort_by: 'id',
         sort_order: 'desc'
     },
+    sortField: 'id', // 排序字段：id, name, priority
     allModels: [],
     allGroups: [],
     prefillGroups: [],
@@ -84,17 +85,44 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.querySelectorAll('.action-menu.show').forEach(m => m.classList.remove('show'));
         }
     });
-    // 筛选器 change 监听（合并，避免重复 DOMContentLoaded）
-    ['filterGroup','filterStatus','filterType'].forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.addEventListener('change', (e) => {
-            const key = id.replace('filter','').toLowerCase();
-            ChannelState.filters[key] = e.target.value;
+    
+    // 筛选器事件监听（照抄 user.js 模式，各自独立绑定）
+    const filterGroup = document.getElementById('filterGroup');
+    if (filterGroup) {
+        filterGroup.addEventListener('change', (e) => {
+            ChannelState.filters.group = e.target.value;
             ChannelState.currentPage = 1;
             loadChannels();
         });
-    });
+    }
+    
+    const filterStatus = document.getElementById('filterStatus');
+    if (filterStatus) {
+        filterStatus.addEventListener('change', (e) => {
+            ChannelState.filters.status = e.target.value;
+            ChannelState.currentPage = 1;
+            loadChannels();
+        });
+    }
+    
+    const filterType = document.getElementById('filterType');
+    if (filterType) {
+        filterType.addEventListener('change', (e) => {
+            ChannelState.filters.type = e.target.value;
+            ChannelState.currentPage = 1;
+            loadChannels();
+        });
+    }
+    
+    const sortFieldSelect = document.getElementById('sortField');
+    if (sortFieldSelect) {
+        sortFieldSelect.addEventListener('change', (e) => {
+            ChannelState.sortField = e.target.value;
+            ChannelState.filters.sort_by = e.target.value;
+            ChannelState.currentPage = 1;
+            loadChannels();
+        });
+    }
 });
 
 // ========== 数据加载 ==========
@@ -771,10 +799,14 @@ async function updateTypeFilter() {
     try {
         // 获取所有渠道（不分页）以统计类型分布
         const res = await API.getChannelsEx({ p: 1, page_size: 2000 });
-        if (!res.success || !res.data || !res.data.length) return;
+        if (!res.success || !res.data) return;
+        
+        // 兼容两种响应格式：{data: {items: [...], total: N}} 或 {data: [...]}
+        const channels = (res.data && res.data.items) ? res.data.items : (Array.isArray(res.data) ? res.data : []);
+        if (!channels.length) return;
         
         const typeCounts = {};
-        res.data.forEach(ch => {
+        channels.forEach(ch => {
             typeCounts[ch.type] = (typeCounts[ch.type] || 0) + 1;
         });
         
@@ -829,8 +861,14 @@ function resetFilters() {
     document.getElementById('filterGroup').value = '';
     document.getElementById('filterStatus').value = '';
     document.getElementById('filterType').value = '';
+    const sortFieldSelect = document.getElementById('sortField');
+    if (sortFieldSelect) sortFieldSelect.value = 'id';
+    ChannelState.sortField = 'id';
     ChannelState.filters = { keyword:'', model:'', group:'', status:'', type:'', sort_by:'id', sort_order:'desc' };
     ChannelState.currentPage = 1;
+    // 重置排序图标为降序
+    const sortIcon = document.getElementById('sortIcon');
+    if (sortIcon) sortIcon.innerHTML = '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>';
     loadChannels();
 }
 

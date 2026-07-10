@@ -8,6 +8,92 @@
     <title>控制台 - 系统设置</title>
     <link rel="stylesheet" href="css/head.css">
     <link rel="stylesheet" href="css/console-shared.css">
+    <style>
+        /* Tab 导航栏样式 */
+        .settings-tabs {
+            display: flex;
+            gap: 8px;
+            padding: 0 24px;
+            background: var(--c-white);
+            border-bottom: 1px solid var(--c-border);
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        .settings-tabs::-webkit-scrollbar {
+            height: 4px;
+        }
+        .settings-tabs::-webkit-scrollbar-thumb {
+            background: var(--c-border);
+            border-radius: 2px;
+        }
+        .tab-item {
+            padding: 14px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--c-text-secondary);
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            white-space: nowrap;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-item:hover {
+            color: var(--c-primary);
+        }
+        .tab-item.active {
+            color: var(--c-primary);
+            border-bottom-color: var(--c-primary);
+        }
+        
+        /* Tab 内容区样式 */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* 设置网格保持原样 */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        
+        @media (max-width: 1024px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Pricing 子Tab样式 */
+        .pricing-subtab {
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--c-text-secondary);
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            white-space: nowrap;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+        .pricing-subtab:hover {
+            color: var(--c-primary);
+        }
+        .pricing-subtab.active {
+            color: var(--c-primary);
+            border-bottom-color: var(--c-primary);
+        }
+        .pricing-subtab-content {
+            display: none;
+        }
+        .pricing-subtab-content.active {
+            display: block;
+        }
+    </style>
 </head>
 <body>
 <header class="navbar">
@@ -70,317 +156,649 @@
 
 <div class="app-wrapper">
     <aside class="sidebar" id="sidebar"></aside>
-    <main class="main-content">
-        <div class="page-header">
+    <main class="main-content" style="padding: 0; display: flex; flex-direction: column;">
+        <!-- 页面标题栏 -->
+        <div class="page-header" style="padding: 24px 24px 16px 24px; flex-shrink: 0;">
             <div class="page-title">系统设置</div>
             <div class="page-actions">
                 <button class="btn btn-primary" onclick="saveAllSettings()">保存全部设置</button>
             </div>
         </div>
 
-        <div class="settings-grid">
-            <!-- 基础设置 -->
-            <div class="setting-card">
-                <div class="setting-card-header"><h3>基础设置</h3>
-                    <p>配置系统基本信息和行为</p></div>
-                <div class="setting-card-body">
-                    <div class="form-group"><label class="form-label">系统名称</label><input type="text"
-                                                                                             class="form-input"
-                                                                                             id="systemName"
-                                                                                             placeholder="图灵智算">
-                    </div>
-                    <div class="form-group"><label class="form-label">Logo URL</label><input type="text"
-                                                                                             class="form-input"
-                                                                                             id="logoUrl"
-                                                                                             placeholder="/logo.png">
-                    </div>
-                    <div class="form-group"><label class="form-label">首页内容</label><textarea class="form-textarea"
-                                                                                                id="homeContent"
-                                                                                                rows="3"
-                                                                                                placeholder="首页展示内容"></textarea>
-                    </div>
-                    <div class="form-group"><label class="form-label">页脚内容</label><input type="text"
-                                                                                             class="form-input"
-                                                                                             id="footerHtml"
-                                                                                             placeholder="页脚HTML">
-                    </div>
-                </div>
-            </div>
+        <!-- Tab 导航栏 -->
+        <div class="settings-tabs">
+            <button class="tab-item active" data-tab="operations">运营设置</button>
+            <button class="tab-item" data-tab="dashboard">仪表盘</button>
+            <button class="tab-item" data-tab="chat">聊天设置</button>
+            <button class="tab-item" data-tab="drawing">绘图设置</button>
+            <button class="tab-item" data-tab="payment">支付设置</button>
+            <button class="tab-item" data-tab="pricing">分组与模型定价</button>
+            <button class="tab-item" data-tab="ratelimit">速率限制</button>
+            <button class="tab-item" data-tab="models">模型相关设置</button>
+            <button class="tab-item" data-tab="performance">性能设置</button>
+            <button class="tab-item" data-tab="system">系统设置</button>
+        </div>
 
-            <!-- 注册设置 -->
-            <div class="setting-card">
-                <div class="setting-card-header"><h3>注册与登录</h3>
-                    <p>控制用户注册和登录行为</p></div>
-                <div class="setting-card-body">
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="registerEnabled"><span
-                            class="switch-track"></span><span class="switch-label">允许新用户注册</span></label></div>
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="emailVerificationEnabled"><span
-                            class="switch-track"></span><span class="switch-label">注册需邮箱验证</span></label></div>
-                    <div class="form-group"><label class="form-label">新用户初始额度</label><input type="number"
-                                                                                                   class="form-input"
-                                                                                                   id="newUserQuota"
-                                                                                                   value="500000"></div>
-                    <div class="form-group"><label class="form-label">新用户分组</label><input type="text"
-                                                                                               class="form-input"
-                                                                                               id="newUserGroup"
-                                                                                               value="default"></div>
-                </div>
-            </div>
+        <!-- Tab 内容区 -->
+        <div style="flex: 1; overflow-y: auto; padding: 24px;">
+            
+            <!-- Tab 1: 运营设置 -->
+            <div class="tab-content active" id="tab-operations">
+                <div class="settings-grid">
+                    <!-- 系统行为 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>系统行为</h3><p>系统操作模式配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="DefaultCollapseSidebar"><span class="switch-track"></span><span class="switch-label">默认折叠侧边栏</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="DemoSiteEnabled"><span class="switch-track"></span><span class="switch-label">演示站点模式</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="SelfUseModeEnabled"><span class="switch-track"></span><span class="switch-label">自用模式</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="LoginRequiredEnabled"><span class="switch-track"></span><span class="switch-label">需要登录才能访问</span></label></div>
+                        </div>
+                    </div>
 
-            <!-- 充值设置 -->
-            <div class="setting-card">
-                <div class="setting-card-header"><h3>充值配置</h3>
-                    <p>在线充值和支付设置</p></div>
-                <div class="setting-card-body">
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="topupEnabled"><span
-                            class="switch-track"></span><span class="switch-label">启用在线充值</span></label></div>
-                    <div class="form-group"><label class="form-label">最小充值金额</label><input type="number"
-                                                                                                 class="form-input"
-                                                                                                 id="minTopup" value="1"
-                                                                                                 step="0.01"></div>
-                    <div class="form-group"><label class="form-label">充值汇率</label><input type="number"
-                                                                                             class="form-input"
-                                                                                             id="topupRatio" value="15"
-                                                                                             step="0.1">
-                        <div class="hint-text">1 RMB = ? quota (500000 quota = $1)</div>
+                    <!-- 顶栏管理 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>顶栏管理</h3><p>配置导航栏显示的菜单项</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="NavHomeEnabled"><span class="switch-track"></span><span class="switch-label">显示「首页」</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="NavConsoleEnabled"><span class="switch-track"></span><span class="switch-label">显示「控制台」</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="NavModelEnabled"><span class="switch-track"></span><span class="switch-label">显示「模型广场」</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="NavDocsEnabled"><span class="switch-track"></span><span class="switch-label">显示「文档」</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="NavAboutEnabled"><span class="switch-track"></span><span class="switch-label">显示「关于」</span></label></div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- 日志设置 -->
-            <div class="setting-card">
-                <div class="setting-card-header"><h3>日志配置</h3>
-                    <p>控制日志记录行为</p></div>
-                <div class="setting-card-body">
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="logEnabled"><span
-                            class="switch-track"></span><span class="switch-label">启用日志记录</span></label></div>
-                    <div class="form-group"><label class="form-label">日志保留天数</label><input type="number"
-                                                                                                 class="form-input"
-                                                                                                 id="logRetentionDays"
-                                                                                                 value="30"></div>
-                </div>
-            </div>
+                    <!-- 监控与告警 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>监控与告警</h3><p>额度监控和性能指标</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-label">额度提醒阈值</label><input type="number" class="form-input" id="QuotaRemindThreshold" placeholder="0" min="0">
+                                <div class="hint-text">当用户额度低于此值时发送提醒</div>
+                            </div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="PerfMetricsEnabled"><span class="switch-track"></span><span class="switch-label">启用性能指标收集</span></label></div>
+                            <div class="form-group"><label class="form-label">指标刷新间隔（分钟）</label><input type="number" class="form-input" id="PerfMetricsFlushInterval" value="5" min="1"></div>
+                            <div class="form-group"><label class="form-label">时间粒度</label>
+                                <select class="form-select" id="PerfMetricsBucketTime">
+                                    <option value="minute">分钟</option>
+                                    <option value="5min">5分钟</option>
+                                    <option value="hour">小时</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label class="form-label">指标保留天数</label><input type="number" class="form-input" id="PerfMetricsRetentionDays" value="0" min="0">
+                                <div class="hint-text">0 表示永久保留</div>
+                            </div>
+                        </div>
+                    </div>
 
-            <!-- 监控设置 -->
-            <div class="setting-card">
-                <div class="setting-card-header"><h3>监控配置</h3>
-                    <p>Uptime Kuma 监控集成</p></div>
-                <div class="setting-card-body">
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="monitorEnabled"><span
-                            class="switch-track"></span><span class="switch-label">启用监控</span></label></div>
-                    <div class="form-group"><label class="form-label">Uptime Kuma URL</label><input type="text"
-                                                                                                    class="form-input"
-                                                                                                    id="uptimeKumaUrl"
-                                                                                                    placeholder="https://status.example.com">
+                    <!-- 日志维护 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>日志维护</h3><p>日志记录和清理</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="LogConsumeEnabled"><span class="switch-track"></span><span class="switch-label">启用额度消费日志记录</span></label></div>
+                            <div class="form-group"><label class="form-label">清除历史日志</label>
+                                <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+                                    <input type="date" class="form-input" id="LogPurgeDate" style="flex:1;">
+                                    <button class="btn btn-secondary" onclick="purgeOldLogs()">清除</button>
+                                </div>
+                                <div class="hint-text">清除指定日期之前的所有日志</div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- SMTP 设置 -->
-            <div class="setting-card">
-                <div class="setting-card-header"><h3>邮件配置</h3>
-                    <p>SMTP 服务器设置</p></div>
-                <div class="setting-card-body">
-                    <div class="form-group"><label class="form-label">SMTP 服务器</label><input type="text"
-                                                                                                class="form-input"
-                                                                                                id="smtpServer"
-                                                                                                placeholder="smtp.example.com">
+                    <!-- Worker 代理 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>Worker 代理</h3><p>Cloudflare Worker 代理配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-label">Worker 地址</label><input type="text" class="form-input" id="WorkerUrl" placeholder="https://worker.example.com"></div>
+                            <div class="form-group"><label class="form-label">Worker 密钥</label><input type="password" class="form-input" id="WorkerValidKey" placeholder="验证密钥"></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="WorkerAllowHttpImageRequestEnabled"><span class="switch-track"></span><span class="switch-label">允许 HTTP 协议图片请求</span></label></div>
+                        </div>
                     </div>
-                    <div class="form-group"><label class="form-label">SMTP 端口</label><input type="number"
-                                                                                              class="form-input"
-                                                                                              id="smtpPort" value="587">
-                    </div>
-                    <div class="form-group"><label class="form-label">发件人地址</label><input type="email"
-                                                                                               class="form-input"
-                                                                                               id="smtpFrom"
-                                                                                               placeholder="no-reply@example.com">
-                    </div>
-                    <div class="form-group"><label class="form-label">SMTP 用户名</label><input type="text"
-                                                                                                class="form-input"
-                                                                                                id="smtpUsername"></div>
-                    <div class="form-group"><label class="form-label">SMTP 密码</label><input type="password"
-                                                                                              class="form-input"
-                                                                                              id="smtpPassword"></div>
-                </div>
-            </div>
 
-            <!-- 安全设置 -->
-            <div class="setting-card">
-                <div class="setting-card-header"><h3>安全设置</h3>
-                    <p>登录安全与访问控制</p></div>
-                <div class="setting-card-body">
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="passwordLoginEnabled"><span
-                            class="switch-track"></span><span class="switch-label">允许密码登录</span></label></div>
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="githubOAuthEnabled"><span
-                            class="switch-track"></span><span class="switch-label">启用 GitHub OAuth</span></label>
+                    <!-- 通用运营设置 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>通用设置</h3><p>基础运营配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-label">充值链接</label><input type="text" class="form-input" id="TopUpLink" placeholder="https://example.com/topup"></div>
+                            <div class="form-group"><label class="form-label">服务器地址</label><input type="text" class="form-input" id="ServerAddress" placeholder="https://example.com"></div>
+                            <div class="form-group"><label class="form-label">失败重试次数</label><input type="number" class="form-input" id="RetryTimes" value="0" min="0"></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="DisplayInCurrencyEnabled"><span class="switch-track"></span><span class="switch-label">额度以货币形式显示</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="DisplayTokenStatEnabled"><span class="switch-track"></span><span class="switch-label">Billing API 显示令牌额度</span></label></div>
+                        </div>
                     </div>
-                    <div class="form-group"><label class="form-label">GitHub Client ID</label><input type="text"
-                                                                                                     class="form-input"
-                                                                                                     id="githubClientId"
-                                                                                                     placeholder="GitHub OAuth App Client ID">
-                    </div>
-                    <div class="form-group"><label class="form-label">GitHub Client Secret</label><input type="password"
-                                                                                                         class="form-input"
-                                                                                                         id="githubClientSecret"
-                                                                                                         placeholder="GitHub OAuth App Client Secret">
-                    </div>
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="googleOAuthEnabled"><span
-                            class="switch-track"></span><span class="switch-label">启用 Google OAuth</span></label>
-                    </div>
-                    <div class="form-group"><label class="form-label">Google Client ID</label><input type="text"
-                                                                                                     class="form-input"
-                                                                                                     id="googleClientId"
-                                                                                                     placeholder="Google OAuth Client ID">
-                    </div>
-                    <div class="form-group"><label class="form-label">Google Client Secret</label><input type="password"
-                                                                                                         class="form-input"
-                                                                                                         id="googleClientSecret"
-                                                                                                         placeholder="Google OAuth Client Secret">
-                    </div>
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="wechatOAuthEnabled"><span
-                            class="switch-track"></span><span class="switch-label">启用微信登录</span></label></div>
-                    <div class="form-group"><label class="form-label">微信 AppID</label><input type="text"
-                                                                                               class="form-input"
-                                                                                               id="wechatAppId"
-                                                                                               placeholder="微信公众号/小程序 AppID">
-                    </div>
-                    <div class="form-group"><label class="form-label">微信 AppSecret</label><input type="password"
-                                                                                                   class="form-input"
-                                                                                                   id="wechatAppSecret">
-                    </div>
-                    <div class="form-group"><label class="form-label">Turnstile Site Key</label><input type="text"
-                                                                                                       class="form-input"
-                                                                                                       id="turnstileSiteKey"
-                                                                                                       placeholder="Cloudflare Turnstile Site Key">
-                    </div>
-                    <div class="form-group"><label class="form-label">Turnstile Secret Key</label><input type="password"
-                                                                                                         class="form-input"
-                                                                                                         id="turnstileSecretKey"
-                                                                                                         placeholder="Cloudflare Turnstile Secret Key">
-                    </div>
-                </div>
-            </div>
-
-            <!-- 计费与定价 -->
-            <div class="setting-card">
-                <div class="setting-card-header"><h3>计费与定价</h3>
-                    <p>额度换算和倍率配置</p></div>
-                <div class="setting-card-body">
-                    <div class="form-group"><label class="form-label">额度单价（每 5000 quota = $1）</label><input
-                            type="number" class="form-input" id="quotaPerUnit" value="5000" min="1"></div>
-                    <div class="form-group"><label class="form-label">显示倍率</label><input type="number"
-                                                                                             class="form-input"
-                                                                                             id="displayRatio" value="1"
-                                                                                             step="0.01" min="0.01">
-                    </div>
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="checkinEnabled"><span
-                            class="switch-track"></span><span class="switch-label">启用每日签到</span></label></div>
-                    <div class="form-group"><label class="form-label">签到奖励额度</label><input type="number"
-                                                                                                 class="form-input"
-                                                                                                 id="checkinQuota"
-                                                                                                 value="100" min="0">
-                    </div>
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="affiliateEnabled"><span
-                            class="switch-track"></span><span class="switch-label">启用推广返利</span></label></div>
-                    <div class="form-group"><label class="form-label">推广返利比例（%）</label><input type="number"
-                                                                                                    class="form-input"
-                                                                                                    id="affiliateRate"
-                                                                                                    value="5" min="0"
-                                                                                                    max="100"
-                                                                                                    step="0.1"></div>
-                </div>
-            </div>
-
-            <!-- 运营设置 -->
-            <div class="setting-card">
-                <div class="setting-card-header"><h3>运营设置</h3>
-                    <p>公告、FAQ 与页面内容管理</p></div>
-                <div class="setting-card-body">
-                    <div class="form-group">
-                        <label class="form-label">系统公告</label>
-                        <textarea class="form-textarea" id="systemNoticeContent" rows="4"
-                                  placeholder="支持 Markdown 格式的公告内容"></textarea>
-                    </div>
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="announcementsEnabled"><span
-                            class="switch-track"></span><span class="switch-label">显示公告面板</span></label></div>
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="faqEnabled"><span
-                            class="switch-track"></span><span class="switch-label">显示 FAQ 面板</span></label></div>
-                    <div class="form-group">
-                        <label class="form-label">API 信息</label>
-                        <textarea class="form-textarea" id="apiInfoContent" rows="3"
-                                  placeholder="JSON 格式的 API 端点信息"></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 请求限制 -->
-            <div class="setting-card">
-                <div class="setting-card-header"><h3>请求限制</h3>
-                    <p>速率限制与并发控制</p></div>
-                <div class="setting-card-body">
-                    <div class="form-group"><label class="form-label">全局速率限制（每分钟请求数）</label><input
-                            type="number" class="form-input" id="globalRateLimit" value="1000" min="1"></div>
-                    <div class="form-group"><label class="form-label">单用户速率限制（每分钟请求数）</label><input
-                            type="number" class="form-input" id="userRateLimit" value="100" min="1"></div>
-                    <div class="form-group"><label class="form-label">单令牌速率限制（每分钟请求数）</label><input
-                            type="number" class="form-input" id="tokenRateLimit" value="60" min="1"></div>
-                    <div class="form-group"><label class="form-label">并发请求限制</label><input type="number"
-                                                                                                 class="form-input"
-                                                                                                 id="concurrentLimit"
-                                                                                                 value="10" min="1">
-                    </div>
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="ipRateLimitEnabled"><span
-                            class="switch-track"></span><span class="switch-label">启用 IP 速率限制</span></label></div>
-                </div>
-            </div>
-
-            <!-- 维护模式 -->
-            <div class="setting-card">
-                <div class="setting-card-header"><h3>维护与系统</h3>
-                    <p>维护模式与系统操作</p></div>
-                <div class="setting-card-body">
-                    <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input"
-                                                                              id="maintenanceMode"><span
-                            class="switch-track"></span><span
-                            class="switch-label">维护模式（禁止新用户请求）</span></label></div>
-                    <div class="form-group"><label class="form-label">维护公告</label><input type="text"
-                                                                                             class="form-input"
-                                                                                             id="maintenanceMessage"
-                                                                                             placeholder="维护中，请稍后再试">
-                    </div>
-                    <div class="form-group" style="margin-top:16px;">
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                            <button class="btn btn-secondary" onclick="clearSystemLogs()">清理系统日志</button>
-                            <button class="btn btn-secondary" onclick="clearModelCache()">清理模型缓存</button>
-                            <button class="btn btn-secondary" onclick="syncChannelBalance()">同步所有渠道余额</button>
+                    
+                    <!-- 系统公告 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>系统公告</h3><p>公告内容管理</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group">
+                                <label class="form-label">公告内容</label>
+                                <textarea class="form-textarea" id="Notice" rows="4" placeholder="支持 Markdown 格式"></textarea>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 系统信息 -->
-            <div class="setting-card" id="systemInfoCard">
-                <div class="setting-card-header"><h3>系统信息</h3>
-                    <p>运行状态与版本信息</p></div>
-                <div class="setting-card-body">
-                    <div id="systemInfoContent">
-                        <div style="display:flex;align-items:center;gap:8px;color:var(--c-text-secondary);padding:20px 0;">
-                            <div class="loading-spinner"></div>
-                            加载中...
+            <!-- Tab 2: 仪表盘 -->
+            <div class="tab-content" id="tab-dashboard">
+                <div class="settings-grid">
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>数据看板</h3><p>数据看板配置（实验性）</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="DataExportEnabled"><span class="switch-track"></span><span class="switch-label">启用数据看板</span></label></div>
+                            <div class="form-group"><label class="form-label">数据看板更新间隔（分钟）</label><input type="number" class="form-input" id="DataExportInterval" value="5" min="1"></div>
+                            <div class="form-group"><label class="form-label">数据看板默认时间粒度</label>
+                                <select class="form-select" id="DataExportDefaultTime">
+                                    <option value="hour">小时</option>
+                                    <option value="day">天</option>
+                                    <option value="week">周</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: 聊天设置 -->
+            <div class="tab-content" id="tab-chat">
+                <div class="settings-grid">
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>聊天应用预设</h3><p>配置聊天客户端快捷入口</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group">
+                                <label class="form-label">聊天应用配置（JSON）</label>
+                                <textarea class="form-textarea" id="Chats" rows="8" placeholder='[{"ChatGPT":"https://chat.openai.com"},{"Lobe Chat":"https://chat-preview.lobehub.com"}]'></textarea>
+                                <div class="hint-text">JSON数组格式，每项为一个对象，包含一个键值对：应用名称和URL</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: 绘图设置 -->
+            <div class="tab-content" id="tab-drawing">
+                <div class="settings-grid">
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>绘图功能</h3><p>Midjourney 等绘图功能配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="MjNotifyEnabled"><span class="switch-track"></span><span class="switch-label">启用绘图功能</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="MjActionCheckSucceed"><span class="switch-track"></span><span class="switch-label">检测必须等待绘图成功才能进行放大等操作</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="MjAllowCallbackEnabled"><span class="switch-track"></span><span class="switch-label">允许回调</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="MjAccountFilterEnabled"><span class="switch-track"></span><span class="switch-label">允许 AccountFilter 参数</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="MjServerAddressRewriteEnabled"><span class="switch-track"></span><span class="switch-label">将上游地址替换为服务器地址</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="MjClearPromptParamsEnabled"><span class="switch-track"></span><span class="switch-label">清除用户提示词中的参数</span></label></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 5: 支付设置 -->
+            <div class="tab-content" id="tab-payment">
+                <div class="settings-grid">
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>充值配置</h3><p>在线充值和支付设置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="TopUpEnabled"><span class="switch-track"></span><span class="switch-label">启用在线充值</span></label></div>
+                            <div class="form-group"><label class="form-label">最小充值金额</label><input type="number" class="form-input" id="MinTopUp" value="1" step="0.01"></div>
+                            <div class="form-group"><label class="form-label">充值汇率</label><input type="number" class="form-input" id="TopupRatio" value="15" step="0.1">
+                                <div class="hint-text">1 RMB = ? quota (500000 quota = $1)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 6: 分组与模型定价 -->
+            <div class="tab-content" id="tab-pricing">
+                <!-- 子Tab导航 -->
+                <div style="background: var(--c-white); border-bottom: 1px solid var(--c-border); margin: -24px -24px 24px -24px; padding: 0 24px;">
+                    <div style="display: flex; gap: 4px; overflow-x: auto;">
+                        <button class="pricing-subtab active" data-subtab="pricing-editor">模型定价</button>
+                        <button class="pricing-subtab" data-subtab="group-ratio">分组倍率</button>
+                        <button class="pricing-subtab" data-subtab="tool-price">工具定价</button>
+                    </div>
+                </div>
+
+                <!-- 子Tab内容 -->
+                <div class="pricing-subtab-content active" id="pricing-subtab-pricing-editor">
+                    <div style="background: var(--c-white); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 style="margin: 0; font-size: 18px; font-weight: 600;">模型定价管理</h3>
+                            <button class="btn btn-primary" onclick="addModelPricing()">+ 添加模型</button>
+                        </div>
+                        <div style="margin-bottom: 16px;">
+                            <input type="text" class="form-input" id="modelSearchInput" placeholder="搜索模型名称..." style="max-width: 400px;">
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table id="modelPricingTable" style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: #F9FAFB;">
+                                    <tr>
+                                        <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">模型名称</th>
+                                        <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">计费模式</th>
+                                        <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">输入价格</th>
+                                        <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">输出价格</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="modelPricingTableBody">
+                                    <tr><td colspan="5" style="padding: 40px; text-align: center; color: #9CA3AF;">暂无模型定价配置</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pricing-subtab-content" id="pricing-subtab-group-ratio">
+                    <div class="settings-grid">
+                        <div class="setting-card">
+                            <div class="setting-card-header"><h3>分组倍率</h3><p>不同用户分组的价格倍率</p></div>
+                            <div class="setting-card-body">
+                                <div class="form-group">
+                                    <label class="form-label">用户组可用分组</label>
+                                    <textarea class="form-textarea" id="UserUsableGroups" rows="4" placeholder="留空表示不限制"></textarea>
+                                    <div class="hint-text">JSON格式：{"default": ["default", "vip"]}</div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">分组倍率</label>
+                                    <textarea class="form-textarea" id="GroupRatio" rows="6" placeholder='{"default": 1, "vip": 0.8}'></textarea>
+                                    <div class="hint-text">JSON格式：分组名到倍率的映射</div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">充值分组倍率</label>
+                                    <textarea class="form-textarea" id="TopupGroupRatio" rows="6" placeholder='{"default": 1, "vip": 1.2}'></textarea>
+                                    <div class="hint-text">JSON格式：充值时的额度倍率</div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">分组组倍率（GroupGroupRatio）</label>
+                                    <textarea class="form-textarea" id="GroupGroupRatio" rows="6" placeholder='{"default": 1, "vip": 0.8}'></textarea>
+                                    <div class="hint-text">JSON格式：用户分组到倍率的映射</div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">自动分组列表（JSON）</label>
+                                    <textarea class="form-textarea" id="AutoGroups" rows="4" placeholder='["group1", "group2"]'></textarea>
+                                    <div class="hint-text">JSON数组格式：自动分组名称列表</div>
+                                </div>
+                                <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="DefaultUseAutoGroup"><span class="switch-track"></span><span class="switch-label">默认使用自动分组</span></label></div>
+                                <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="ExposeRatioEnabled"><span class="switch-track"></span><span class="switch-label">暴露倍率开关</span></label></div>
+                                <div class="form-group">
+                                    <label class="form-label">分组特殊可用分组（JSON）</label>
+                                    <textarea class="form-textarea" id="GroupSpecialUsableGroup" rows="4" placeholder='{}'></textarea>
+                                    <div class="hint-text">JSON格式：group_ratio_setting.group_special_usable_group</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pricing-subtab-content" id="pricing-subtab-tool-price">
+                    <div class="settings-grid">
+                        <div class="setting-card">
+                            <div class="setting-card-header"><h3>工具调用定价</h3><p>函数调用的额外费用</p></div>
+                            <div class="setting-card-body">
+                                <div class="form-group">
+                                    <label class="form-label">工具价格配置</label>
+                                    <textarea class="form-textarea" id="ToolPriceSetting" rows="8" placeholder='{"web_search": 0.001, "code_interpreter": 0.002}'></textarea>
+                                    <div class="hint-text">JSON格式：工具名到价格的映射（USD）</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 7: 速率限制 -->
+            <div class="tab-content" id="tab-ratelimit">
+                <div class="settings-grid">
+                    <!-- 模型请求速率限制 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>模型请求速率限制</h3><p>基于时间窗口的请求限制</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="ModelRequestRateLimitEnabled"><span class="switch-track"></span><span class="switch-label">启用模型请求速率限制</span></label></div>
+                            <div class="form-group"><label class="form-label">限制周期（分钟）</label><input type="number" class="form-input" id="ModelRequestRateLimitDuration" value="60" min="1"></div>
+                            <div class="form-group"><label class="form-label">每周期最大请求数</label><input type="number" class="form-input" id="ModelRequestRateLimitCount" value="100" min="1">
+                                <div class="hint-text">包括失败的请求</div>
+                            </div>
+                            <div class="form-group"><label class="form-label">每周期最大成功请求数</label><input type="number" class="form-input" id="ModelRequestRateLimitSuccessCount" value="100" min="1">
+                                <div class="hint-text">仅统计成功的请求</div>
+                            </div>
+                            <div class="form-group"><label class="form-label">分组速率限制配置</label>
+                                <textarea class="form-textarea" id="ModelRequestRateLimitGroup" rows="4" placeholder='{"default": [200, 100], "vip": [500, 400]}'></textarea>
+                                <div class="hint-text">JSON 格式：{"分组名": [最大请求数, 最大成功数]}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 敏感词过滤 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>敏感词过滤</h3><p>内容审查与关键词过滤</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="CheckSensitiveEnabled"><span class="switch-track"></span><span class="switch-label">启用敏感词过滤</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="CheckSensitiveOnPromptEnabled"><span class="switch-track"></span><span class="switch-label">检查用户提示词</span></label></div>
+                            <div class="form-group"><label class="form-label">被阻止的关键词</label>
+                                <textarea class="form-textarea" id="SensitiveWords" rows="6" placeholder="每行一个关键词"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SSRF 防护 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>SSRF 防护</h3><p>服务器端请求伪造保护</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="SSRFProtectionEnabled"><span class="switch-track"></span><span class="switch-label">启用 SSRF 防护</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="SSRFAllowPrivateIP"><span class="switch-track"></span><span class="switch-label">允许私有 IP 访问</span></label></div>
+                            <div class="form-group"><label class="form-label">域名过滤模式</label>
+                                <select class="form-select" id="SSRFDomainFilterMode">
+                                    <option value="false">黑名单模式</option>
+                                    <option value="true">白名单模式</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label class="form-label">域名列表</label>
+                                <textarea class="form-textarea" id="SSRFDomainList" rows="4" placeholder="每行一个域名"></textarea>
+                            </div>
+                            <div class="form-group"><label class="form-label">允许的端口</label><input type="text" class="form-input" id="SSRFAllowedPorts" placeholder="80,443,8080">
+                                <div class="hint-text">逗号分隔的端口列表</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 令牌限制 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>令牌限制</h3><p>用户令牌数量控制</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-label">用户最大令牌数量</label><input type="number" class="form-input" id="UserMaxTokenNum" value="10" min="1">
+                                <div class="hint-text">单个用户可创建的最大令牌数</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API 速率限制 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>API 速率限制</h3><p>全局 API 请求限制</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-label">全局速率限制（每分钟）</label><input type="number" class="form-input" id="GlobalApiRateLimitNum" value="1000" min="1"></div>
+                            <div class="form-group"><label class="form-label">单用户速率限制（每分钟）</label><input type="number" class="form-input" id="UserApiRateLimitNum" value="100" min="1"></div>
+                            <div class="form-group"><label class="form-label">单令牌速率限制（每分钟）</label><input type="number" class="form-input" id="TokenApiRateLimitNum" value="60" min="1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 8: 模型相关设置 -->
+            <div class="tab-content" id="tab-models">
+                <div class="settings-grid">
+                    <!-- 全局模型设置 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>全局模型设置</h3><p>通用模型配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="GlobalPassThroughEnabled"><span class="switch-track"></span><span class="switch-label">启用请求透传</span></label>
+                                <div class="hint-text">直接透传请求到上游，不做额外处理</div>
+                            </div>
+                            <div class="form-group"><label class="form-label">思考模型黑名单（JSON）</label>
+                                <textarea class="form-textarea" id="GlobalThinkingBlacklist" rows="3" placeholder='["model-1", "model-2"]'></textarea>
+                            </div>
+                            <div class="form-group"><label class="form-label">CC→Responses 兼容配置（JSON）</label>
+                                <textarea class="form-textarea" id="GlobalChatCompletionsToResponsesPolicy" rows="4" placeholder='{}'></textarea>
+                                <div class="hint-text">Chat Completions 到 Responses 的模型映射策略</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 路由可靠性 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>路由可靠性</h3><p>失败重试和渠道管理</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="AutomaticEnableChannelEnabled"><span class="switch-track"></span><span class="switch-label">自动启用新渠道</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="AutomaticDisableChannelEnabled"><span class="switch-track"></span><span class="switch-label">自动禁用失败渠道</span></label></div>
+                            <div class="form-group"><label class="form-label">渠道禁用阈值</label><input type="number" class="form-input" id="ChannelDisableThreshold" value="3" min="1"></div>
+                            <div class="form-group"><label class="form-label">自动禁用关键词</label><input type="text" class="form-input" id="AutomaticDisableKeywords" placeholder="逗号分隔"></div>
+                            <div class="form-group"><label class="form-label">自动禁用状态码</label><input type="text" class="form-input" id="AutomaticDisableStatusCodes" value="401" placeholder="401,403"></div>
+                            <div class="form-group"><label class="form-label">自动重试状态码</label><input type="text" class="form-input" id="AutomaticRetryStatusCodes" placeholder="500,502,503"></div>
+                        </div>
+                    </div>
+
+                    <!-- 渠道自动测试 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>渠道自动测试</h3><p>定期检测渠道可用性</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="AutoTestChannelEnabled"><span class="switch-track"></span><span class="switch-label">启用渠道自动测试</span></label></div>
+                            <div class="form-group"><label class="form-label">测试间隔（分钟）</label><input type="number" class="form-input" id="AutoTestChannelMinutes" value="10" min="1"></div>
+                            <div class="form-group"><label class="form-label">测试模式</label>
+                                <select class="form-select" id="ChannelTestMode">
+                                    <option value="scheduled_all">定时全部</option>
+                                    <option value="on_demand">按需测试</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gemini 设置 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>Gemini 设置</h3><p>Google Gemini 模型特殊配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-label">安全设置（JSON）</label>
+                                <textarea class="form-textarea" id="GeminiSafetySetting" rows="3" placeholder='{}'></textarea>
+                            </div>
+                            <div class="form-group"><label class="form-label">版本设置（JSON）</label>
+                                <textarea class="form-textarea" id="GeminiVersionSettings" rows="3" placeholder='{}'></textarea>
+                            </div>
+                            <div class="form-group"><label class="form-label">支持的图片模型（JSON）</label>
+                                <textarea class="form-textarea" id="GeminiSupportedImagineModels" rows="3" placeholder=''></textarea>
+                            </div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="GeminiThinkingAdapterEnabled"><span class="switch-track"></span><span class="switch-label">启用 Thinking Adapter</span></label></div>
+                            <div class="form-group"><label class="form-label">Thinking Adapter 预算令牌百分比</label><input type="number" class="form-input" id="GeminiThinkingAdapterBudgetTokensPercentage" value="0.6" min="0" max="100" step="0.1"></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="GeminiFunctionCallThoughtSignatureEnabled"><span class="switch-track"></span><span class="switch-label">启用函数调用 Thought 签名</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="GeminiRemoveFunctionResponseIdEnabled"><span class="switch-track"></span><span class="switch-label">移除函数响应 ID</span></label></div>
+                        </div>
+                    </div>
+
+                    <!-- Claude 设置 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>Claude 设置</h3><p>Anthropic Claude 模型特殊配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-label">模型请求头（JSON）</label>
+                                <textarea class="form-textarea" id="ClaudeModelHeaders" rows="3" placeholder='{}'></textarea>
+                            </div>
+                            <div class="form-group"><label class="form-label">默认 MaxTokens</label><input type="text" class="form-input" id="ClaudeDefaultMaxTokens" placeholder="留空使用默认值"></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="ClaudeThinkingAdapterEnabled"><span class="switch-track"></span><span class="switch-label">启用 Thinking Adapter</span></label></div>
+                            <div class="form-group"><label class="form-label">Thinking Adapter 预算令牌百分比</label><input type="number" class="form-input" id="ClaudeThinkingAdapterBudgetTokensPercentage" value="0.8" min="0" max="100" step="0.1"></div>
+                        </div>
+                    </div>
+
+                    <!-- 连接存活检测 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>连接存活检测</h3><p>Ping 间隔配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="PingIntervalEnabled"><span class="switch-track"></span><span class="switch-label">启用 Ping 间隔检测</span></label></div>
+                            <div class="form-group"><label class="form-label">Ping 间隔（秒）</label><input type="number" class="form-input" id="PingIntervalSeconds" value="60" min="10"></div>
+                        </div>
+                    </div>
+
+                    <!-- 渠道亲和性 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>渠道亲和性</h3><p>保持用户请求在同一渠道</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="ChannelAffinityEnabled"><span class="switch-track"></span><span class="switch-label">启用渠道亲和性</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="ChannelAffinitySwitchOnSuccess"><span class="switch-track"></span><span class="switch-label">成功时切换渠道</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="ChannelAffinityKeepOnDisabled"><span class="switch-track"></span><span class="switch-label">渠道禁用后保持亲和性</span></label></div>
+                            <div class="form-group"><label class="form-label">最大缓存条目数</label><input type="number" class="form-input" id="ChannelAffinityMaxEntries" value="10000" min="100"></div>
+                            <div class="form-group"><label class="form-label">默认 TTL（秒）</label><input type="number" class="form-input" id="ChannelAffinityDefaultTTL" value="3600" min="60"></div>
+                            <div class="form-group"><label class="form-label">亲和性规则（JSON）</label>
+                                <textarea class="form-textarea" id="ChannelAffinityRules" rows="4" placeholder='{"model-name": {"ttl": 7200}}'></textarea>
+                                <div class="hint-text">JSON格式：为特定模型配置不同的TTL</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grok 设置 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>Grok 设置</h3><p>xAI Grok 模型特殊配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="GrokViolationDeductionEnabled"><span class="switch-track"></span><span class="switch-label">启用违规扣费</span></label></div>
+                            <div class="form-group"><label class="form-label">违规扣费金额</label><input type="number" class="form-input" id="GrokViolationDeductionAmount" value="0" min="0" step="0.01">
+                                <div class="hint-text">单位：USD</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- io.net 部署 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>io.net 部署</h3><p>去中心化GPU网络模型部署</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="IoNetEnabled"><span class="switch-track"></span><span class="switch-label">启用 io.net 部署</span></label></div>
+                            <div class="form-group"><label class="form-label">io.net API Key</label><input type="password" class="form-input" id="IoNetApiKey" placeholder="io.net API 密钥"></div>
+                            <div class="form-group" style="margin-top:16px;">
+                                <button class="btn btn-secondary" onclick="testIoNetConnection()">测试连接</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 10: 性能设置 -->
+            <div class="tab-content" id="tab-performance">
+                <div class="settings-grid">
+                    <!-- 磁盘缓存 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>磁盘缓存</h3><p>大型请求体磁盘缓存配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="DiskCacheEnabled"><span class="switch-track"></span><span class="switch-label">启用磁盘缓存</span></label>
+                                <div class="hint-text">启用后，大型请求体将临时存储在磁盘而非内存中</div>
+                            </div>
+                            <div class="form-group"><label class="form-label">磁盘缓存阈值（MB）</label><input type="number" class="form-input" id="DiskCacheThresholdMB" value="10" min="1">
+                                <div class="hint-text">当请求体大小超过此阈值时使用磁盘缓存</div>
+                            </div>
+                            <div class="form-group"><label class="form-label">最大磁盘缓存大小（MB）</label><input type="number" class="form-input" id="DiskCacheMaxSizeMB" value="1024" min="100"></div>
+                            <div class="form-group"><label class="form-label">缓存目录</label><input type="text" class="form-input" id="DiskCachePath" placeholder="留空使用系统临时目录"></div>
+                        </div>
+                    </div>
+
+                    <!-- 系统性能监控 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>系统性能监控</h3><p>资源使用监控与保护</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="PerfMonitorEnabled"><span class="switch-track"></span><span class="switch-label">启用性能监控</span></label>
+                                <div class="hint-text">当系统资源使用超过阈值时，新的中继请求将被拒绝</div>
+                            </div>
+                            <div class="form-group"><label class="form-label">CPU 阈值（%）</label><input type="number" class="form-input" id="PerfMonitorCPUThreshold" value="90" min="0" max="100"></div>
+                            <div class="form-group"><label class="form-label">内存阈值（%）</label><input type="number" class="form-input" id="PerfMonitorMemoryThreshold" value="90" min="0" max="100"></div>
+                            <div class="form-group"><label class="form-label">磁盘阈值（%）</label><input type="number" class="form-input" id="PerfMonitorDiskThreshold" value="95" min="0" max="100"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 11: 系统设置 -->
+            <div class="tab-content" id="tab-system">
+                <div class="settings-grid">
+                    <!-- 基础设置 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>基础设置</h3><p>配置系统基本信息和行为</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-label">系统名称</label><input type="text" class="form-input" id="SystemName" placeholder="图灵智算"></div>
+                            <div class="form-group"><label class="form-label">Logo URL</label><input type="text" class="form-input" id="Logo" placeholder="picture/logo.png"></div>
+                            <div class="form-group"><label class="form-label">首页内容</label><textarea class="form-textarea" id="HomePageContent" rows="3" placeholder="首页展示内容"></textarea></div>
+                            <div class="form-group"><label class="form-label">页脚内容</label><input type="text" class="form-input" id="FooterHTML" placeholder="页脚HTML"></div>
+                            <div class="form-group"><label class="form-label">关于内容</label><textarea class="form-textarea" id="AboutContent" rows="3" placeholder="关于页面内容"></textarea></div>
+                        </div>
+                    </div>
+
+                    <!-- 额度设置 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>额度设置</h3><p>用户额度相关配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-label">预消费额度</label><input type="number" class="form-input" id="PreConsumedQuota" value="0" min="0">
+                                <div class="hint-text">用户请求时预先扣除的额度</div>
+                            </div>
+                            <div class="form-group"><label class="form-label">邀请者奖励</label><input type="number" class="form-input" id="QuotaForInviter" value="0" min="0"></div>
+                            <div class="form-group"><label class="form-label">被邀请者奖励</label><input type="number" class="form-input" id="QuotaForInvitee" value="0" min="0"></div>
+                        </div>
+                    </div>
+
+                    <!-- 注册设置 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>注册与登录</h3><p>控制用户注册和登录行为</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="RegisterEnabled"><span class="switch-track"></span><span class="switch-label">允许新用户注册</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="EmailVerificationEnabled"><span class="switch-track"></span><span class="switch-label">注册需邮箱验证</span></label></div>
+                            <div class="form-group"><label class="form-label">新用户初始额度</label><input type="number" class="form-input" id="QuotaForNewUser" value="500000"></div>
+                            <div class="form-group"><label class="form-label">新用户分组</label><input type="text" class="form-input" id="GroupForNewUser" value="default"></div>
+                        </div>
+                    </div>
+
+                    <!-- 日志设置 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>日志配置</h3><p>控制日志记录行为</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="LogConsumeEnabled"><span class="switch-track"></span><span class="switch-label">启用日志记录</span></label></div>
+                            <div class="form-group"><label class="form-label">日志保留天数</label><input type="number" class="form-input" id="LogRetentionDays" value="30"></div>
+                        </div>
+                    </div>
+
+                    <!-- SMTP 设置 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>邮件配置</h3><p>SMTP 服务器设置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-label">SMTP 服务器</label><input type="text" class="form-input" id="SMTPServer" placeholder="smtp.example.com"></div>
+                            <div class="form-group"><label class="form-label">SMTP 端口</label><input type="number" class="form-input" id="SMTPPort" value="587"></div>
+                            <div class="form-group"><label class="form-label">发件人地址</label><input type="email" class="form-input" id="SMTPFrom" placeholder="no-reply@example.com"></div>
+                            <div class="form-group"><label class="form-label">SMTP 用户名</label><input type="text" class="form-input" id="SMTPUsername"></div>
+                            <div class="form-group"><label class="form-label">SMTP 密码</label><input type="password" class="form-input" id="SMTPPassword"></div>
+                        </div>
+                    </div>
+
+                    <!-- OAuth 设置 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>OAuth 登录</h3><p>第三方登录配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="PasswordLoginEnabled"><span class="switch-track"></span><span class="switch-label">允许密码登录</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="PasswordRegisterEnabled"><span class="switch-track"></span><span class="switch-label">允许密码注册</span></label></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="GitHubOAuthEnabled"><span class="switch-track"></span><span class="switch-label">启用 GitHub OAuth</span></label></div>
+                            <div class="form-group"><label class="form-label">GitHub Client ID</label><input type="text" class="form-input" id="GitHubClientId" placeholder="GitHub OAuth App Client ID"></div>
+                            <div class="form-group"><label class="form-label">GitHub Client Secret</label><input type="password" class="form-input" id="GitHubClientSecret" placeholder="GitHub OAuth App Client Secret"></div>
+                        </div>
+                    </div>
+
+                    <!-- Turnstile 验证 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>Turnstile 验证</h3><p>Cloudflare 人机验证</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="TurnstileCheckEnabled"><span class="switch-track"></span><span class="switch-label">启用 Turnstile 验证</span></label></div>
+                            <div class="form-group"><label class="form-label">Turnstile Site Key</label><input type="text" class="form-input" id="TurnstileSiteKey" placeholder="Cloudflare Turnstile Site Key"></div>
+                            <div class="form-group"><label class="form-label">Turnstile Secret Key</label><input type="password" class="form-input" id="TurnstileSecretKey" placeholder="Cloudflare Turnstile Secret Key"></div>
+                        </div>
+                    </div>
+
+                    <!-- 计费与定价 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>计费与定价</h3><p>额度换算和倍率配置</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-label">额度单价（每 500000 quota = $1）</label><input type="number" class="form-input" id="QuotaPerUnit" value="500000" min="1"></div>
+                            <div class="form-group"><label class="form-label">显示倍率</label><input type="number" class="form-input" id="DisplayTokenStatRatio" value="1" step="0.01" min="0.01"></div>
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="CheckInEnabled"><span class="switch-track"></span><span class="switch-label">启用每日签到</span></label></div>
+                            <div class="form-group"><label class="form-label">签到奖励额度</label><input type="number" class="form-input" id="QuotaForInvite" value="100" min="0"></div>
+                        </div>
+                    </div>
+
+                    <!-- 维护模式 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header"><h3>维护与系统</h3><p>维护模式与系统操作</p></div>
+                        <div class="setting-card-body">
+                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="MaintenanceMode"><span class="switch-track"></span><span class="switch-label">维护模式（禁止新用户请求）</span></label></div>
+                            <div class="form-group"><label class="form-label">维护公告</label><input type="text" class="form-input" id="MaintenanceMessage" placeholder="维护中，请稍后再试"></div>
+                        </div>
+                    </div>
+
+                    <!-- 系统信息 -->
+                    <div class="setting-card" id="systemInfoCard">
+                        <div class="setting-card-header"><h3>系统信息</h3><p>运行状态与版本信息</p></div>
+                        <div class="setting-card-body">
+                            <div id="systemInfoContent">
+                                <div style="display:flex;align-items:center;gap:8px;color:var(--c-text-secondary);padding:20px 0;">
+                                    <div class="loading-spinner"></div>
+                                    加载中...
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

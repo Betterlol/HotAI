@@ -388,7 +388,32 @@ const API = {
     // ========== 用户分组 ==========
     getGroups: () => apiRequest('/group/'),
 
-    // ========== 订阅管理（管理员） ==========
+    // ========== 订阅管理（管理员）- 新接口 ==========
+    getAdminPlans: () =>
+        apiRequest('/subscription/admin/plans'),
+
+    createAdminPlan: (data) =>
+        apiRequest('/subscription/admin/plans', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+
+    updateAdminPlan: (id, data) =>
+        apiRequest(`/subscription/admin/plans/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        }),
+
+    patchPlanStatus: (id, enabled) =>
+        apiRequest(`/subscription/admin/plans/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ enabled })
+        }),
+
+    deleteAdminPlan: (id) =>
+        apiRequest(`/subscription/admin/plans/${id}`, { method: 'DELETE' }),
+
+    // ========== 订阅管理（管理员）- 兼容旧接口 ==========
     getSubscriptions: (page = 1, size = 10) =>
         apiRequest(`/subscription/?p=${page}&page_size=${size}`),
 
