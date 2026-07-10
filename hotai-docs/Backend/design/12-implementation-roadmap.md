@@ -156,7 +156,43 @@
 - ✅ 渠道权重根据表现自动微调
 - ✅ 余额不足自动告警
 
-## Phase 4：高级故障切换与追踪
+## Phase 4：故障切换规则特化
+
+**背景**：当前所有失败一视同仁走通用熔断路径：`MarkFailure → Record(false) → processChannelError → shouldRetry`。429（限流）、401/403（鉴权）、timeout 被同等处理。实际场景中应差异化对待：
+
+- **429** 是临时限流，不应记入熔断/成功率（否则拉低渠道评分导致路由偏移）
+- **401/403** 是 Key 失效，重试无意义，应立即跳过而非重试拖慢响应
+- 分类判断应在 **`MarkFailure`/`Record` 之前**，而不是在 `processChannelError` 里面
+
+### F-01 错误类型分类 + 差异化处理 (2d)
+
+| 错误类型 | 熔断记录 | 成功率记录 | 重试 | 说明 |
+|----------|----------|-----------|------|------|
+| 429 (限流) | ❌ 不记 | ❌ 不记 | ✅ 等待后重试 | 限流是临时状态，不应影响评分 |
+| 401/403 (鉴权) | ❌ 不记 | ❌ 不记 | ❌ 不复试，立即跳过 | Key 无效，重试多少次都一样 |
+| timeout | ✅ 记 | ✅ 记 | ✅ 重试 | 超时可能是渠道问题 |
+| 5xx | ✅ 记 | ✅ 记 | ✅ 重试 | 服务端异常 |
+| 余额不足 | ✅ 记 | ✅ 记 | ❌ | 已有逻辑复用 |
+
+**文件：**
+| 文件 | 变更 |
+|------|------|
+| `types/error_classification.go` | [新增] `IsRateLimit()`、`IsAuthError()`、`IsTimeout()` 分类函数 |
+| `controller/relay.go` | MarkFailure/Record 前插入分类判断，分流处理路径 |
+| `setting/operation_setting/retry_setting.go` | [新增] `ratelimit_retry_interval`、`ratelimit_retry_times` 配置 |
+
+**处理流程（修改后）：**
+```
+relayError
+  │
+  ├─ IsRateLimit(429) ─→ ❌不记熔断/成功率 → wait → retry
+  ├─ IsAuthError(401/403) ─→ ❌不记熔断/成功率 → ❌不重试 → break
+  └─ (timeout/5xx/余额) ─→ MarkFailure → Record(false) → processError → shouldRetry
+```
+
+**Phase 4 总计**：~2 天（F-02/F-03 合并入 F-01，F-04 测试贯穿执行）
+
+## Phase 5：高级特性（原 Phase 4）
 
 ### L-04 渠道灰度发布 (3-5d)
 
@@ -164,8 +200,8 @@
 
 | 项目 | 内容 |
 |------|------|
-| 文件 | 修改 `model/channel_cache.go` |
-| 逻辑 | 新增 `CanaryPercent` 字段，按百分比放量 |
+| 文件 | 修改 `pkg/routing/` 评分引擎 |
+| 逻辑 | 新增 `CanaryPercent` 字段，按百分比放量；结合成功率评分自动回滚 |
 
 ### L-05 OpenTelemetry 分布式追踪 (1w+)
 
@@ -182,7 +218,7 @@
 | 场景 | SSE 流中断后自动切换到备用渠道 |
 | 难度 | 高，流式响应已部分发送，切换涉及消息对齐 |
 
-**Phase 4 总计**：~3w
+**Phase 5 总计**：~3w
 
 ## 实施总览
 
@@ -206,7 +242,13 @@ Phase 3: 成本感知 + 动态权重                       Week 5-6
     L-02: 成本感知路由 (3-5d)
     L-03: 动态权重调整 (3-5d)
          │
-Phase 4: 高级特性                                  Week 7-10
+Phase 4: 故障切换规则特化 [新增]                   Week 7-8
+    F-01: 错误类型分类 (1d)
+    F-02: 差异化重试与降级 (2d)
+    F-03: 可配置重试参数 (1d)
+    F-04: 故障切换测试执行 (2d)
+         │
+Phase 5: 高级特性 [原 Phase 4]                     Week 9-12
     L-04: 灰度发布 (3-5d)
     L-05: 分布式追踪 (1w+)
     L-06: 流式连接故障切换 (1w+)
@@ -224,3 +266,5 @@ Phase 4: 高级特性                                  Week 7-10
 | Phase 1 完成后 | TC-04: 超时跳过 + 监控验证 | 新增监控面板验证 |
 | Phase 2 完成后 | TC-02: 鉴权禁用 + TC-03: 限流重试 + TC-05: 全渠道挂 | 熔断器效果验证 |
 | Phase 3 完成后 | TC-06: 恢复启用 + TC-07: 跨组降级 | 完整流程验证 |
+| Phase 4 完成后 | 全部 TC-01~TC-07 重新执行，补充特化策略验证 | `10-failover-test-plan.md` |
+| Phase 5 完成后 | 灰度 + 追踪 + 流式切换端到端验证 | — |
