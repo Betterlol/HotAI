@@ -571,6 +571,91 @@ const API = {
     getPrefillGroups: (type) =>
         apiRequest(`/prefill_group?type=${type || 'model'}`),
 
+    // ========== 模型管理（管理员）==========
+    getModels: (page = 1, size = 10) =>
+        apiRequest(`/models/?p=${page}&page_size=${size}`),
+
+    searchModels: (params) => {
+        const qs = new URLSearchParams(
+            Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== '' && v !== null).map(([k, v]) => [k, String(v)])
+        ).toString();
+        return apiRequest(`/models/search?${qs}`);
+    },
+
+    getModel: (id) => apiRequest(`/models/${id}`),
+
+    createModel: (data) =>
+        apiRequest('/models/', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+
+    updateModel: (data) =>
+        apiRequest('/models/', {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        }),
+
+    updateModelStatus: (id, status) =>
+        apiRequest('/models/?status_only=true', {
+            method: 'PUT',
+            body: JSON.stringify({ id, status })
+        }),
+
+    deleteModel: (id) =>
+        apiRequest(`/models/${id}`, { method: 'DELETE' }),
+
+    syncUpstreamModels: (data) =>
+        apiRequest('/models/sync_upstream', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+
+    syncUpstreamPreview: () =>
+        apiRequest('/models/sync_upstream/preview'),
+
+    getMissingModels: () =>
+        apiRequest('/models/missing'),
+
+    // ========== 供应商管理（管理员）==========
+    getVendors: () => apiRequest('/vendors/'),
+
+    searchVendors: (keyword) =>
+        apiRequest(`/vendors/search?keyword=${encodeURIComponent(keyword)}`),
+
+    getVendor: (id) => apiRequest(`/vendors/${id}`),
+
+    createVendor: (data) =>
+        apiRequest('/vendors/', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+
+    updateVendor: (data) =>
+        apiRequest('/vendors/', {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        }),
+
+    deleteVendor: (id) =>
+        apiRequest(`/vendors/${id}`, { method: 'DELETE' }),
+
+    // ========== 预填组管理（管理员）==========
+    createPrefillGroup: (data) =>
+        apiRequest('/prefill_group/', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+
+    updatePrefillGroup: (data) =>
+        apiRequest('/prefill_group/', {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        }),
+
+    deletePrefillGroup: (id) =>
+        apiRequest(`/prefill_group/${id}`, { method: 'DELETE' }),
+
     // 仅检测上游模型更新（不同步）
     checkUpstreamModelUpdate: (id) =>
         apiRequest('/channel/upstream_updates/detect', {

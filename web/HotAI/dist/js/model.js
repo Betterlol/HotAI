@@ -105,7 +105,7 @@ function showError(message) {
 
 function formatValue(val) {
     let v = parseFloat(val);
-    if (state.unit === 'M') v = v / 1000;
+    if (state.unit === 'M') v = v * 1000;
     let finalVal = v, prefix = '$';
     if (state.currency === 'CNY') {
         finalVal = v * USD_TO_CNY;

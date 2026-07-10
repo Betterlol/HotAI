@@ -199,7 +199,6 @@ function createNewSession(firstUserMessage) {
     
     chatSessions.push(newSession);
     currentSessionId = sessionId;
-    chatMessages = [];
     
     saveSessions();
     saveActiveSession();

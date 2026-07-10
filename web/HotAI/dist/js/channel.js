@@ -367,8 +367,18 @@ async function saveChannel() {
         return;
     }
     
-    // 清理新建时不需要的字段
-    if (!isEdit) {
+    if (isEdit) {
+        // 编辑时：后端 UpdateChannel 明确拒绝含 status 键的请求（会返回"无效的参数"）
+        // multi_key_mode/multi_key_type 仅用于创建，编辑时也不需要传
+        delete formData.status;
+        delete formData.multi_key_mode;
+        delete formData.multi_key_type;
+        // 若密钥为空（编辑时未修改/未点查看），不传 key 让后端保留原有密钥
+        if (!formData.key) {
+            delete formData.key;
+        }
+    } else {
+        // 新建时：不传 id 和 status（status 由创建逻辑默认处理）
         delete formData.status;
         delete formData.id;
     }
@@ -508,6 +518,18 @@ async function copyChannel(id) {
 
 async function checkUpstreamUpdate(id) {
     showToast('检测中...', 'info');
+    // 前置校验：检查渠道是否支持上游模型检测
+    const channel = ChannelState.channels.find(ch => ch.id === id);
+    if (!channel) {
+        showToast('渠道不存在', 'error');
+        return;
+    }
+    // 某些类型需要 base_url 才能检测（与 fetchModelsBtn 显示逻辑一致）
+    const typesNeedingBaseUrl = [1, 3, 14, 24, 25, 28, 29, 30];
+    if (typesNeedingBaseUrl.includes(channel.type) && !channel.base_url) {
+        showToast('请先在渠道中配置 API 地址后再检测上游模型', 'error');
+        return;
+    }
     try {
         const res = await API.checkUpstreamModelUpdate(id);
         if (res.success) {
@@ -1310,6 +1332,15 @@ function openTestModal(channelId) {
     
     document.getElementById('testModalChannelName').textContent = `- ${channel.name}`;
     TestModalState.models = (channel.models || '').split(',').map(m => m.trim()).filter(Boolean);
+    
+    // 重置进度条状态，避免上次测试结果残留
+    document.getElementById('testProgressBar').style.width = '0%';
+    document.getElementById('testProgressWrap').style.display = 'none';
+    document.getElementById('testStopBtn').style.display = 'none';
+    document.getElementById('testAllBtn').disabled = false;
+    document.getElementById('testSelectedBtn').disabled = false;
+    document.getElementById('testProgressLabel').style.display = 'none';
+    document.getElementById('testProgressLabel').textContent = '';
     
     renderTestModelTable();
     document.getElementById('channelTestModal').classList.remove('hidden');
