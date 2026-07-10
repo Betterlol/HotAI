@@ -14,6 +14,9 @@ import (
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
+	channellimiter "github.com/QuantumNous/new-api/pkg/channel_limiter"
+	channelsuccessrate "github.com/QuantumNous/new-api/pkg/channel_successrate"
+	"github.com/QuantumNous/new-api/pkg/circuitbreaker"
 	relaychannel "github.com/QuantumNous/new-api/relay/channel"
 	"github.com/QuantumNous/new-api/relay/channel/gemini"
 	"github.com/QuantumNous/new-api/relay/channel/ollama"
@@ -711,6 +714,9 @@ func DeleteChannel(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	circuitbreaker.Remove(id)
+	channelsuccessrate.Remove(id)
+	channellimiter.Remove(id)
 	model.InitChannelCache()
 	recordManageAudit(c, "channel.delete", map[string]interface{}{
 		"id":   id,
@@ -724,10 +730,20 @@ func DeleteChannel(c *gin.Context) {
 }
 
 func DeleteDisabledChannel(c *gin.Context) {
+	disabled, err := model.GetDisabledChannels()
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	rows, err := model.DeleteDisabledChannel()
 	if err != nil {
 		common.ApiError(c, err)
 		return
+	}
+	for _, ch := range disabled {
+		circuitbreaker.Remove(ch.Id)
+		channelsuccessrate.Remove(ch.Id)
+		channellimiter.Remove(ch.Id)
 	}
 	model.InitChannelCache()
 	recordManageAudit(c, "channel.delete_disabled", map[string]interface{}{
@@ -884,6 +900,11 @@ func DeleteChannelBatch(c *gin.Context) {
 	if err != nil {
 		common.ApiError(c, err)
 		return
+	}
+	for _, id := range channelBatch.Ids {
+		circuitbreaker.Remove(id)
+		channelsuccessrate.Remove(id)
+		channellimiter.Remove(id)
 	}
 	model.InitChannelCache()
 	recordManageAudit(c, "channel.delete_batch", map[string]interface{}{

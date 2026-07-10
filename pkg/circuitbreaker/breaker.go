@@ -72,6 +72,10 @@ func GetState(channelID int) State {
 	return getBreaker(channelID, setting).currentState(setting, time.Now())
 }
 
+func Remove(channelID int) {
+	breakers.Delete(channelID)
+}
+
 func ResetForTest() {
 	breakers = sync.Map{}
 }

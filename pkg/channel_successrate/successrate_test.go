@@ -61,7 +61,42 @@ func TestGetSuccessRateZeroChannelID(t *testing.T) {
 	assert.Equal(t, -1.0, rate)
 }
 
-func TestWindowExpiration(t *testing.T) {
+func TestSmoothWindowTransition(t *testing.T) {
+	ResetForTest()
+	SetMinTotal(1)
+	SetWindowDuration(200 * time.Millisecond)
+
+	// Fill current window with 100% success
+	Record(1, true)
+	Record(1, true)
+	Record(1, true)
+
+	// Immediately after filling, rate should be 1.0
+	assert.Equal(t, 1.0, GetSuccessRate(1))
+
+	// Wait for window to expire
+	time.Sleep(250 * time.Millisecond)
+
+	// After expiration, curr bucket was rotated to prev and curr reset to 0.
+	// The prevW should be close to 0 (elapsed ≈ 0 since rotation just happened),
+	// so estimated rate should be 0/0 → insufficient data.
+	// But actually, prev bucket has (3 success, 3 total), curr bucket has (0, 0).
+	// prevW = 1 - (≈0/200ms) ≈ 1, so estTotal = 3*1 + 0 = 3, estSuccess = 3*1 + 0 = 3.
+	// Since minTotal = 1, rate should be 1.0.
+	first := GetSuccessRate(1)
+	assert.Equal(t, 1.0, first, "smooth window should preserve prev bucket data after rotation")
+
+	// Now record a failure — this goes into the current bucket
+	Record(1, false)
+	// Current is now (1 fail, 1 total), prev is (3 success, 3 total)
+	// elapsed since rotation is small → prevW ≈ 1, so estimated rate is close to 3/4 = 0.75
+	val := GetSuccessRate(1)
+	assert.Greater(t, val, 0.5)
+	assert.Less(t, val, 1.0)
+	assert.InDelta(t, 0.75, val, 0.15, "should blend prev success with current failure")
+}
+
+func TestTumblingWindowExpiration(t *testing.T) {
 	ResetForTest()
 	SetMinTotal(1)
 	SetWindowDuration(100 * time.Millisecond)
@@ -71,9 +106,11 @@ func TestWindowExpiration(t *testing.T) {
 
 	time.Sleep(150 * time.Millisecond)
 
-	// After window expires, stats are reset → insufficient data
+	// Old data rotated to prev, curr is empty.
+	// But prev bucket's data is still counted with prevW weight.
 	rate := GetSuccessRate(1)
-	assert.Equal(t, -1.0, rate)
+	assert.NotEqual(t, -1.0, rate, "smooth window should not return -1 right after boundary")
+	assert.InDelta(t, 1.0, rate, 0.01, "should preserve rate from prev bucket")
 }
 
 func TestMultipleChannels(t *testing.T) {
@@ -87,4 +124,17 @@ func TestMultipleChannels(t *testing.T) {
 
 	assert.Equal(t, 0.5, GetSuccessRate(1))
 	assert.Equal(t, 1.0, GetSuccessRate(2))
+}
+
+func TestRemove(t *testing.T) {
+	ResetForTest()
+	SetMinTotal(1)
+
+	Record(42, true)
+	assert.Equal(t, 1.0, GetSuccessRate(42))
+
+	Remove(42)
+	// After remove, stats are gone → insufficient data
+	rate := GetSuccessRate(42)
+	assert.Equal(t, -1.0, rate)
 }

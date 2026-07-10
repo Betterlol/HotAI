@@ -2,25 +2,29 @@ package channelsuccessrate
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type channelStats struct {
-	mu      sync.Mutex
-	total   int64
-	success int64
-	started time.Time
+	currTotal   atomic.Int64
+	currSuccess atomic.Int64
+	prevTotal   atomic.Int64
+	prevSuccess atomic.Int64
+	windowStart atomic.Int64
 }
 
 var (
-	windows   sync.Map
-	windowDur = 5 * time.Minute
-	minTotal  = int64(10)
+	windows    sync.Map
+	windowDur  = 5 * time.Minute
+	windowNano = windowDur.Nanoseconds()
+	minTotal   = int64(10)
 )
 
 // SetWindowDuration overrides the sliding window size (for testing).
 func SetWindowDuration(d time.Duration) {
 	windowDur = d
+	windowNano = d.Nanoseconds()
 }
 
 // SetMinTotal overrides the minimum sample count (for testing).
@@ -36,9 +40,13 @@ func ResetForTest() {
 	})
 }
 
-func getStats(channelID int) *channelStats {
-	actual, _ := windows.LoadOrStore(channelID, &channelStats{started: time.Now()})
-	return actual.(*channelStats)
+func getOrCreate(channelID int) *channelStats {
+	actual, _ := windows.LoadOrStore(channelID, &channelStats{
+		windowStart: atomic.Int64{},
+	})
+	s := actual.(*channelStats)
+	s.windowStart.CompareAndSwap(0, time.Now().UnixNano())
+	return s
 }
 
 // Record records a success or failure for the given channel.
@@ -46,39 +54,59 @@ func Record(channelID int, success bool) {
 	if channelID <= 0 {
 		return
 	}
-	s := getStats(channelID)
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if time.Since(s.started) > windowDur {
-		s.started = time.Now()
-		s.total = 0
-		s.success = 0
-	}
-	s.total++
+	s := getOrCreate(channelID)
+	tryRotate(s)
+	s.currTotal.Add(1)
 	if success {
-		s.success++
+		s.currSuccess.Add(1)
 	}
 }
 
-// GetSuccessRate returns the success rate for the given channel as a float64
-// in [0, 1]. If there are fewer samples than minTotal, returns -1 to signal
-// "insufficient data".
+// GetSuccessRate returns the estimated success rate for the given channel
+// using a weighted two-bucket smooth window. Returns [0, 1] or -1 if
+// insufficient data.
 func GetSuccessRate(channelID int) float64 {
 	if channelID <= 0 {
 		return -1
 	}
-	s := getStats(channelID)
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s := getOrCreate(channelID)
+	tryRotate(s)
 
-	if time.Since(s.started) > windowDur {
-		s.started = time.Now()
-		s.total = 0
-		s.success = 0
+	elapsed := time.Now().UnixNano() - s.windowStart.Load()
+	if elapsed < 0 {
+		elapsed = 0
 	}
-	if s.total < minTotal {
+	ratio := float64(elapsed) / float64(windowNano)
+	if ratio > 1 {
+		ratio = 1
+	}
+
+	prevW := 1 - ratio
+	estTotal := int64(float64(s.prevTotal.Load())*prevW+0.5) + s.currTotal.Load()
+	estSuccess := int64(float64(s.prevSuccess.Load())*prevW+0.5) + s.currSuccess.Load()
+
+	if estTotal < minTotal {
 		return -1
 	}
-	return float64(s.success) / float64(s.total)
+	return float64(estSuccess) / float64(estTotal)
+}
+
+func tryRotate(s *channelStats) {
+	now := time.Now().UnixNano()
+	start := s.windowStart.Load()
+	if now-start <= windowNano {
+		return
+	}
+	if s.windowStart.CompareAndSwap(start, now) {
+		s.prevTotal.Store(s.currTotal.Swap(0))
+		s.prevSuccess.Store(s.currSuccess.Swap(0))
+	}
+}
+
+// Remove deletes tracked state for the given channel to prevent memory leaks.
+func Remove(channelID int) {
+	if channelID <= 0 {
+		return
+	}
+	windows.Delete(channelID)
 }
