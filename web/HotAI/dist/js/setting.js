@@ -51,7 +51,13 @@ function initTabs() {
 async function loadSettings() {
     const res = await API.getOptions();
     if (!res.success) { showToast('加载设置失败','error'); return; }
-    settingsData = res.data || {};
+    
+    // 后端返回 [{key, value}, ...] 数组，需转换为 {key: value} 对象
+    const array = res.data || [];
+    settingsData = {};
+    array.forEach(item => { 
+        if (item && item.key) settingsData[item.key] = item.value; 
+    });
     
     // 辅助函数：安全获取值
     const getValue = (key, defaultValue = '') => {
@@ -605,6 +611,7 @@ window.testIoNetConnection = async function() {
 
 // ========== Tab 6: 模型定价管理 ==========
 let modelPricingData = [];
+let currentEditingModel = null;
 
 function loadModelPricingTable() {
     try {
@@ -612,10 +619,12 @@ function loadModelPricingTable() {
         const modelRatio = JSON.parse(settingsData.ModelRatio || '{}');
         const completionRatio = JSON.parse(settingsData.CompletionRatio || '{}');
         const billingMode = JSON.parse(settingsData['billing_setting.billing_mode'] || '{}');
+        const billingExpr = JSON.parse(settingsData['billing_setting.billing_expr'] || '{}');
         
         const allModels = new Set([
             ...Object.keys(modelPrice),
-            ...Object.keys(modelRatio)
+            ...Object.keys(modelRatio),
+            ...Object.keys(billingExpr)
         ]);
         
         modelPricingData = Array.from(allModels).map(name => ({
@@ -623,12 +632,14 @@ function loadModelPricingTable() {
             price: modelPrice[name] || '',
             ratio: modelRatio[name] || '',
             completionRatio: completionRatio[name] || '',
-            billingMode: billingMode[name] || 'per-token'
+            billingMode: billingMode[name] || 'per-token',
+            billingExpr: billingExpr[name] || ''
         })).sort((a, b) => a.name.localeCompare(b.name));
         
         renderModelPricingTable();
     } catch (e) {
         console.error('加载模型定价失败:', e);
+        showToast('加载模型定价失败: ' + e.message, 'error');
     }
 }
 
@@ -636,32 +647,190 @@ function renderModelPricingTable() {
     const tbody = document.getElementById('modelPricingTableBody');
     if (!tbody) return;
     
-    if (modelPricingData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="padding: 40px; text-align: center; color: #9CA3AF;">暂无模型定价配置</td></tr>';
+    const searchTerm = (document.getElementById('modelSearchInput')?.value || '').toLowerCase();
+    const filtered = searchTerm 
+        ? modelPricingData.filter(m => m.name.toLowerCase().includes(searchTerm))
+        : modelPricingData;
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="padding: 40px; text-align: center; color: #9CA3AF;">${searchTerm ? '未找到匹配的模型' : '暂无模型定价配置'}</td></tr>`;
         return;
     }
     
-    tbody.innerHTML = modelPricingData.map(model => {
-        const mode = model.price ? '按次计费' : '按量计费';
-        const inputPrice = model.ratio ? `$${(parseFloat(model.ratio) * 2).toFixed(6)}/1M` : '-';
-        const outputPrice = model.completionRatio ? `$${(parseFloat(model.completionRatio) * parseFloat(model.ratio || 1) * 2).toFixed(6)}/1M` : '-';
+    tbody.innerHTML = filtered.map(model => {
+        let billingType = '按量计费';
+        let priceSummary = '-';
+        
+        if (model.price) {
+            billingType = '按次计费';
+            priceSummary = `$${parseFloat(model.price).toFixed(4)}/次`;
+        } else if (model.billingExpr) {
+            billingType = '表达式/阶梯计费';
+            priceSummary = '阶梯计费';
+        } else if (model.ratio) {
+            billingType = '按量计费';
+            const inputPrice = (parseFloat(model.ratio) * 2).toFixed(6);
+            priceSummary = `输入 $${inputPrice}/1M`;
+            if (model.completionRatio) {
+                const outputPrice = (parseFloat(model.completionRatio) * parseFloat(model.ratio) * 2).toFixed(6);
+                priceSummary += `, 输出 $${outputPrice}/1M`;
+            }
+        }
         
         return `
             <tr style="border-bottom: 1px solid #E5E7EB;">
-                <td style="padding: 12px; font-weight: 500;">${model.name}</td>
-                <td style="padding: 12px; color: #6B7280;">${mode}</td>
-                <td style="padding: 12px; color: #6B7280; font-family: monospace; font-size: 12px;">${inputPrice}</td>
-                <td style="padding: 12px; color: #6B7280; font-family: monospace; font-size: 12px;">${outputPrice}</td>
-                <td style="padding: 12px; text-align: right;">
-                    <button class="btn btn-secondary" style="padding: 4px 12px; font-size: 13px;" onclick="deleteModelPricing('${model.name}')">删除</button>
+                <td style="padding: 12px; text-align: center; font-weight: 500;">${escHtml(model.name)}</td>
+                <td style="padding: 12px; text-align: center; color: #6B7280;">${billingType}</td>
+                <td style="padding: 12px; text-align: center; color: #6B7280; font-family: monospace; font-size: 12px;">${priceSummary}</td>
+                <td style="padding: 12px; text-align: center;">
+                    <button class="btn btn-danger btn-sm" onclick="deleteModelPricing('${escHtml(model.name)}')">删除</button>
                 </td>
             </tr>
         `;
     }).join('');
 }
 
-window.addModelPricing = function() {
-    showToast('模型定价添加功能需要更复杂的表单，建议在 web/default 中配置', 'info');
+function escHtml(s){return String(s).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"').replace(/'/g,'&#39;');}
+
+window.filterPricingTable = function() {
+    renderModelPricingTable();
+};
+
+window.openPricingModal = function(modelName) {
+    currentEditingModel = modelName || null;
+    const modal = document.getElementById('pricingModal');
+    document.getElementById('pricingModalTitle').textContent = modelName ? '编辑模型定价' : '添加模型定价';
+    
+    if (modelName) {
+        const model = modelPricingData.find(m => m.name === modelName);
+        if (model) {
+            document.getElementById('pricingName').value = model.name;
+            document.getElementById('pricingName').disabled = true;
+            
+            if (model.billingExpr) {
+                document.getElementById('pricingBillingMode').value = 'tiered_expr';
+                document.getElementById('pricingExpr').value = model.billingExpr;
+            } else if (model.price) {
+                document.getElementById('pricingBillingMode').value = 'per-request';
+                document.getElementById('pricingPerRequest').value = model.price;
+            } else {
+                document.getElementById('pricingBillingMode').value = 'per-token';
+                document.getElementById('pricingInputPrice').value = model.ratio ? (parseFloat(model.ratio) * 2).toFixed(6) : '';
+                document.getElementById('pricingOutputPrice').value = model.completionRatio ? (parseFloat(model.completionRatio) * parseFloat(model.ratio || 1) * 2).toFixed(6) : '';
+            }
+        }
+    } else {
+        document.getElementById('pricingName').value = '';
+        document.getElementById('pricingName').disabled = false;
+        document.getElementById('pricingBillingMode').value = 'per-token';
+        document.getElementById('pricingInputPrice').value = '';
+        document.getElementById('pricingOutputPrice').value = '';
+        document.getElementById('pricingCachePrice').value = '';
+        document.getElementById('pricingCreateCachePrice').value = '';
+        document.getElementById('pricingImagePrice').value = '';
+        document.getElementById('pricingAudioPrice').value = '';
+        document.getElementById('pricingAudioCompletionPrice').value = '';
+        document.getElementById('pricingPerRequest').value = '';
+        document.getElementById('pricingExpr').value = '';
+    }
+    
+    togglePricingFields();
+    modal.classList.remove('hidden');
+};
+
+window.closePricingModal = function() {
+    document.getElementById('pricingModal').classList.add('hidden');
+    currentEditingModel = null;
+};
+
+window.togglePricingFields = function() {
+    const mode = document.getElementById('pricingBillingMode').value;
+    document.getElementById('perTokenFields').style.display = mode === 'per-token' ? 'block' : 'none';
+    document.getElementById('perRequestFields').style.display = mode === 'per-request' ? 'block' : 'none';
+    document.getElementById('exprFields').style.display = mode === 'tiered_expr' ? 'block' : 'none';
+};
+
+window.savePricing = async function() {
+    const name = document.getElementById('pricingName').value.trim();
+    if (!name) { showToast('请输入模型名称', 'warning'); return; }
+    
+    const mode = document.getElementById('pricingBillingMode').value;
+    
+    try {
+        const modelPrice = JSON.parse(settingsData.ModelPrice || '{}');
+        const modelRatio = JSON.parse(settingsData.ModelRatio || '{}');
+        const completionRatio = JSON.parse(settingsData.CompletionRatio || '{}');
+        const cacheRatio = JSON.parse(settingsData.CacheRatio || '{}');
+        const createCacheRatio = JSON.parse(settingsData.CreateCacheRatio || '{}');
+        const imageRatio = JSON.parse(settingsData.ImageRatio || '{}');
+        const audioRatio = JSON.parse(settingsData.AudioRatio || '{}');
+        const audioCompletionRatio = JSON.parse(settingsData.AudioCompletionRatio || '{}');
+        const billingMode = JSON.parse(settingsData['billing_setting.billing_mode'] || '{}');
+        const billingExpr = JSON.parse(settingsData['billing_setting.billing_expr'] || '{}');
+        
+        // 清除旧值
+        delete modelPrice[name];
+        delete modelRatio[name];
+        delete completionRatio[name];
+        delete cacheRatio[name];
+        delete createCacheRatio[name];
+        delete imageRatio[name];
+        delete audioRatio[name];
+        delete audioCompletionRatio[name];
+        delete billingExpr[name];
+        
+        if (mode === 'per-request') {
+            const price = parseFloat(document.getElementById('pricingPerRequest').value) || 0;
+            modelPrice[name] = price;
+            billingMode[name] = 'per-request';
+        } else if (mode === 'tiered_expr') {
+            const expr = document.getElementById('pricingExpr').value.trim();
+            if (!expr) { showToast('请输入计费表达式', 'warning'); return; }
+            billingExpr[name] = expr;
+            billingMode[name] = 'tiered_expr';
+        } else {
+            const inputPrice = parseFloat(document.getElementById('pricingInputPrice').value) || 0;
+            const outputPrice = parseFloat(document.getElementById('pricingOutputPrice').value) || 0;
+            const cachePrice = parseFloat(document.getElementById('pricingCachePrice').value) || 0;
+            const createCache = parseFloat(document.getElementById('pricingCreateCachePrice').value) || 0;
+            const imagePrice = parseFloat(document.getElementById('pricingImagePrice').value) || 0;
+            const audioPrice = parseFloat(document.getElementById('pricingAudioPrice').value) || 0;
+            const audioComp = parseFloat(document.getElementById('pricingAudioCompletionPrice').value) || 0;
+            
+            if (inputPrice > 0) modelRatio[name] = inputPrice / 2;
+            if (outputPrice > 0 && inputPrice > 0) completionRatio[name] = outputPrice / inputPrice;
+            if (cachePrice > 0) cacheRatio[name] = cachePrice / 2;
+            if (createCache > 0) createCacheRatio[name] = createCache / 2;
+            if (imagePrice > 0) imageRatio[name] = imagePrice / 2;
+            if (audioPrice > 0) audioRatio[name] = audioPrice / 2;
+            if (audioComp > 0) audioCompletionRatio[name] = audioComp / 2;
+            billingMode[name] = 'per-token';
+        }
+        
+        const payload = {
+            ModelPrice: JSON.stringify(modelPrice),
+            ModelRatio: JSON.stringify(modelRatio),
+            CompletionRatio: JSON.stringify(completionRatio),
+            CacheRatio: JSON.stringify(cacheRatio),
+            CreateCacheRatio: JSON.stringify(createCacheRatio),
+            ImageRatio: JSON.stringify(imageRatio),
+            AudioRatio: JSON.stringify(audioRatio),
+            AudioCompletionRatio: JSON.stringify(audioCompletionRatio),
+            'billing_setting.billing_mode': JSON.stringify(billingMode),
+            'billing_setting.billing_expr': JSON.stringify(billingExpr)
+        };
+        
+        const res = await API.updateOptions(payload);
+        if (res.success) {
+            showToast('保存成功', 'success');
+            closePricingModal();
+            loadSettings();
+        } else {
+            showToast(res.message || '保存失败', 'error');
+        }
+    } catch (e) {
+        showToast('保存失败: ' + e.message, 'error');
+    }
 };
 
 window.deleteModelPricing = async function(modelName) {
@@ -672,20 +841,35 @@ window.deleteModelPricing = async function(modelName) {
         const modelRatio = JSON.parse(settingsData.ModelRatio || '{}');
         const completionRatio = JSON.parse(settingsData.CompletionRatio || '{}');
         const cacheRatio = JSON.parse(settingsData.CacheRatio || '{}');
+        const createCacheRatio = JSON.parse(settingsData.CreateCacheRatio || '{}');
+        const imageRatio = JSON.parse(settingsData.ImageRatio || '{}');
+        const audioRatio = JSON.parse(settingsData.AudioRatio || '{}');
+        const audioCompletionRatio = JSON.parse(settingsData.AudioCompletionRatio || '{}');
         const billingMode = JSON.parse(settingsData['billing_setting.billing_mode'] || '{}');
+        const billingExpr = JSON.parse(settingsData['billing_setting.billing_expr'] || '{}');
         
         delete modelPrice[modelName];
         delete modelRatio[modelName];
         delete completionRatio[modelName];
         delete cacheRatio[modelName];
+        delete createCacheRatio[modelName];
+        delete imageRatio[modelName];
+        delete audioRatio[modelName];
+        delete audioCompletionRatio[modelName];
         delete billingMode[modelName];
+        delete billingExpr[modelName];
         
         const payload = {
             ModelPrice: JSON.stringify(modelPrice),
             ModelRatio: JSON.stringify(modelRatio),
             CompletionRatio: JSON.stringify(completionRatio),
             CacheRatio: JSON.stringify(cacheRatio),
-            'billing_setting.billing_mode': JSON.stringify(billingMode)
+            CreateCacheRatio: JSON.stringify(createCacheRatio),
+            ImageRatio: JSON.stringify(imageRatio),
+            AudioRatio: JSON.stringify(audioRatio),
+            AudioCompletionRatio: JSON.stringify(audioCompletionRatio),
+            'billing_setting.billing_mode': JSON.stringify(billingMode),
+            'billing_setting.billing_expr': JSON.stringify(billingExpr)
         };
         
         const res = await API.updateOptions(payload);

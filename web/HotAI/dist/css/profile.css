@@ -109,11 +109,13 @@
     overflow-x: auto;
     width: 100%;           /* ← 新增，固定宽度防止随内容收缩 */
     min-width: 0;          /* ← 确保 flex 子元素可正常缩放 */
+    flex-shrink: 0;        /* ← 防止在竖直方向被挤压 */
 }
 
 .profile-tab-btn {
     flex: 1;
     min-width: 120px;
+    height: 44px;           /* ← 固定高度，防止被压缩 */
     padding: 10px 20px;
     border-radius: var(--radius-btn);
     border: none;

@@ -43,8 +43,8 @@
      渠道 创建/编辑 大模态框
      ==================================================== -->
 <div class="modal-overlay hidden" id="channelModal">
-    <div class="modal modal-xl" style="max-width:780px;width:92vw;">
-        <div class="modal-header">
+    <div class="modal modal-xl" style="max-width:780px;width:92vw;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;">
+        <div class="modal-header" style="flex-shrink:0;">
             <div class="modal-title" id="channelModalTitle" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
                 <span id="chModalTypeIcon" style="font-size:20px;flex-shrink:0;"></span>
                 <span id="chModalTitleText" style="flex-shrink:0;">创建渠道</span>
@@ -54,7 +54,7 @@
             <button class="modal-close" onclick="closeChannelModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         </div>
         <!-- 单列滚动表单区（不再有左侧导航） -->
-        <div class="modal-body" style="padding:20px 24px;max-height:70vh;overflow-y:auto;" id="channelFormArea">
+        <div class="modal-body" style="padding:20px 24px;flex:1;overflow-y:auto;" id="channelFormArea">
             <div>
                 <input type="hidden" id="chId">
                 <!-- ══ 基础信息 ══ -->
@@ -424,7 +424,7 @@
                 </div>
             </div>
         </div>
-        <div class="modal-footer" style="padding:16px 24px;gap:12px;">
+        <div class="modal-footer" style="padding:16px 24px;gap:12px;flex-shrink:0;">
             <button class="btn btn-secondary" onclick="closeChannelModal()">取消</button>
             <button class="btn btn-primary" onclick="saveChannel()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -493,13 +493,6 @@
                     <!-- 分组筛选 -->
                     <select class="form-select" id="filterGroup" style="width:150px;margin-left:12px;">
                         <option value="">全部分组</option>
-                    </select>
-                    <!-- 状态筛选 -->
-                    <select class="form-select" id="filterStatus" style="width:130px;margin-left:12px;">
-                        <option value="">全部状态</option>
-                        <option value="1">启用</option>
-                        <option value="2">禁用</option>
-                        <option value="3">自动禁用</option>
                     </select>
                     <!-- 类型筛选 -->
                     <select class="form-select" id="filterType" style="width:150px;margin-left:12px;">

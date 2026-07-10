@@ -365,24 +365,23 @@
                     <div style="background: var(--c-white); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                             <h3 style="margin: 0; font-size: 18px; font-weight: 600;">模型定价管理</h3>
-                            <button class="btn btn-primary" onclick="addModelPricing()">+ 添加模型</button>
+                            <button class="btn btn-primary" onclick="openPricingModal()">+ 添加模型</button>
                         </div>
                         <div style="margin-bottom: 16px;">
-                            <input type="text" class="form-input" id="modelSearchInput" placeholder="搜索模型名称..." style="max-width: 400px;">
+                            <input type="text" class="form-input" id="modelSearchInput" placeholder="搜索模型名称..." style="max-width: 400px;" onkeyup="filterPricingTable()">
                         </div>
                         <div style="overflow-x: auto;">
-                            <table id="modelPricingTable" style="width: 100%; border-collapse: collapse;">
+                            <table id="modelPricingTable" style="width: 100%; table-layout: auto; border-collapse: collapse;">
                                 <thead style="background: #F9FAFB;">
                                     <tr>
-                                        <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">模型名称</th>
-                                        <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">计费模式</th>
-                                        <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">输入价格</th>
-                                        <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">输出价格</th>
-                                        <th style="padding: 12px; text-align: right; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">操作</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">模型名称</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">计费方式</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">价格摘要</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600; font-size: 13px; color: #6B7280; border-bottom: 1px solid #E5E7EB;">操作</th>
                                     </tr>
                                 </thead>
                                 <tbody id="modelPricingTableBody">
-                                    <tr><td colspan="5" style="padding: 40px; text-align: center; color: #9CA3AF;">暂无模型定价配置</td></tr>
+                                    <tr><td colspan="4" style="padding: 40px; text-align: center; color: #9CA3AF;">暂无模型定价配置</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -807,6 +806,55 @@
         </div>
     </main>
 </div>
+
+<!-- 模型定价 Modal -->
+<div class="modal-overlay hidden" id="pricingModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title" id="pricingModalTitle">添加模型定价</div>
+            <button class="modal-close" onclick="closePricingModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group"><label class="form-label">模型名称 <span style="color:#dc2626;">*</span></label><input type="text" class="form-input" id="pricingName" placeholder="例如：gpt-4"></div>
+            <div class="form-group"><label class="form-label">计费模式</label>
+                <select class="form-select" id="pricingBillingMode" onchange="togglePricingFields()">
+                    <option value="per-token">按量计费</option>
+                    <option value="per-request">按次计费</option>
+                    <option value="tiered_expr">表达式/阶梯计费</option>
+                </select>
+            </div>
+            <!-- 按量计费字段 -->
+            <div id="perTokenFields">
+                <div class="form-group"><label class="form-label">输入价格（$/1M tokens）</label><input type="number" class="form-input" id="pricingInputPrice" step="0.000001" placeholder="0"></div>
+                <div class="form-group"><label class="form-label">输出价格（$/1M tokens）</label><input type="number" class="form-input" id="pricingOutputPrice" step="0.000001" placeholder="0"></div>
+                <details style="margin-bottom:12px;"><summary style="cursor:pointer;user-select:none;font-size:13px;color:#6B7280;padding:8px 0;">扩展价格（可选）</summary>
+                    <div style="padding:8px 0 0 16px;">
+                        <div class="form-group"><label class="form-label">缓存读取价格（$/1M）</label><input type="number" class="form-input" id="pricingCachePrice" step="0.000001" placeholder="0"></div>
+                        <div class="form-group"><label class="form-label">缓存创建价格（$/1M）</label><input type="number" class="form-input" id="pricingCreateCachePrice" step="0.000001" placeholder="0"></div>
+                        <div class="form-group"><label class="form-label">图片输入价格（$/1M）</label><input type="number" class="form-input" id="pricingImagePrice" step="0.000001" placeholder="0"></div>
+                        <div class="form-group"><label class="form-label">音频输入价格（$/1M）</label><input type="number" class="form-input" id="pricingAudioPrice" step="0.000001" placeholder="0"></div>
+                        <div class="form-group"><label class="form-label">音频补全价格（$/1M）</label><input type="number" class="form-input" id="pricingAudioCompletionPrice" step="0.000001" placeholder="0"></div>
+                    </div>
+                </details>
+            </div>
+            <!-- 按次计费字段 -->
+            <div id="perRequestFields" style="display:none;">
+                <div class="form-group"><label class="form-label">每次调用价格（$/次）</label><input type="number" class="form-input" id="pricingPerRequest" step="0.0001" placeholder="0"></div>
+            </div>
+            <!-- 表达式/阶梯计费字段 -->
+            <div id="exprFields" style="display:none;">
+                <div class="form-group"><label class="form-label">计费表达式</label><textarea class="form-textarea" id="pricingExpr" rows="5" placeholder='tier("base", p * 0.00001 + c * 0.00003)'></textarea>
+                    <div class="hint-text">支持阶梯计费表达式，p=输入tokens，c=输出tokens</div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closePricingModal()">取消</button>
+            <button class="btn btn-primary" onclick="savePricing()">保存</button>
+        </div>
+    </div>
+</div>
+
 <script src="js/i18n.js"></script>
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
