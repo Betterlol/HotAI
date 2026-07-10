@@ -267,6 +267,60 @@ func TestSuccessRateAdjustedWeightBlendsWithFactor(t *testing.T) {
 	assert.Equal(t, 85, w)
 }
 
+func TestSuccessRateAdjustedWeightFactorClamping(t *testing.T) {
+	w := SuccessRateAdjustedWeight(100, 0.5, operation_setting.SuccessRateRoutingSetting{
+		Enabled:      true,
+		WeightFactor: -0.5,
+	})
+	assert.Equal(t, 100, w, "negative factor clamped to 0 means unchanged")
+
+	w = SuccessRateAdjustedWeight(100, 0.5, operation_setting.SuccessRateRoutingSetting{
+		Enabled:      true,
+		WeightFactor: 2.0,
+	})
+	assert.Equal(t, 50, w, "factor >1 clamped to 1: 100*((1-1)+1*0.5)=100*0.5=50")
+	assert.Less(t, w, 100)
+}
+
+func TestSuccessRateAdjustedWeightFloorAtOne(t *testing.T) {
+	w := SuccessRateAdjustedWeight(100, 0.005, operation_setting.SuccessRateRoutingSetting{
+		Enabled:      true,
+		WeightFactor: 1,
+	})
+	assert.Equal(t, 1, w, "very low success rate floors at 1")
+}
+
+func TestSuccessRateAdjustedWeightZeroBaseWeight(t *testing.T) {
+	w := SuccessRateAdjustedWeight(0, 0.9, operation_setting.SuccessRateRoutingSetting{
+		Enabled:      true,
+		WeightFactor: 1,
+	})
+	assert.Equal(t, 0, w)
+}
+
+func TestEngineCalculateScoreFieldsPopulated(t *testing.T) {
+	inputs := []ChannelData{
+		{ChannelID: 1, BaseWeight: 100, ResponseTime: 100, Cost: 1, SuccessRate: 0.95},
+		{ChannelID: 2, BaseWeight: 100, ResponseTime: 500, Cost: 10, SuccessRate: 0.5},
+	}
+
+	latSetting := operation_setting.LatencyRoutingSetting{Enabled: true, WeightFactor: 1}
+	costSetting := operation_setting.CostRoutingSetting{Enabled: true, CostWeight: 1}
+	srSetting := operation_setting.SuccessRateRoutingSetting{Enabled: true, WeightFactor: 1}
+	engine := NewEngineWithSettings(latSetting, costSetting, srSetting)
+	scores := engine.Calculate(inputs)
+
+	require.Len(t, scores, 2)
+	for _, s := range scores {
+		assert.Greater(t, s.LatencyAdjustedWeight, 0)
+		assert.Greater(t, s.CostAdjustedWeight, 0)
+		assert.Greater(t, s.SuccessRateAdjustedWeight, 0)
+		assert.Equal(t, s.FinalWeight, s.SuccessRateAdjustedWeight)
+	}
+	assert.Greater(t, scores[0].FinalWeight, scores[1].FinalWeight,
+		"fast+cheap+high-success should beat slow+expensive+low-success")
+}
+
 func TestEngineCalculateWithSuccessRate(t *testing.T) {
 	inputs := []ChannelData{
 		{ChannelID: 1, BaseWeight: 100, SuccessRate: 0.95},

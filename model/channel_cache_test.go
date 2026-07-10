@@ -6,6 +6,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	channellimiter "github.com/QuantumNous/new-api/pkg/channel_limiter"
+	channelsuccessrate "github.com/QuantumNous/new-api/pkg/channel_successrate"
 	"github.com/QuantumNous/new-api/pkg/circuitbreaker"
 	"github.com/QuantumNous/new-api/pkg/routing"
 	"github.com/QuantumNous/new-api/setting/config"
@@ -111,6 +112,63 @@ func TestGetRandomSatisfiedChannelSkipsFullChannelLimiter(t *testing.T) {
 	assert.Equal(t, 2, channel.Id)
 	assert.Equal(t, 1, channellimiter.InFlight(2))
 	channellimiter.Release(2)
+}
+
+func TestFillSuccessRateInjectsRateIntoChannelData(t *testing.T) {
+	channelsuccessrate.ResetForTest()
+	channelsuccessrate.SetMinTotal(1)
+
+	channelsuccessrate.Record(1, true)
+	channelsuccessrate.Record(1, true)
+	channelsuccessrate.Record(1, true)
+
+	inputs := []routing.ChannelData{
+		{ChannelID: 1, BaseWeight: 100},
+		{ChannelID: 2, BaseWeight: 100},
+	}
+
+	routing.FillSuccessRate(inputs)
+
+	assert.InDelta(t, 1.0, inputs[0].SuccessRate, 0.01, "channel with 3/3 success")
+	assert.Equal(t, -1.0, inputs[1].SuccessRate, "channel with no records")
+}
+
+func TestFillSuccessRateWorksInlineInGetRandomSatisfiedChannel(t *testing.T) {
+	oldMemoryCacheEnabled := common.MemoryCacheEnabled
+	oldGroups := group2model2channels
+	oldChannels := channelsIDM
+	oldAdvanced := channel2advancedCustomConfig
+	common.MemoryCacheEnabled = true
+	group2model2channels = map[string]map[string][]int{
+		"default": {"gpt-test": {1, 2}},
+	}
+	channelsIDM = map[int]*Channel{
+		1: {Id: 1, Status: common.ChannelStatusEnabled, Models: "gpt-test", Group: "default", Weight: common.GetPointer(uint(10)), Priority: common.GetPointer(int64(100))},
+		2: {Id: 2, Status: common.ChannelStatusEnabled, Models: "gpt-test", Group: "default", Weight: common.GetPointer(uint(10)), Priority: common.GetPointer(int64(100))},
+	}
+	channel2advancedCustomConfig = nil
+	t.Cleanup(func() {
+		common.MemoryCacheEnabled = oldMemoryCacheEnabled
+		group2model2channels = oldGroups
+		channelsIDM = oldChannels
+		channel2advancedCustomConfig = oldAdvanced
+		circuitbreaker.ResetForTest()
+		channellimiter.ResetForTest()
+		channelsuccessrate.ResetForTest()
+	})
+
+	channelsuccessrate.ResetForTest()
+	channelsuccessrate.SetMinTotal(1)
+	// Fill channel 1 with success, channel 2 with failures
+	channelsuccessrate.Record(1, true)
+	channelsuccessrate.Record(1, true)
+	channelsuccessrate.Record(2, false)
+
+	// This internally calls FillSuccessRate → GetSuccessRate → routing.Engine
+	// No error = FillSuccessRate didn't panic and routing proceeded normally
+	channel, err := GetRandomSatisfiedChannel("default", "gpt-test", 0, "")
+	require.NoError(t, err)
+	require.NotNil(t, channel)
 }
 
 func withCircuitBreakerSettingForModelTest(t *testing.T, values map[string]string) {

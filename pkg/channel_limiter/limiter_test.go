@@ -2,6 +2,7 @@ package channellimiter
 
 import (
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/QuantumNous/new-api/setting/config"
@@ -60,6 +61,48 @@ func withLimiterSetting(t *testing.T, values map[string]string) {
 		_ = config.UpdateConfigFromMap(cfg, restore)
 		ResetForTest()
 	})
+}
+
+func TestCanAcquireReturnsTrueWhenBelowLimit(t *testing.T) {
+	withLimiterSetting(t, map[string]string{"enabled": "true", "max_concurrent_requests": "2"})
+	ResetForTest()
+
+	assert.True(t, Acquire(1))
+	assert.True(t, CanAcquire(1))
+	Acquire(1)
+	assert.False(t, CanAcquire(1))
+}
+
+func TestRemoveCleansUpState(t *testing.T) {
+	withLimiterSetting(t, map[string]string{"enabled": "true", "max_concurrent_requests": "1"})
+	ResetForTest()
+
+	Acquire(1)
+	assert.Equal(t, 1, InFlight(1))
+
+	Remove(1)
+	assert.Zero(t, InFlight(1))
+}
+
+func TestConcurrentAcquireAndRelease(t *testing.T) {
+	withLimiterSetting(t, map[string]string{"enabled": "true", "max_concurrent_requests": "10"})
+	ResetForTest()
+
+	var wg sync.WaitGroup
+	n := 100
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if Acquire(42) {
+				Release(42)
+			}
+		}()
+	}
+	wg.Wait()
+
+	count := InFlight(42)
+	assert.Zero(t, count, "after %d concurrent acquire/release cycles, in-flight should be 0", n)
 }
 
 func boolStringForLimiterTest(value bool) string {

@@ -108,6 +108,25 @@ func boolString(value bool) string {
 	return "false"
 }
 
+func TestCircuitBreakerRemoveCleansUp(t *testing.T) {
+	withCircuitBreakerSetting(t, map[string]string{
+		"enabled":              "true",
+		"window_seconds":       "10",
+		"bucket_seconds":       "1",
+		"error_threshold":      "0.5",
+		"min_request_count":    "1",
+		"open_timeout_seconds": "30",
+	})
+	ResetForTest()
+
+	MarkFailure(99)
+	MarkFailure(99)
+	assert.Equal(t, StateOpen, GetState(99))
+
+	Remove(99)
+	assert.Equal(t, StateClosed, GetState(99))
+}
+
 func intString(value int) string {
 	return int64String(int64(value))
 }

@@ -1,6 +1,7 @@
 package channelsuccessrate
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -134,7 +135,46 @@ func TestRemove(t *testing.T) {
 	assert.Equal(t, 1.0, GetSuccessRate(42))
 
 	Remove(42)
-	// After remove, stats are gone → insufficient data
 	rate := GetSuccessRate(42)
 	assert.Equal(t, -1.0, rate)
+}
+
+func TestRemoveNonexistent(t *testing.T) {
+	ResetForTest()
+	Remove(999)
+	Remove(0)
+	Remove(-1)
+}
+
+func TestRemoveThenRecreate(t *testing.T) {
+	ResetForTest()
+	SetMinTotal(1)
+	SetWindowDuration(5 * time.Minute)
+
+	Record(42, true)
+	Remove(42)
+	Record(42, true)
+	Record(42, true)
+
+	rate := GetSuccessRate(42)
+	assert.Equal(t, 1.0, rate)
+}
+
+func TestConcurrentRecordAndGet(t *testing.T) {
+	ResetForTest()
+	SetMinTotal(1)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			Record(100, id%3 != 0)
+		}(i)
+	}
+	wg.Wait()
+
+	rate := GetSuccessRate(100)
+	assert.Greater(t, rate, 0.0)
+	assert.LessOrEqual(t, rate, 1.0)
 }

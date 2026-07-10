@@ -3,6 +3,7 @@ package controller
 import (
 	"testing"
 
+	"github.com/QuantumNous/new-api/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,58 +28,43 @@ func TestPricePerTokenConversion(t *testing.T) {
 	}
 }
 
-func TestSyncChannelPricingBuildsMapping(t *testing.T) {
-	ch := createTestChannelForPricing(t, "gpt-4o,gpt-4o-mini,unknown-model")
-	assert.NotNil(t, ch)
-
-	modelRatioMap := map[string]float64{
-		"gpt-4o":      1,
-		"gpt-4o-mini": 0.075,
-	}
-	modelPriceMap := map[string]float64{
-		"dall-e-3": 0.04,
-	}
-
-	models := []string{"gpt-4o", "gpt-4o-mini", "unknown-model"}
-	mapping := buildTestPriceMapping(models, modelRatioMap, modelPriceMap)
-
-	assert.Contains(t, mapping, "gpt-4o")
-	assert.Contains(t, mapping, "gpt-4o-mini")
-	assert.NotContains(t, mapping, "unknown-model")
-
-	assert.InDelta(t, 0.000002, mapping["gpt-4o"]["price_per_token"], 1e-12)
-	assert.NotContains(t, mapping["gpt-4o"], "price_per_request")
-
-	assert.InDelta(t, 0.00000015, mapping["gpt-4o-mini"]["price_per_token"], 1e-12)
+func TestResolveModelMappingNilChannel(t *testing.T) {
+	m := resolveModelMapping(nil)
+	assert.Nil(t, m)
 }
 
-func buildTestPriceMapping(models []string, modelRatioMap, modelPriceMap map[string]float64) map[string]map[string]float64 {
-	mapping := make(map[string]map[string]float64)
-	for _, modelName := range models {
-		if modelName == "" {
-			continue
-		}
-		entry := make(map[string]float64)
-		hasPrice := false
-
-		if ratio, ok := modelRatioMap[modelName]; ok && ratio > 0 {
-			pricePerToken := ratio * pricePerTokenFactor
-			if pricePerToken > 0 {
-				entry["price_per_token"] = pricePerToken
-				hasPrice = true
-			}
-		}
-		if price, ok := modelPriceMap[modelName]; ok && price > 0 {
-			entry["price_per_request"] = price
-			hasPrice = true
-		}
-		if hasPrice {
-			mapping[modelName] = entry
-		}
-	}
-	return mapping
+func TestResolveModelMappingEmpty(t *testing.T) {
+	ch := &model.Channel{}
+	m := resolveModelMapping(ch)
+	assert.Nil(t, m)
 }
 
-func createTestChannelForPricing(t *testing.T, models string) interface{} {
-	return struct{ Models string }{Models: models}
+func TestResolveModelMappingHappyPath(t *testing.T) {
+	mapping := `{"gpt-4o": "gpt-4o-2024-08-06", "gpt-4o-mini": "gpt-4o-mini-2024-07-18"}`
+	ch := &model.Channel{ModelMapping: &mapping}
+	m := resolveModelMapping(ch)
+
+	assert.NotNil(t, m)
+	assert.Equal(t, "gpt-4o-2024-08-06", m["gpt-4o"])
+	assert.Equal(t, "gpt-4o-mini-2024-07-18", m["gpt-4o-mini"])
 }
+
+func TestResolveModelMappingInvalidJSON(t *testing.T) {
+	invalid := `{bad json}`
+	ch := &model.Channel{ModelMapping: &invalid}
+	m := resolveModelMapping(ch)
+	assert.Nil(t, m)
+}
+
+func TestResolveModelMappingPartialModels(t *testing.T) {
+	mapping := `{"gpt-4o": "gpt-4o-2024-08-06"}`
+	ch := &model.Channel{ModelMapping: &mapping}
+	m := resolveModelMapping(ch)
+
+	assert.NotNil(t, m)
+	assert.Equal(t, "gpt-4o-2024-08-06", m["gpt-4o"])
+	_, exists := m["nonexistent"]
+	assert.False(t, exists)
+}
+
+
