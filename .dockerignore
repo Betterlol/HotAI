@@ -7,6 +7,11 @@ Makefile
 docs
 .eslintcache
 .gocache
+/data
+/logs
+/new-api-logs
+/postgres-data
+/redis-data
 /web/node_modules
 /web/default/node_modules
 /web/default/dist

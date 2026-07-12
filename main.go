@@ -36,16 +36,16 @@ import (
 	_ "net/http/pprof"
 )
 
-//go:embed web/default/dist
+//go:embed web/HotAI/dist
 var buildFS embed.FS
 
-//go:embed web/default/dist/index.html
+//go:embed web/HotAI/dist/index.html
 var indexPage []byte
 
-//go:embed web/classic/dist
+//go:embed web/HotAI/dist
 var classicBuildFS embed.FS
 
-//go:embed web/classic/dist/index.html
+//go:embed web/HotAI/dist/index.html
 var classicIndexPage []byte
 
 func main() {

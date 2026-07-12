@@ -1,5 +1,5 @@
 :root {
-    --c-primary: #2D6FF5;
+    --c-primary: #2d6ff5;
     --c-primary-dark: #1A4EB8;
     --c-primary-light: #F0F7FF;
     --c-white: #FFFFFF;
@@ -27,14 +27,14 @@ body {
 .auth-wrapper {
     display: flex;
     width: 100vw;
-    height: 100vh;
+    height: calc(100vh - 64px);
     background-color: var(--c-primary-light);
 }
 
 .auth-left {
     flex: 0 0 50%;
     max-width: 50%;
-    height: 100vh;
+    height: 100%;
     position: relative;
     background: #eef2ff;
     overflow: hidden;
@@ -131,7 +131,7 @@ body {
 
 .auth-right {
     flex: 1;
-    height: 100vh;
+    height: 100%;
     background-color: var(--c-primary-light);
     display: flex;
     align-items: center;

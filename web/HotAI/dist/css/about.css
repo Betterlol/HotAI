@@ -1,0 +1,100 @@
+/* =========================================
+   关于页面样式
+   ========================================= */
+
+/* 使用全局 CSS 变量（定义在 head.css 中） */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--c-primary-light);
+    color: var(--c-text-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 页面主体容器 */
+.about-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+/* 白色圆角内容卡片 */
+.about-card {
+    background: var(--c-white);
+    border-radius: var(--radius-card);
+    box-shadow: 0 4px 16px rgba(45, 111, 245, 0.06);
+    padding: 48px 56px;
+    max-width: 800px;
+    width: 100%;
+}
+
+/* 标题样式 */
+.about-card h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--c-primary);
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.about-card h2 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--c-text-main);
+    margin-top: 32px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--c-primary-light);
+}
+
+/* 段落样式 */
+.about-card p {
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--c-text-secondary);
+    margin-bottom: 16px;
+}
+
+/* 列表样式 */
+.about-card ul {
+    margin-left: 24px;
+    margin-bottom: 16px;
+}
+
+.about-card li {
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--c-text-secondary);
+    margin-bottom: 8px;
+}
+
+/* 强调文本 */
+.about-card strong {
+    color: var(--c-text-main);
+    font-weight: 600;
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+    .about-card {
+        padding: 32px 24px;
+    }
+    
+    .about-card h1 {
+        font-size: 24px;
+    }
+    
+    .about-card h2 {
+        font-size: 20px;
+    }
+    
+    .about-card p,
+    .about-card li {
+        font-size: 14px;
+    }
+}

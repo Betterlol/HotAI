@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="picture/favicon.ico" />
+    <link rel="icon" type="image/png" href="picture/logo.png" />
+    <title>控制台 - 排行榜</title>
+    <link rel="stylesheet" href="css/head.css">
+    <link rel="stylesheet" href="css/console-shared.css">
+</head>
+<body>
+<header class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo"><img src="picture/logo.png" alt="图灵智算" style="width:36px;height:36px;object-fit:contain;">图灵智算</a>
+        <div class="nav-links"><a href="index.html">首页</a><a href="console.html" class="active">控制台</a><a href="model.html">模型广场</a><a href="docs.html">文档</a><a href="about.html">关于</a></div>
+    </div>
+    <div class="nav-right">
+        <button class="icon-btn" id="noticeBtn" title="公告"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+        <div class="language-selector"><button class="icon-btn" id="languageBtn" title="语言"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></button><div class="language-dropdown" id="languageDropdown"><div class="language-option" data-lang="zh"><span>中文</span></div><div class="language-option" data-lang="en"><span>English</span></div></div></div>
+        <a href="login.html" class="btn-login" id="navLoginBtn">登录</a>
+        <a href="register.html" class="btn-signup" id="navSignupBtn">注册</a>
+        <div class="user-menu hidden" id="navUserMenu">
+            <div class="user-trigger"><div class="user-avatar-top" id="navUserAvatar">U</div><span id="navUsername">User</span></div>
+            <div class="user-dropdown" id="navUserDropdown">
+                <a href="profile.html" class="user-dropdown-item">个人设置</a>
+                <div class="user-dropdown-divider"></div>
+                <button id="navLogoutBtn" class="user-dropdown-item">退出登录</button>
+            </div>
+        </div>
+    </div>
+</header>
+<div class="notice-modal" id="noticeModal" style="display:none;">
+    <div class="notice-overlay" id="noticeOverlay"></div>
+    <div class="notice-card">
+        <div class="notice-header"><h3>公告</h3><button class="notice-close" id="noticeClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+        <div class="notice-content" id="noticeContent"><div class="notice-loading">加载中...</div></div>
+    </div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="app-wrapper">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+        <div class="page-header">
+            <div class="page-title">排行榜</div>
+            <div class="page-actions">
+                <button class="btn btn-secondary" id="refreshBtn" title="刷新数据">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.12"/></svg>
+                    刷新
+                </button>
+            </div>
+        </div>
+
+        <!-- 筛选栏 -->
+        <div class="filter-bar">
+            <div class="filter-item">
+                <label class="filter-label">时间范围</label>
+                <select class="filter-input" id="timeRange">
+                    <option value="7">过去7天</option>
+                    <option value="30">过去30天</option>
+                    <option value="90">过去90天</option>
+                    <option value="365">过去一年</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">排行类型</label>
+                <select class="filter-input" id="rankingType">
+                    <option value="model">模型调用排行</option>
+                    <option value="user">用户消耗排行</option>
+                    <option value="token">令牌使用排行</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">显示数量</label>
+                <select class="filter-input" id="topLimit">
+                    <option value="10">Top 10</option>
+                    <option value="20">Top 20</option>
+                    <option value="50">Top 50</option>
+                    <option value="100">Top 100</option>
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button class="btn btn-primary" onclick="loadRankings()">查询</button>
+            </div>
+        </div>
+
+        <!-- 排行榜卡片网格 -->
+        <div class="stat-grid" id="rankingCards" style="display:none;">
+            <!-- 动态生成卡片 -->
+        </div>
+
+        <!-- 排行榜表格 -->
+        <div class="table-card">
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <span style="font-size:13px;color:var(--c-text-secondary);">共 <strong id="rankingTotal">0</strong> 条记录</span>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead id="rankingTableHead">
+                        <tr>
+                            <th>排名</th>
+                            <th>名称</th>
+                            <th>调用次数</th>
+                            <th>消耗额度</th>
+                            <th>占比</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rankingTableBody">
+                        <tr><td colspan="5"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/rankings.js"></script>
+</body>
+</html>

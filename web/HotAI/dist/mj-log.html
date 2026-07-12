@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="picture/favicon.ico" />
+    <link rel="icon" type="image/png" href="picture/logo.png" />
+    <title>控制台 - 绘图日志</title>
+    <link rel="stylesheet" href="css/head.css">
+    <link rel="stylesheet" href="css/console-shared.css">
+</head>
+<body>
+<header class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo"><img src="picture/logo.png" alt="图灵智算" style="width:36px;height:36px;object-fit:contain;">图灵智算</a>
+        <div class="nav-links"><a href="index.html">首页</a><a href="console.html" class="active">控制台</a><a href="model.html">模型广场</a><a href="docs.html">文档</a><a href="about.html">关于</a></div>
+    </div>
+    <div class="nav-right">
+        <button class="icon-btn" id="noticeBtn" title="公告"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+        <div class="language-selector"><button class="icon-btn" id="languageBtn" title="语言"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></button><div class="language-dropdown" id="languageDropdown"><div class="language-option" data-lang="zh"><span>中文</span></div><div class="language-option" data-lang="en"><span>English</span></div></div></div>
+        <a href="login.html" class="btn-login" id="navLoginBtn">登录</a>
+        <a href="register.html" class="btn-signup" id="navSignupBtn">注册</a>
+        <div class="user-menu hidden" id="navUserMenu">
+            <div class="user-trigger"><div class="user-avatar-top" id="navUserAvatar">U</div><span id="navUsername">User</span></div>
+            <div class="user-dropdown" id="navUserDropdown">
+                <a href="profile.html" class="user-dropdown-item">个人设置</a>
+                <div class="user-dropdown-divider"></div>
+                <button id="navLogoutBtn" class="user-dropdown-item">退出登录</button>
+            </div>
+        </div>
+    </div>
+</header>
+<div class="notice-modal" id="noticeModal" style="display:none;">
+    <div class="notice-overlay" id="noticeOverlay"></div>
+    <div class="notice-card">
+        <div class="notice-header"><h3>公告</h3><button class="notice-close" id="noticeClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+        <div class="notice-content" id="noticeContent"><div class="notice-loading">加载中...</div></div>
+    </div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="app-wrapper">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+        <div class="page-header">
+            <div class="page-title">绘图日志</div>
+        </div>
+
+        <!-- 筛选栏 -->
+        <div class="filter-bar">
+            <div class="filter-item">
+                <label class="filter-label">操作类型</label>
+                <select class="filter-input" id="filterAction">
+                    <option value="">全部</option>
+                    <option value="IMAGINE">IMAGINE（绘图）</option>
+                    <option value="UPSCALE">UPSCALE（放大）</option>
+                    <option value="VARIATION">VARIATION（变换）</option>
+                    <option value="HIGH_VARIATION">HIGH_VARIATION（强变换）</option>
+                    <option value="LOW_VARIATION">LOW_VARIATION（弱变换）</option>
+                    <option value="PAN">PAN（平移）</option>
+                    <option value="DESCRIBE">DESCRIBE（图生文）</option>
+                    <option value="BLEND">BLEND（图混合）</option>
+                    <option value="SHORTEN">SHORTEN（缩词）</option>
+                    <option value="REROLL">REROLL（重绘）</option>
+                    <option value="INPAINT">INPAINT（局部重绘）</option>
+                    <option value="ZOOM">ZOOM（变焦）</option>
+                    <option value="CUSTOM_ZOOM">CUSTOM_ZOOM（自定义变焦）</option>
+                    <option value="MODAL">MODAL（窗口处理）</option>
+                    <option value="SWAP_FACE">SWAP_FACE（换脸）</option>
+                    <option value="VIDEO">VIDEO（视频）</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">状态</label>
+                <select class="filter-input" id="filterStatus">
+                    <option value="">全部</option>
+                    <option value="SUCCESS">成功</option>
+                    <option value="FAILURE">失败</option>
+                    <option value="IN_PROGRESS">执行中</option>
+                    <option value="SUBMITTED">队列中</option>
+                    <option value="NOT_START">未启动</option>
+                    <option value="MODAL">窗口等待</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">用户名</label>
+                <input type="text" class="filter-input" id="filterUser" placeholder="用户名">
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">任务ID</label>
+                <input type="text" class="filter-input" id="filterTaskId" placeholder="任务ID">
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">渠道ID</label>
+                <input type="text" class="filter-input" id="filterChannelId" placeholder="渠道ID">
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">开始时间</label>
+                <input type="datetime-local" class="filter-input" id="filterStart">
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">结束时间</label>
+                <input type="datetime-local" class="filter-input" id="filterEnd">
+            </div>
+            <div class="filter-actions">
+                <button class="btn btn-primary" onclick="searchMjLogs()">查询</button>
+                <button class="btn btn-secondary" onclick="resetMjFilters()">重置</button>
+                <div class="mj-column-settings-dropdown" style="position:relative;">
+                    <button class="btn btn-secondary" onclick="toggleMjColumnSettings(event)">列设置 ▾</button>
+                    <div class="column-settings-menu" id="mjColumnSettingsMenu"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 表格卡片 -->
+        <div class="table-card">
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <span style="font-size:13px;color:var(--c-text-secondary);">共 <strong id="mjTotal">0</strong> 条</span>
+                </div>
+                <div class="table-toolbar-right">
+                    <button class="btn btn-secondary" onclick="exportMjCSV()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        导出CSV
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadMjLogs()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.12"/></svg>
+                        刷新
+                    </button>
+                </div>
+            </div>
+            <div class="table-wrap mj-table-wrap">
+                <table class="mj-table">
+                    <thead>
+                        <tr>
+                            <th data-col="time">时间</th>
+                            <th data-col="user">用户</th>
+                            <th data-col="task_id">任务ID</th>
+                            <th data-col="channel">渠道</th>
+                            <th data-col="action">操作类型</th>
+                            <th data-col="status">状态</th>
+                            <th data-col="code">提交结果</th>
+                            <th data-col="progress">进度</th>
+                            <th data-col="prompt">提示词</th>
+                            <th data-col="prompt_en">PromptEn</th>
+                            <th data-col="image">结果图片</th>
+                            <th data-col="duration">花费时间</th>
+                            <th data-col="fail_reason">失败原因</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mjTableBody">
+                        <tr><td colspan="13"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination">
+                <span id="mjPageInfo">第 1 页</span>
+                <div class="pagination-pages" id="mjPages"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- 绘图任务详情弹窗 -->
+<div class="modal-overlay hidden" id="mjDetailModal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <div class="modal-title">绘图任务详情</div>
+            <button class="modal-close" onclick="closeMjDetail()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body" id="mjDetailContent"></div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeMjDetail()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- 图片放大弹窗 -->
+<div class="modal-overlay hidden" id="mjImageModal" onclick="closeMjImageModal()">
+    <div style="max-width:90vw;max-height:90vh;display:flex;flex-direction:column;align-items:center;gap:12px;" onclick="event.stopPropagation()">
+        <img id="mjImageModalImg" src="" alt="结果图片" style="max-width:90vw;max-height:80vh;border-radius:8px;object-fit:contain;">
+        <button class="btn btn-secondary" onclick="closeMjImageModal()">关闭</button>
+    </div>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/mj-log.js"></script>
+</body>
+</html>

@@ -105,7 +105,7 @@ function showError(message) {
 
 function formatValue(val) {
     let v = parseFloat(val);
-    if (state.unit === 'M') v = v / 1000;
+    if (state.unit === 'M') v = v * 1000;
     let finalVal = v, prefix = '$';
     if (state.currency === 'CNY') {
         finalVal = v * USD_TO_CNY;
@@ -192,7 +192,14 @@ function getFilteredModels() {
     
     // 计费类型筛选
     if (state.filterQuotaType !== 'all') {
-        filtered = filtered.filter(m => m.quota_type === state.filterQuotaType);
+        // 0 = 按量计费，显示所有模型
+        // 1 = 按次计费，由于所有模型都是按量计费，返回空
+        if (state.filterQuotaType === 0) {
+            // 显示所有模型（不做筛选）
+        } else {
+            // 按次计费 - 返回空结果
+            filtered = [];
+        }
     }
     
     // 端点类型筛选
@@ -223,6 +230,13 @@ function getFilteredModels() {
             (m.vendor_name && m.vendor_name.toLowerCase().includes(term))
         );
     }
+    
+    // 按模型名称字典序排序
+    filtered.sort((a, b) => {
+        const nameA = a.model_name || '';
+        const nameB = b.model_name || '';
+        return nameA.localeCompare(nameB);
+    });
     
     return filtered;
 }
@@ -273,6 +287,7 @@ function renderUI() {
                             <input type="checkbox" class="model-checkbox" data-name="${model.model_name}" style="margin-left:8px; transform: scale(1.2);">
                         </div>
                         ${renderPrices(model, groupRatio)}
+                        ${renderRates(model, groupRatio)}
                     </div>
                 </div>
                 <div class="card-right">
@@ -304,12 +319,8 @@ function renderUI() {
 }
 
 function renderBillingTag(model) {
-    if (model.quota_type === 0) {
-        return '<span class="tag-billing">按量计费</span>';
-    } else if (model.quota_type === 1) {
-        return '<span class="tag-billing">按次计费</span>';
-    }
-    return '<span class="tag-billing">未知</span>';
+    // 所有模型统一显示为按量计费
+    return '<span class="tag-billing">按量计费</span>';
 }
 
 function renderTagsColumn(model) {
@@ -360,6 +371,21 @@ function renderPricesColumn(model, groupRatio) {
     return renderPrices(model, groupRatio).replace('model-prices', 'stacked-col');
 }
 
+function renderRates(model, groupRatio) {
+    if (!state.showRate) return '';
+    
+    if (model.quota_type === 0) {
+        return `
+            <div class="rate-info">
+                <div>模型倍率 <span>${formatRate(model.model_ratio)}</span></div>
+                <div>补全倍率 <span>${formatRate(model.completion_ratio)}</span></div>
+                <div>分组倍率 <span>${formatRate(groupRatio)}</span></div>
+            </div>
+        `;
+    }
+    return '';
+}
+
 function renderRatesColumn(model, groupRatio) {
     if (!state.showRate) return '<div style="color: #9CA3AF;">-</div>';
     
@@ -383,7 +409,7 @@ function updateFilters() {
 }
 
 function updateVendorFilters() {
-    const container = document.querySelector('.filter-group:nth-child(1) .filter-options');
+    const container = document.querySelector('.filter-group:nth-child(2) .filter-options');
     if (!container) return;
     
     // 统计每个供应商的模型数量
@@ -447,7 +473,7 @@ function updateVendorFilters() {
 }
 
 function updateGroupFilters() {
-    const container = document.querySelector('.filter-group:nth-child(2) .filter-options');
+    const container = document.querySelector('.filter-group:nth-child(3) .filter-options');
     if (!container) return;
     
     const groups = Object.keys(state.usableGroup);
@@ -482,14 +508,14 @@ function updateGroupFilters() {
         const ratio = state.groupRatio[group] || 1;
         const count = groupCounts[group] || 0;
         const isActive = state.filterGroup === group;
-        html += `<button class="filter-opt-btn ${isActive ? 'active' : ''}" data-filter="group" data-value="${group}">${group} (${ratio}x, ${count})</button>`;
+        html += `<button class="filter-opt-btn ${isActive ? 'active' : ''}" data-filter="group" data-value="${group}">${group}-${ratio}x (${count})</button>`;
     });
     
     container.insertAdjacentHTML('beforeend', html);
 }
 
 function updateTagFilters() {
-    const container = document.querySelector('.filter-group:nth-child(4) .filter-options');
+    const container = document.querySelector('.filter-group:nth-child(5) .filter-options');
     if (!container) return;
     
     // 统计每个标签的模型数量
@@ -533,7 +559,7 @@ function updateTagFilters() {
 }
 
 function updateEndpointFilters() {
-    const container = document.querySelector('.filter-group:nth-child(5) .filter-options');
+    const container = document.querySelector('.filter-group:nth-child(6) .filter-options');
     if (!container) return;
     
     // 统计每个端点类型的模型数量
@@ -883,10 +909,352 @@ document.querySelector('.filter-reset')?.addEventListener('click', function() {
     updateBanner();
 });
 
+// ============ 模型详情抽屉 ============
+
+let selectedModelData = null;
+
+// 打开模型详情抽屉
+function openModelDrawer(model) {
+    selectedModelData = model;
+    const overlay = document.getElementById('modelDrawerOverlay');
+    const drawer = document.getElementById('modelDrawer');
+    
+    if (!overlay || !drawer) return;
+    
+    // 显示覆盖层和抽屉
+    overlay.style.display = 'block';
+    drawer.style.display = 'flex';
+    
+    // 触发动画
+    setTimeout(() => {
+        overlay.classList.add('show');
+        drawer.classList.add('open');
+    }, 10);
+    
+    // 渲染内容
+    renderDrawerHeader(model);
+    renderDrawerContent(model);
+    
+    // 阻止 body 滚动
+    document.body.style.overflow = 'hidden';
+}
+
+// 关闭模型详情抽屉
+function closeModelDrawer() {
+    const overlay = document.getElementById('modelDrawerOverlay');
+    const drawer = document.getElementById('modelDrawer');
+    
+    if (!overlay || !drawer) return;
+    
+    // 移除动画类
+    overlay.classList.remove('show');
+    drawer.classList.remove('open');
+    
+    // 动画结束后隐藏
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        drawer.style.display = 'none';
+        selectedModelData = null;
+    }, 300);
+    
+    // 恢复 body 滚动
+    document.body.style.overflow = '';
+}
+
+// 渲染抽屉头部
+function renderDrawerHeader(model) {
+    const iconContainer = document.getElementById('drawerModelIcon');
+    const nameContainer = document.getElementById('drawerModelName');
+    
+    if (!iconContainer || !nameContainer) return;
+    
+    const vendor = getModelVendor(model);
+    iconContainer.innerHTML = vendor ? getVendorIcon(vendor) : '<div class="model-logo">?</div>';
+    nameContainer.textContent = model.model_name || '未知模型';
+}
+
+// 渲染抽屉内容
+function renderDrawerContent(model) {
+    const contentContainer = document.getElementById('drawerContent');
+    if (!contentContainer) return;
+    
+    let html = '';
+    
+    // 基本信息区
+    html += renderBasicInfoSection(model);
+    
+    // 端点信息区
+    html += renderEndpointsSection(model);
+    
+    // 动态计费区（仅当 billing_mode === 'tiered_expr' 时显示）
+    if (model.billing_mode === 'tiered_expr' && model.billing_expr) {
+        html += renderDynamicPricingSection(model);
+    }
+    
+    // 分组价格区
+    html += renderGroupPricingSection(model);
+    
+    contentContainer.innerHTML = html;
+}
+
+// 渲染基本信息区
+function renderBasicInfoSection(model) {
+    const vendor = getModelVendor(model);
+    const description = model.description || (vendor && vendor.description ? `供应商信息：${vendor.description}` : '暂无模型描述');
+    const tags = model.tags ? model.tags.split(',').filter(t => t.trim()) : [];
+    
+    let html = '<div class="drawer-section">';
+    html += '<div class="drawer-section-header">';
+    html += '<div class="drawer-section-icon" style="background: #DBEAFE;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div>';
+    html += '<div><div class="drawer-section-title">基本信息</div><div class="drawer-section-subtitle">模型的详细描述和基本特性</div></div>';
+    html += '</div>';
+    html += '<div class="drawer-section-body">';
+    html += `<div class="drawer-description">${description}</div>`;
+    
+    if (tags.length > 0) {
+        html += '<div class="drawer-tags">';
+        tags.forEach(tag => {
+            html += `<span class="drawer-tag">${tag.trim()}</span>`;
+        });
+        html += '</div>';
+    }
+    
+    html += '</div></div>';
+    return html;
+}
+
+// 渲染端点信息区
+function renderEndpointsSection(model) {
+    const endpoints = model.supported_endpoint_types || [];
+    
+    let html = '<div class="drawer-section">';
+    html += '<div class="drawer-section-header">';
+    html += '<div class="drawer-section-icon" style="background: #F3E8FF;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7E22CE" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>';
+    html += '<div><div class="drawer-section-title">API端点</div><div class="drawer-section-subtitle">模型支持的接口端点信息</div></div>';
+    html += '</div>';
+    html += '<div class="drawer-section-body">';
+    
+    if (endpoints.length === 0) {
+        html += '<div style="color: var(--c-text-secondary); font-size: 13px;">暂无端点信息</div>';
+    } else {
+        html += '<div class="drawer-endpoint-list">';
+        endpoints.forEach(type => {
+            const info = state.endpointMap[type] || {};
+            let path = info.path || '';
+            if (path.includes('{model}')) {
+                path = path.replaceAll('{model}', model.model_name || '');
+            }
+            const method = info.method || 'POST';
+            
+            html += '<div class="drawer-endpoint-item">';
+            html += '<div style="flex: 1; min-width: 0;">';
+            html += `<div class="drawer-endpoint-name"><span class="drawer-endpoint-badge"></span>${type}</div>`;
+            if (path) {
+                html += `<div class="drawer-endpoint-path">${path}</div>`;
+            }
+            html += '</div>';
+            if (path) {
+                html += `<div class="drawer-endpoint-method">${method}</div>`;
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+    }
+    
+    html += '</div></div>';
+    return html;
+}
+
+// 渲染动态计费区（简化版，不解析复杂表达式）
+function renderDynamicPricingSection(model) {
+    let html = '<div class="drawer-section">';
+    html += '<div class="drawer-section-header">';
+    html += '<div class="drawer-section-icon" style="background: #FEF3C7;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>';
+    html += '<div><div class="drawer-section-title">动态计费</div><div class="drawer-section-subtitle">价格根据用量档位和请求条件动态调整</div></div>';
+    html += '</div>';
+    html += '<div class="drawer-section-body">';
+    html += `<div style="font-size: 12px; color: var(--c-text-secondary); background: var(--c-input-bg); padding: 10px 12px; border-radius: 8px; word-break: break-all; font-family: monospace;">${model.billing_expr}</div>`;
+    html += '<div style="margin-top: 8px; font-size: 12px; color: var(--c-text-secondary);">* 动态计费表达式详情请查看管理后台</div>';
+    html += '</div></div>';
+    return html;
+}
+
+// 渲染分组价格区
+function renderGroupPricingSection(model) {
+    const modelEnableGroups = Array.isArray(model.enable_groups) ? model.enable_groups : [];
+    const autoChain = state.autoGroups.filter(g => modelEnableGroups.includes(g));
+    const availableGroups = Object.keys(state.usableGroup || {})
+        .filter(g => g !== '' && g !== 'auto')
+        .filter(g => modelEnableGroups.includes(g));
+    
+    let html = '<div class="drawer-section">';
+    html += '<div class="drawer-section-header">';
+    html += '<div class="drawer-section-icon" style="background: #FED7AA;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>';
+    html += '<div><div class="drawer-section-title">分组价格</div><div class="drawer-section-subtitle">不同用户分组的价格信息</div></div>';
+    html += '</div>';
+    html += '<div class="drawer-section-body">';
+    
+    // auto 调用链路
+    if (autoChain.length > 0) {
+        html += '<div class="drawer-auto-chain">';
+        html += '<span class="drawer-auto-chain-label">auto分组调用链路</span>';
+        html += '<span class="drawer-auto-chain-arrow">→</span>';
+        autoChain.forEach((g, idx) => {
+            html += `<span class="drawer-group-tag">${g}分组</span>`;
+            if (idx < autoChain.length - 1) {
+                html += '<span class="drawer-auto-chain-arrow">→</span>';
+            }
+        });
+        html += '</div>';
+    }
+    
+    // 价格表格
+    if (availableGroups.length === 0) {
+        html += '<div style="color: var(--c-text-secondary); font-size: 13px;">暂无可用分组</div>';
+    } else {
+        html += '<div class="drawer-pricing-groups">';
+        
+        availableGroups.forEach(group => {
+            const { ratio: groupRatio } = getUsedGroupRatio({ ...model, enable_groups: [group] });
+            const billingType = model.billing_mode === 'tiered_expr' ? '动态计费' :
+                               model.quota_type === 0 ? '按量计费' :
+                               model.quota_type === 1 ? '按次计费' : '-';
+            const billingClass = model.billing_mode === 'tiered_expr' ? 'dynamic' :
+                                model.quota_type === 0 ? 'quantity' :
+                                model.quota_type === 1 ? 'per-call' : '';
+            
+            html += '<div class="drawer-pricing-group-card">';
+            
+            // 分组头部
+            html += '<div class="drawer-pricing-group-header">';
+            html += `<span class="drawer-group-tag">${group}分组</span>`;
+            html += `<span class="drawer-ratio-tag">${groupRatio}x</span>`;
+            html += `<span class="drawer-billing-tag ${billingClass}">${billingType}</span>`;
+            html += '</div>';
+            
+            // 价格详情
+            html += '<div class="drawer-pricing-details">';
+            
+            if (model.billing_mode === 'tiered_expr') {
+                html += '<div class="drawer-price-note">见上方动态计费详情</div>';
+            } else if (model.quota_type === 0) {
+                // 按量计费 - 使用胶囊样式
+                const inputPrice = model.model_ratio * 2 * groupRatio;
+                const outputPrice = model.model_ratio * 2 * model.completion_ratio * groupRatio;
+                const cachePrice = model.cache_ratio ? model.model_ratio * 2 * model.cache_ratio * groupRatio : null;
+                
+                html += `<div class="drawer-price-capsule">
+                    <span class="drawer-price-label">输入价格</span>
+                    <span class="drawer-price-value">${formatValue(inputPrice)} / 1${state.unit} Tokens</span>
+                </div>`;
+                html += `<div class="drawer-price-capsule">
+                    <span class="drawer-price-label">补全价格</span>
+                    <span class="drawer-price-value">${formatValue(outputPrice)} / 1${state.unit} Tokens</span>
+                </div>`;
+                if (cachePrice) {
+                    html += `<div class="drawer-price-capsule">
+                        <span class="drawer-price-label">缓存读取价格</span>
+                        <span class="drawer-price-value">${formatValue(cachePrice)} / 1${state.unit} Tokens</span>
+                    </div>`;
+                }
+                
+                // 显示倍率详情
+                html += '<div class="drawer-ratio-details">';
+                html += `<span class="drawer-ratio-detail-item">模型倍率: ${formatRate(model.model_ratio)}</span>`;
+                html += `<span class="drawer-ratio-detail-item">补全倍率: ${formatRate(model.completion_ratio)}</span>`;
+                html += `<span class="drawer-ratio-detail-item">分组倍率: ${formatRate(groupRatio)}</span>`;
+                html += '</div>';
+            } else if (model.quota_type === 1) {
+                // 按次计费
+                const price = parseFloat(model.model_price) * groupRatio;
+                html += `<div class="drawer-price-capsule">
+                    <span class="drawer-price-label">模型价格</span>
+                    <span class="drawer-price-value">${formatValue(price)} / 次</span>
+                </div>`;
+            }
+            
+            html += '</div>'; // drawer-pricing-details
+            html += '</div>'; // drawer-pricing-group-card
+        });
+        
+        html += '</div>'; // drawer-pricing-groups
+    }
+    
+    html += '</div></div>';
+    return html;
+}
+
+// 绑定抽屉事件
+function initDrawerEvents() {
+    // 关闭按钮
+    const closeBtn = document.getElementById('drawerCloseBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModelDrawer);
+    }
+    
+    // 覆盖层点击关闭
+    const overlay = document.getElementById('modelDrawerOverlay');
+    if (overlay) {
+        overlay.addEventListener('click', closeModelDrawer);
+    }
+    
+    // ESC 键关闭
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && selectedModelData) {
+            closeModelDrawer();
+        }
+    });
+}
+
+// 绑定卡片和表格行的点击事件
+function bindModelClickEvents() {
+    // 使用事件委托监听卡片点击
+    const cardGrid = document.getElementById('cardGrid');
+    if (cardGrid) {
+        cardGrid.addEventListener('click', function(e) {
+            // 如果点击的是复选框或复制按钮，不触发
+            if (e.target.closest('.model-checkbox') || e.target.closest('.icon-copy-svg')) {
+                return;
+            }
+            
+            const card = e.target.closest('.model-card');
+            if (card) {
+                const modelName = card.getAttribute('data-id');
+                const model = state.models.find(m => m.model_name === modelName);
+                if (model) {
+                    openModelDrawer(model);
+                }
+            }
+        });
+    }
+    
+    // 使用事件委托监听表格行点击
+    const tableBody = document.getElementById('tableBody');
+    if (tableBody) {
+        tableBody.addEventListener('click', function(e) {
+            // 如果点击的是复选框，不触发
+            if (e.target.closest('.model-checkbox')) {
+                return;
+            }
+            
+            const row = e.target.closest('tr');
+            if (row && row.classList.contains('table-data-row')) {
+                const modelName = row.getAttribute('data-id');
+                const model = state.models.find(m => m.model_name === modelName);
+                if (model) {
+                    openModelDrawer(model);
+                }
+            }
+        });
+    }
+}
+
 // ============ 初始化 ============
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
     initFilterEvents(); // 初始化筛选事件委托
+    initDrawerEvents(); // 初始化抽屉事件
+    bindModelClickEvents(); // 绑定模型点击事件
     loadData();
 });
