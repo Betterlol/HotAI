@@ -93,7 +93,7 @@ def create_app(config):
 
     @app.route("/")
     def callback():
-        # 飞书 OAuth 回调会携带 code 和 state，state 用于防止串改请求。
+        # 飞书 OAuth 回调会携带 code 和 state，state 用于防止篡改请求。
         code = request.args.get("code")
         state = request.args.get("state")
 
