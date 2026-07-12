@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="picture/favicon.ico" />
+    <link rel="icon" type="image/png" href="picture/logo.png" />
+    <title>控制台 - 钱包管理</title>
+    <link rel="stylesheet" href="css/head.css">
+    <link rel="stylesheet" href="css/console-shared.css">
+</head>
+<body>
+<header class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo"><img src="picture/logo.png" alt="图灵智算" style="width:36px;height:36px;object-fit:contain;">图灵智算</a>
+        <div class="nav-links"><a href="index.html">首页</a><a href="console.html" class="active">控制台</a><a href="model.html">模型广场</a><a href="docs.html">文档</a><a href="about.html">关于</a></div>
+    </div>
+    <div class="nav-right">
+        <button class="icon-btn" id="noticeBtn" title="公告"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+        <div class="language-selector"><button class="icon-btn" id="languageBtn" title="语言"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></button><div class="language-dropdown" id="languageDropdown"><div class="language-option" data-lang="zh"><span>中文</span></div><div class="language-option" data-lang="en"><span>English</span></div></div></div>
+        <a href="login.html" class="btn-login" id="navLoginBtn">登录</a><a href="register.html" class="btn-signup" id="navSignupBtn">注册</a>
+        <div class="user-menu hidden" id="navUserMenu">
+            <div class="user-trigger"><div class="user-avatar-top" id="navUserAvatar">U</div><span id="navUsername">User</span></div>
+            <div class="user-dropdown" id="navUserDropdown"><a href="profile.html" class="user-dropdown-item">个人设置</a><div class="user-dropdown-divider"></div><button id="navLogoutBtn" class="user-dropdown-item">退出登录</button></div>
+        </div>
+    </div>
+</header>
+<div class="notice-modal" id="noticeModal" style="display:none;"><div class="notice-overlay" id="noticeOverlay"></div><div class="notice-card"><div class="notice-header"><h3>公告</h3><button class="notice-close" id="noticeClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div><div class="notice-content" id="noticeContent"><div class="notice-loading">加载中...</div></div></div></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="app-wrapper">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+        <div class="page-header">
+            <div class="page-title">钱包充值</div>
+        </div>
+
+        <!-- 双卡片仪表盘 -->
+        <div class="stat-grid" style="margin-bottom:24px;">
+            <!-- 左卡片：账户统计 -->
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                        <line x1="2" y1="10" x2="22" y2="10"/>
+                    </svg>
+                    账户统计
+                </div>
+                <div class="stat-list">
+                    <div class="stat-item">
+                        <span>当前余额</span>
+                        <span class="val" id="currentBalance">$0.0000</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>历史消耗</span>
+                        <span class="val" id="usedQuota">$0.0000</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>请求次数</span>
+                        <span class="val" id="requestCount">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右卡片：邀请奖励 -->
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    邀请奖励
+                </div>
+                <div class="stat-list">
+                    <div class="stat-item">
+                        <span>待使用收益</span>
+                        <span class="val" id="affBalance">$0.0000</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>总收益</span>
+                        <span class="val" id="affTotal">$0.0000</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>邀请人数</span>
+                        <span class="val" id="affCount">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统状态提示 -->
+        <div class="alert alert-info hidden" id="alertOnlineTopup" style="margin-bottom:20px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <span>管理员未开启在线充值功能，请联系管理员开启或使用兑换码充值。</span>
+        </div>
+        <div class="alert alert-warning hidden" id="alertRedemption" style="margin-bottom:20px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span>兑换码功能已禁用，管理员需先确认合规声明。</span>
+        </div>
+
+        <!-- 充值/兑换操作区 -->
+        <div class="card" style="margin-bottom:24px;">
+            <div class="card-title" style="margin-bottom:16px;">选择充值金额</div>
+            <div class="amount-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:20px;">
+                <button class="amount-btn" data-amount="10">¥10</button>
+                <button class="amount-btn" data-amount="20">¥20</button>
+                <button class="amount-btn" data-amount="50">¥50</button>
+                <button class="amount-btn" data-amount="100">¥100</button>
+                <button class="amount-btn" data-amount="200">¥200</button>
+                <button class="amount-btn" data-amount="500">¥500</button>
+            </div>
+
+            <div style="border-top:1px solid var(--c-border);margin:24px 0;"></div>
+
+            <div class="card-title" style="margin-bottom:16px;">或输入自定义金额</div>
+            <div style="max-width:400px;margin-bottom:20px;">
+                <div class="form-group">
+                    <input type="number" class="form-input" id="customAmount" placeholder="输入充值金额（RMB）" min="1" step="1">
+                    <div class="hint-text">最小充值金额：¥<span id="minTopupDisplay">1</span> &nbsp;|&nbsp; 汇率：1 RMB = <span id="ratioDisplay">15</span> quota</div>
+                </div>
+            </div>
+
+            <div style="border-top:1px solid var(--c-border);margin:24px 0;"></div>
+
+            <div class="card-title" style="margin-bottom:16px;">使用兑换码</div>
+            <div style="max-width:400px;">
+                <div class="form-group">
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" class="form-input" id="redemptionCode" placeholder="输入兑换码" style="flex:1;">
+                        <button class="btn btn-primary" onclick="redeemCode()">兑换</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 推广返利 -->
+        <div class="card-title">推广返利</div>
+        <div class="card" style="margin-bottom:32px;">
+            <div class="form-group">
+                <label class="form-label">推广链接</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="text" class="form-input" id="affLink" readonly style="flex:1;">
+                    <button class="btn btn-secondary" onclick="copyAffLink()">复制</button>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="openTransferDialog()" id="transferBtn" style="margin-top:12px;">转账到主账户</button>
+            
+            <!-- 奖励说明 -->
+            <div class="reward-notes" style="margin-top:20px;padding-top:20px;border-top:1px solid var(--c-border);">
+                <div style="font-size:13px;color:var(--c-text-secondary);margin-bottom:12px;font-weight:600;">奖励说明</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--c-text-secondary);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                        <span>邀请好友注册，好友充值后您可获得相应奖励</span>
+                    </div>
+                    <div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--c-text-secondary);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px;">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <polyline points="1 20 1 14 7 14"/>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                        </svg>
+                        <span>可通过划转功能将奖励额度转入到您的账户余额中</span>
+                    </div>
+                    <div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--c-text-secondary);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px;">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                            <polyline points="17 6 23 6 23 12"/>
+                        </svg>
+                        <span>邀请的好友越多，获得的奖励越多</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 账单历史 -->
+        <div class="card-title">账单历史</div>
+        <div class="table-card" style="margin-bottom:32px;">
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <button class="btn btn-secondary btn-sm" onclick="filterBilling('all')">全部</button>
+                    <button class="btn btn-secondary btn-sm" onclick="filterBilling('topup')">充值</button>
+                    <button class="btn btn-secondary btn-sm" onclick="filterBilling('usage')">消费</button>
+                    <button class="btn btn-secondary btn-sm" onclick="filterBilling('system')">系统</button>
+                </div>
+                <div class="table-toolbar-right">
+                    <button class="btn btn-secondary" onclick="loadBillingHistory()">刷新</button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>时间</th><th>类型</th><th>金额变动</th><th>余额</th><th>说明</th></tr></thead>
+                    <tbody id="billingTableBody">
+                        <tr><td colspan="5"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination"><span id="billingPageInfo">共 0 条</span><div class="pagination-pages" id="billingPages"></div></div>
+        </div>
+
+        <!-- 充值记录 -->
+        <div class="card-title">充值记录</div>
+        <div class="table-card">
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>时间</th><th>金额</th><th>方式</th><th>状态</th><th>折扣率</th></tr></thead>
+                    <tbody id="topupTableBody">
+                        <tr><td colspan="5"><div class="loading-overlay"><div class="loading-spinner"></div></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination"><span id="topupPageInfo">共 0 条</span><div class="pagination-pages" id="topupPages"></div></div>
+        </div>
+    </main>
+</div>
+
+<!-- 转账对话框 -->
+<div class="modal-overlay hidden" id="transferModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">转账到主账户</div>
+            <button class="modal-close" onclick="closeTransferDialog()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">可转账额度</label>
+                <div style="font-size:20px;font-weight:700;color:var(--c-primary);margin-bottom:12px;" id="transferAvailable">$0.0000</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">转账金额 <span>*</span></label>
+                <input type="number" class="form-input" id="transferAmount" placeholder="输入转账金额" min="0" step="0.01">
+                <div class="hint-text">单位：美元（USD）</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeTransferDialog()">取消</button>
+            <button class="btn btn-primary" onclick="confirmTransfer()">确认转账</button>
+        </div>
+    </div>
+</div>
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/topup.js"></script>
+</body>
+</html>

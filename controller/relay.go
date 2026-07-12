@@ -240,6 +240,40 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 
 		newAPIError = service.NormalizeViolationFeeError(newAPIError)
 		relayInfo.LastError = newAPIError
+
+		// Classify error before deciding how to record it.
+		// 429 (rate limit) and 401/403 (auth) should NOT pollute
+		// the breaker or success rate statistics.
+		if types.IsRateLimit(newAPIError) {
+			chErr := *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan())
+			processChannelError(c, chErr, newAPIError)
+			if releaseSelectedChannel {
+				channellimiter.Release(channel.Id)
+			}
+			retrySetting := operation_setting.GetRetrySetting()
+			if retryParam.GetRetry() < retrySetting.RateLimitRetryTimes {
+				delay := time.Duration(retrySetting.RateLimitRetryInterval) * time.Millisecond
+				select {
+				case <-c.Request.Context().Done():
+					// Client disconnected or request timed out — don't waste a goroutine
+					return
+				case <-time.After(delay):
+					continue
+				}
+			}
+			break
+		}
+
+		if types.IsAuthError(newAPIError) {
+			chErr := *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan())
+			processChannelError(c, chErr, newAPIError)
+			if releaseSelectedChannel {
+				channellimiter.Release(channel.Id)
+			}
+			break
+		}
+
+		// timeout / 5xx / other: record to breaker + success rate
 		circuitbreaker.MarkFailure(channel.Id)
 		channelsuccessrate.Record(channel.Id, false)
 
@@ -587,12 +621,39 @@ func RelayTask(c *gin.Context) {
 		}
 
 		if !taskErr.LocalError {
+			taskAPIErr := types.NewOpenAIError(taskErr.Error, types.ErrorCodeBadResponseStatusCode, taskErr.StatusCode)
+			chErr := *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey,
+				common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan())
+
+			if types.IsRateLimit(taskAPIErr) {
+				processChannelError(c, chErr, taskAPIErr)
+				if releaseSelectedChannel {
+					channellimiter.Release(channel.Id)
+				}
+				retrySetting := operation_setting.GetRetrySetting()
+				if retryParam.GetRetry() < retrySetting.RateLimitRetryTimes {
+					delay := time.Duration(retrySetting.RateLimitRetryInterval) * time.Millisecond
+					select {
+					case <-c.Request.Context().Done():
+						return
+					case <-time.After(delay):
+						continue
+					}
+				}
+				break
+			}
+
+			if types.IsAuthError(taskAPIErr) {
+				processChannelError(c, chErr, taskAPIErr)
+				if releaseSelectedChannel {
+					channellimiter.Release(channel.Id)
+				}
+				break
+			}
+
 			circuitbreaker.MarkFailure(channel.Id)
 			channelsuccessrate.Record(channel.Id, false)
-			processChannelError(c,
-				*types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey,
-					common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()),
-				types.NewOpenAIError(taskErr.Error, types.ErrorCodeBadResponseStatusCode, taskErr.StatusCode))
+			processChannelError(c, chErr, taskAPIErr)
 		}
 		if releaseSelectedChannel {
 			channellimiter.Release(channel.Id)

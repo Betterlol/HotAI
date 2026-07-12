@@ -1,0 +1,418 @@
+/* =========================================
+   1. 设计令牌 (HotAI 浅色主题风格)
+   ========================================= */
+:root {
+    --c-primary: #2D6FF5;
+    --c-primary-dark: #1A4EB8;
+    --c-primary-light: #F0F7FF;
+    --c-white: #FFFFFF;
+    --c-text-main: #1F2937;
+    --c-text-secondary: #4B5563;
+    --c-border: #E5E7EB;
+    --c-input-bg: #F3F4F6;
+    --c-gray-hover: #F9FAFB;
+    --shadow-card: 0 4px 12px rgba(45, 111, 245, 0.06);
+    --radius-btn: 999px;
+    --radius-card: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background-color: var(--c-primary-light);
+    color: var(--c-text-main);
+    height: 100vh;
+    overflow: hidden;
+}
+/* 隐藏滚动条，由各个容器内部滚动 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* =========================================
+   2. 文档主体三栏布局
+   ========================================= */
+.docs-wrapper {
+    display: flex;
+    gap: 20px;
+    height: calc(100vh - 64px);
+    padding: 20px;
+    overflow: hidden;
+}
+
+/* =========================================
+   3. 左侧导航栏 (Sidebar)
+   ========================================= */
+.docs-sidebar-left {
+    width: 260px;
+    background: var(--c-white);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 16px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    transition: all 0.3s ease;
+}
+.docs-sidebar-left.collapsed {
+    width: 0;
+    padding: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+.sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.sidebar-logo { font-size: 16px; font-weight: 700; color: var(--c-primary); display: flex; align-items: center; gap: 8px; }
+.sidebar-logo svg { width: 20px; height: 20px; fill: var(--c-primary); }
+
+.sidebar-search {
+    position: relative;
+    background: var(--c-input-bg);
+    border-radius: var(--radius-btn);
+    padding: 8px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+}
+.sidebar-search input {
+    border: none; background: transparent; outline: none; font-size: 13px; width: 100%; color: var(--c-text-main);
+}
+.sidebar-search input::placeholder { color: var(--c-text-secondary); }
+.sidebar-search span { 
+    font-size: 12px; color: var(--c-text-secondary); background: #e5e7eb; 
+    padding: 0 6px; border-radius: 4px; margin-left: 8px; cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.sidebar-search span:hover { background: #d1d5db; }
+
+.menu-section-title { font-size: 12px; color: var(--c-text-secondary); margin-bottom: 8px; font-weight: 600; }
+.menu-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
+
+.menu-item {
+    padding: 8px 12px; border-radius: var(--radius-btn);
+    color: var(--c-text-secondary); font-size: 14px; cursor: pointer;
+    transition: all 0.2s; text-decoration: none; display: block;
+}
+.menu-item:hover { background: var(--c-gray-hover); color: var(--c-text-main); }
+.menu-item.active { background: var(--c-primary-light); color: var(--c-primary); font-weight: 600; }
+.menu-item.sub { padding-left: 28px; font-size: 13px; } /* 次级菜单缩进 */
+.menu-item.hidden { display: none; }
+
+.sidebar-bottom { margin-top: auto; border-top: 1px solid var(--c-border); padding-top: 12px; display: flex; gap: 12px; }
+.bottom-icon-btn { 
+    width: 32px; height: 32px; border-radius: 50%; border: none; background: transparent; 
+    display: flex; align-items: center; justify-content: center; cursor: pointer; 
+    color: var(--c-text-secondary); transition: 0.2s;
+}
+.bottom-icon-btn:hover { background: var(--c-input-bg); color: var(--c-text-main); }
+.bottom-icon-btn svg { width: 16px; height: 16px; }
+
+/* 侧边栏展开/收起按钮 */
+.sidebar-toggle-btn {
+    width: 32px; height: 32px; border-radius: 50%; border: none;
+    background: transparent; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--c-text-secondary); transition: 0.2s;
+}
+.sidebar-toggle-btn:hover { background: var(--c-input-bg); color: var(--c-primary); }
+
+/* =========================================
+   4. 中间文档正文 (Main Content)
+   ========================================= */
+.docs-content {
+    flex: 1;
+    background: var(--c-white);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 24px 40px 40px 40px;
+    overflow-y: auto;
+    position: relative;
+}
+
+/* 顶部警告条 */
+.alert-banner {
+    background: #fef9c3; color: #854d0e; padding: 12px 16px;
+    border-radius: 6px; margin-bottom: 24px;
+    font-size: 14px; border: 1px solid #fef08a;
+    display: flex; align-items: center; gap: 8px;
+}
+.alert-banner svg { width: 16px; height: 16px; flex-shrink: 0; fill: currentColor; }
+
+.doc-title { font-size: 32px; font-weight: 700; color: var(--c-text-main); margin-bottom: 16px; }
+
+.doc-toolbar { display: flex; gap: 12px; margin-bottom: 24px; }
+.doc-btn { 
+    padding: 6px 16px; border-radius: 6px; border: 1px solid var(--c-border); 
+    background: var(--c-white); color: var(--c-text-main); font-size: 14px; 
+    cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 4px;
+}
+.doc-btn:hover { background: var(--c-input-bg); border-color: #d1d5db; }
+.doc-btn:active { transform: translateY(1px); }
+
+.doc-section { margin-bottom: 32px; }
+.doc-section h2 { font-size: 24px; font-weight: 700; margin-bottom: 12px; scroll-margin-top: 20px; }
+.doc-section h3 { font-size: 18px; font-weight: 700; margin: 16px 0 8px 0; scroll-margin-top: 20px; }
+.doc-section p { font-size: 15px; color: var(--c-text-secondary); line-height: 1.8; margin-bottom: 12px; }
+.doc-section ul { margin-left: 20px; color: var(--c-text-secondary); line-height: 2; font-size: 15px; }
+
+/* 自定义绿钩列表 */
+.check-list { list-style: none; margin-left: 0 !important; }
+.check-list li { display: flex; align-items: center; gap: 8px; }
+.check-list li::before {
+    content: "✓"; display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; background: #10b981; color: white;
+    border-radius: 4px; font-size: 10px; font-weight: bold;
+}
+
+/* 代码块 */
+.code-block-wrapper {
+    background: #f8fafc; border: 1px solid var(--c-border); border-radius: 6px;
+    margin-top: 12px; overflow: hidden;
+}
+.code-header { display: flex; justify-content: flex-end; padding: 8px 16px; border-bottom: 1px solid var(--c-border); }
+.copy-code-btn { 
+    background: transparent; border: none; cursor: pointer; color: var(--c-text-secondary);
+    display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px;
+    transition: all 0.2s;
+}
+.copy-code-btn:hover { background: var(--c-gray-hover); color: var(--c-primary); }
+.copy-code-btn svg { width: 16px; height: 16px; }
+.code-block { 
+    padding: 16px; font-family: 'Menlo', 'Monaco', monospace; font-size: 13px; 
+    color: #333; white-space: pre-wrap; word-break: break-all; 
+}
+.code-block .comment { color: #6b7280; }
+.code-block .key { color: #2563eb; }
+
+/* =========================================
+   5. 右侧目录栏 (Table of Contents)
+   ========================================= */
+.docs-toc {
+    width: 220px;
+    background: var(--c-white);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 24px 16px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    transition: all 0.3s ease;
+}
+.docs-toc.collapsed {
+    width: 0;
+    padding: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+.toc-title { font-weight: 600; font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.toc-list { list-style: none; border-left: 2px solid var(--c-border); padding-left: 12px; display: flex; flex-direction: column; gap: 6px; }
+.toc-list li { 
+    font-size: 13px; color: var(--c-text-secondary); cursor: pointer; 
+    transition: 0.2s; padding: 4px 0; 
+}
+.toc-list li:hover { color: var(--c-primary); }
+.toc-list li.active { color: var(--c-primary); font-weight: 500; }
+.toc-list li.sub { padding-left: 12px; font-size: 12px; }
+
+/* =========================================
+   6. Markdown 渲染内容样式
+   ========================================= */
+#md-content {
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--c-text-secondary);
+}
+
+#md-content h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--c-text-main);
+    margin: 24px 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--c-border);
+}
+
+#md-content h1:first-child {
+    margin-top: 0;
+}
+
+#md-content h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--c-text-main);
+    margin: 32px 0 12px 0;
+    scroll-margin-top: 80px;
+}
+
+#md-content h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--c-text-main);
+    margin: 24px 0 8px 0;
+    scroll-margin-top: 80px;
+}
+
+#md-content h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--c-text-main);
+    margin: 20px 0 8px 0;
+}
+
+#md-content h5, #md-content h6 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--c-text-main);
+    margin: 16px 0 8px 0;
+}
+
+#md-content p {
+    margin-bottom: 16px;
+}
+
+#md-content ul, #md-content ol {
+    margin: 12px 0 16px 24px;
+    padding-left: 0;
+}
+
+#md-content li {
+    margin: 6px 0;
+}
+
+#md-content ul ul, #md-content ol ul,
+#md-content ul ol, #md-content ol ol {
+    margin: 6px 0 6px 20px;
+}
+
+#md-content a {
+    color: var(--c-primary);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+#md-content a:hover {
+    color: var(--c-primary-dark);
+    text-decoration: underline;
+}
+
+#md-content code {
+    background: var(--c-input-bg);
+    color: #e11d48;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+    font-size: 0.9em;
+}
+
+#md-content pre {
+    margin: 16px 0;
+    overflow-x: auto;
+}
+
+#md-content pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+}
+
+#md-content pre.hljs {
+    background: #f8fafc;
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+    padding: 16px;
+}
+
+#md-content blockquote {
+    border-left: 4px solid var(--c-primary);
+    padding-left: 16px;
+    margin: 16px 0;
+    color: var(--c-text-secondary);
+    font-style: italic;
+}
+
+#md-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+}
+
+#md-content table th {
+    background: var(--c-input-bg);
+    color: var(--c-text-main);
+    font-weight: 600;
+    padding: 10px 12px;
+    text-align: left;
+    border: 1px solid var(--c-border);
+}
+
+#md-content table td {
+    padding: 10px 12px;
+    border: 1px solid var(--c-border);
+}
+
+#md-content table tr:nth-child(even) {
+    background: var(--c-gray-hover);
+}
+
+#md-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 16px 0;
+}
+
+#md-content hr {
+    border: none;
+    border-top: 1px solid var(--c-border);
+    margin: 24px 0;
+}
+
+#md-content strong {
+    color: var(--c-text-main);
+    font-weight: 600;
+}
+
+#md-content em {
+    font-style: italic;
+}
+
+/* =========================================
+   7. Toast 提示
+   ========================================= */
+.toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--c-text-main);
+    color: var(--c-white);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+}
+.toast.success { background: #10b981; }
+.toast svg { width: 16px; height: 16px; }
+
+@keyframes slideIn {
+    from { transform: translateX(400px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* =========================================
+   7. 响应式适配
+   ========================================= */
+@media (max-width: 1024px) { 
+    .docs-toc { display: none; } 
+}
+@media (max-width: 768px) {
+    .docs-wrapper { flex-direction: column; height: auto; padding: 12px; }
+    .docs-sidebar-left { width: 100%; max-height: 200px; border-bottom: 1px solid var(--c-border); }
+    .docs-content { padding: 20px; }
+    .doc-toolbar { flex-wrap: wrap; }
+}

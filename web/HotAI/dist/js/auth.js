@@ -105,9 +105,9 @@ function initNavbarUserMenu() {
                     // 更新余额显示
                     const navUserBalance = document.getElementById('navUserBalance');
                     if (navUserBalance && typeof user.quota === 'number') {
-                        // quota单位是分，转换为元
-                        const balanceYuan = (user.quota / 100).toFixed(2);
-                        navUserBalance.textContent = `余额 ¥${balanceYuan}`;
+                        // quota单位转换为美元
+                        const balanceUSD = (user.quota / 500000).toFixed(4);
+                        navUserBalance.textContent = `余额 $${balanceUSD}`;
                     }
                     
                     // 保存用户信息到本地存储
@@ -122,8 +122,8 @@ function initNavbarUserMenu() {
                         // 显示缓存的余额
                         const navUserBalance = document.getElementById('navUserBalance');
                         if (navUserBalance && typeof user.quota === 'number') {
-                            const balanceYuan = (user.quota / 100).toFixed(2);
-                            navUserBalance.textContent = `余额 ¥${balanceYuan}`;
+                            const balanceUSD = (user.quota / 500000).toFixed(4);
+                            navUserBalance.textContent = `余额 $${balanceUSD}`;
                         }
                     }
                 }
@@ -138,8 +138,8 @@ function initNavbarUserMenu() {
                     const navUserBalance = document.getElementById('navUserBalance');
                     if (navUserBalance) {
                         if (typeof user.quota === 'number') {
-                            const balanceYuan = (user.quota / 100).toFixed(2);
-                            navUserBalance.textContent = `余额 ¥${balanceYuan}`;
+                            const balanceUSD = (user.quota / 500000).toFixed(4);
+                            navUserBalance.textContent = `余额 $${balanceUSD}`;
                         } else {
                             navUserBalance.textContent = '余额加载失败';
                         }

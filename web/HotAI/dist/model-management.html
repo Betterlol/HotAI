@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="picture/favicon.ico" />
+    <link rel="icon" type="image/png" href="picture/logo.png" />
+    <title>控制台 - 模型管理</title>
+    <link rel="stylesheet" href="css/head.css">
+    <link rel="stylesheet" href="css/console-shared.css">
+    <style>
+        .th-sortable { cursor:pointer; user-select:none; }
+        .th-sortable:hover { color:var(--c-primary); }
+        .sort-indicator { margin-left:4px; opacity:0.5; font-size:11px; }
+        .sort-active .sort-indicator { opacity:1; color:var(--c-primary); }
+        .name-rule-badge { display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500; }
+        .name-rule-exact { background:#DCFCE7;color:#16A34A; }
+        .name-rule-prefix { background:#DBEAFE;color:#1D4ED8; }
+        .name-rule-contains { background:#F3E8FF;color:#7E22CE; }
+        .name-rule-suffix { background:#FEF9C3;color:#A16207; }
+        .provider-logo { width:28px;height:28px;border-radius:6px;object-fit:contain;vertical-align:middle; }
+        .provider-logo-placeholder { width:28px;height:28px;border-radius:6px;background:var(--c-primary-light);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--c-primary);vertical-align:middle; }
+        .sync-card:hover { border-color:var(--c-primary)!important;background:var(--c-primary-light); }
+        .sync-card.selected { border-color:var(--c-primary)!important;background:var(--c-primary-light); }
+        .sync-lang-btn:hover,.sync-lang-btn.selected { background:var(--c-primary)!important;color:var(--c-white)!important;border-color:var(--c-primary)!important; }
+        .empty-state { text-align:center;padding:60px 20px;color:var(--c-text-secondary);display:flex;flex-direction:column;align-items:center;gap:12px; }
+        .empty-state svg { width:64px;height:64px;stroke:#D1D5DB; }
+        .vendor-dropdown-item { padding:9px 14px;font-size:13px;cursor:pointer;transition:background 0.12s;display:flex;align-items:center;gap:8px; }
+        .vendor-dropdown-item:hover { background:var(--c-primary-light);color:var(--c-primary); }
+        .prefill-group-item { border:1px solid var(--c-border);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;background:var(--c-white); }
+        .endpoint-tag { display:inline-flex;align-items:center;padding:2px 8px;background:#EFF6FF;color:#1D4ED8;border-radius:999px;font-size:11px;margin:2px; }
+        code { font-family:monospace;background:#F3F4F6;border-radius:4px;padding:1px 5px;font-size:12px; }
+    </style>
+</head>
+<body>
+<header class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo"><img src="picture/logo.png" alt="图灵智算" style="width:36px;height:36px;object-fit:contain;">图灵智算</a>
+        <div class="nav-links"><a href="index.html">首页</a><a href="console.html" class="active">控制台</a><a href="model.html">模型广场</a><a href="docs.html">文档</a><a href="about.html">关于</a></div>
+    </div>
+    <div class="nav-right">
+        <button class="icon-btn" id="noticeBtn" title="公告"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+        <div class="language-selector"><button class="icon-btn" id="languageBtn" title="语言"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></button><div class="language-dropdown" id="languageDropdown"><div class="language-option" data-lang="zh"><span>中文</span></div><div class="language-option" data-lang="en"><span>English</span></div></div></div>
+        <a href="login.html" class="btn-login" id="navLoginBtn">登录</a>
+        <a href="register.html" class="btn-signup" id="navSignupBtn">注册</a>
+        <div class="user-menu hidden" id="navUserMenu">
+            <div class="user-trigger"><div class="user-avatar-top" id="navUserAvatar">U</div><span id="navUsername">User</span></div>
+            <div class="user-dropdown" id="navUserDropdown">
+                <a href="profile.html" class="user-dropdown-item">个人设置</a>
+                <div class="user-dropdown-divider"></div>
+                <button id="navLogoutBtn" class="user-dropdown-item">退出登录</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="notice-modal" id="noticeModal" style="display:none;">
+    <div class="notice-overlay" id="noticeOverlay"></div>
+    <div class="notice-card">
+        <div class="notice-header"><h3>公告</h3><button class="notice-close" id="noticeClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+        <div class="notice-content" id="noticeContent"><div class="notice-loading">加载中...</div></div>
+    </div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- 模型创建/编辑弹窗 -->
+<div class="modal-overlay hidden" id="modelModal">
+    <div class="modal modal-lg" style="max-width:680px;width:92vw;max-height:90vh;display:flex;flex-direction:column;">
+        <div class="modal-header" style="flex-shrink:0;">
+            <div class="modal-title" id="modelModalTitle">新建模型</div>
+            <button class="modal-close" onclick="closeModelModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body" style="flex:1;overflow-y:auto;">
+            <input type="hidden" id="modelId">
+            <div class="form-group">
+                <label class="form-label">模型名称 <span style="color:#EF4444;">*</span></label>
+                <input type="text" class="form-input" id="modelName" placeholder="输入模型名称" style="border-radius:12px;" oninput="validateModelForm()">
+            </div>
+            <div class="form-group">
+                <label class="form-label">名称匹配类型 <span style="color:#EF4444;">*</span></label>
+                <select class="form-select" id="modelNameRule" style="border-radius:12px;">
+                    <option value="0">精确匹配</option>
+                    <option value="1">前缀匹配</option>
+                    <option value="2">包含匹配</option>
+                    <option value="3">后缀匹配</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">供应商</label>
+                <div style="position:relative;">
+                    <input type="text" class="form-input" id="vendorSearchInput" placeholder="搜索供应商（选填）..." autocomplete="off" style="border-radius:12px;" oninput="filterVendorsDropdown(this.value)" onfocus="showVendorDropdown()" onblur="setTimeout(hideVendorDropdown,200)">
+                    <input type="hidden" id="modelVendorId">
+                    <div id="vendorDropdown" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:500;background:var(--c-white);border:1px solid var(--c-border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:240px;overflow-y:auto;"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">图标 URL</label>
+                <input type="text" class="form-input" id="modelIcon" placeholder="供应商图标地址（选填）" style="border-radius:12px;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">描述</label>
+                <textarea class="form-textarea" id="modelDescription" placeholder="模型描述（选填）" rows="3" style="border-radius:12px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">标签</label>
+                <input type="text" class="form-input" id="modelTags" placeholder="多个标签用逗号分隔（选填）" style="border-radius:12px;">
+            </div>
+            <div class="form-group">
+                <label class="form-label" style="margin-bottom:8px;">在模型广场向用户展示的端点配置</label>
+                <div class="kv-editor" id="endpointEditor"></div>
+                <button class="kv-add-btn" onclick="addEndpointRow()" style="margin-top:6px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    添加键值对
+                </button>
+            </div>
+            <div class="form-group">
+                <label class="capsule-switch-wrap" style="cursor:pointer;">
+                    <span class="capsule-switch">
+                        <input type="checkbox" id="modelSyncOfficial" checked>
+                        <span class="capsule-slider"></span>
+                    </span>
+                    <span class="capsule-switch-label">参与官方同步</span>
+                </label>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label class="capsule-switch-wrap" style="cursor:pointer;">
+                    <span class="capsule-switch">
+                        <input type="checkbox" id="modelStatus" checked>
+                        <span class="capsule-slider"></span>
+                    </span>
+                    <span class="capsule-switch-label">启用状态</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer" style="flex-shrink:0;">
+            <button class="btn btn-secondary" onclick="closeModelModal()">取消</button>
+            <button class="btn btn-primary" onclick="saveModel()" id="modelSaveBtn">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 同步向导弹窗 -->
+<div class="modal-overlay hidden" id="syncWizardModal">
+    <div class="modal" style="max-width:560px;width:92vw;">
+        <div class="modal-header">
+            <div class="modal-title">
+                <span>模型同步向导</span>
+                <span style="margin-left:12px;font-size:12px;font-weight:400;color:var(--c-text-secondary);" id="syncStepLabel">第 1 步 / 共 2 步</span>
+            </div>
+            <button class="modal-close" onclick="closeSyncWizard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body">
+            <!-- 步骤条 -->
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:24px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <div id="syncDot1" style="width:24px;height:24px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">1</div>
+                    <span style="font-size:13px;font-weight:600;color:var(--c-primary);">选择方式</span>
+                </div>
+                <div style="flex:1;height:2px;background:var(--c-border);border-radius:1px;"></div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <div id="syncDot2" style="width:24px;height:24px;border-radius:50%;background:var(--c-border);color:var(--c-text-secondary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">2</div>
+                    <span id="syncStep2Label" style="font-size:13px;color:var(--c-text-secondary);">选择语言</span>
+                </div>
+            </div>
+            <!-- 步骤1 -->
+            <div id="syncStep1" style="display:block;">
+                <p style="margin-bottom:16px;color:var(--c-text-secondary);font-size:14px;">请选择同步方式：</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="sync-card" onclick="selectSyncMethod('official')" id="syncCardOfficial" style="padding:24px 16px;border:2px solid var(--c-border);border-radius:12px;cursor:pointer;text-align:center;transition:all 0.2s;background:var(--c-white);">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="2" style="margin:0 auto 12px;display:block;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                        <div style="font-weight:600;margin-bottom:6px;font-size:14px;">官方模型同步</div>
+                        <div style="font-size:12px;color:var(--c-text-secondary);">从官方源同步最新模型列表</div>
+                    </div>
+                    <div class="sync-card" onclick="selectSyncMethod('config')" id="syncCardConfig" style="padding:24px 16px;border:2px solid var(--c-border);border-radius:12px;cursor:pointer;text-align:center;transition:all 0.2s;background:var(--c-white);">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="2" style="margin:0 auto 12px;display:block;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        <div style="font-weight:600;margin-bottom:6px;font-size:14px;">配置文件同步</div>
+                        <div style="font-size:12px;color:var(--c-text-secondary);">从配置文件导入模型定义</div>
+                    </div>
+                </div>
+            </div>
+            <!-- 步骤2 -->
+            <div id="syncStep2" style="display:none;">
+                <p style="margin-bottom:16px;color:var(--c-text-secondary);font-size:14px;">请选择语言版本：</p>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button class="sync-lang-btn" onclick="selectSyncLang('en')" data-lang="en" style="padding:9px 20px;border:1.5px solid var(--c-border);border-radius:999px;background:var(--c-white);cursor:pointer;transition:all 0.2s;font-size:14px;">English</button>
+                    <button class="sync-lang-btn" onclick="selectSyncLang('zh-CN')" data-lang="zh-CN" style="padding:9px 20px;border:1.5px solid var(--c-border);border-radius:999px;background:var(--c-white);cursor:pointer;transition:all 0.2s;font-size:14px;">简体中文</button>
+                    <button class="sync-lang-btn" onclick="selectSyncLang('zh-TW')" data-lang="zh-TW" style="padding:9px 20px;border:1.5px solid var(--c-border);border-radius:999px;background:var(--c-white);cursor:pointer;transition:all 0.2s;font-size:14px;">繁體中文</button>
+                    <button class="sync-lang-btn" onclick="selectSyncLang('ja')" data-lang="ja" style="padding:9px 20px;border:1.5px solid var(--c-border);border-radius:999px;background:var(--c-white);cursor:pointer;transition:all 0.2s;font-size:14px;">日本語</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="syncPrevBtn" onclick="syncPrevStep()" style="display:none;">上一步</button>
+            <button class="btn btn-secondary" onclick="closeSyncWizard()">取消</button>
+            <button class="btn btn-primary" id="syncNextBtn" onclick="syncNextStep()">下一步</button>
+        </div>
+    </div>
+</div>
+
+<!-- 预填组管理弹窗 -->
+<div class="modal-overlay hidden" id="prefillGroupModal">
+    <div class="modal modal-lg" style="max-width:680px;width:92vw;max-height:80vh;display:flex;flex-direction:column;">
+        <div class="modal-header" style="flex-shrink:0;">
+            <div class="modal-title">预填组管理</div>
+            <button class="modal-close" onclick="closePrefillGroupModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body" style="flex:1;overflow-y:auto;">
+            <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:var(--c-text-secondary);">管理模型预填组，用于快速填充模型列表</span>
+                <button class="btn btn-primary btn-sm" onclick="openNewPrefillGroup()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    新建组
+                </button>
+            </div>
+            <div id="prefillGroupList">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <div>暂无预填组</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新建预填组弹窗 -->
+<div class="modal-overlay hidden" id="newPrefillGroupModal">
+    <div class="modal" style="max-width:540px;width:92vw;">
+        <div class="modal-header">
+            <div class="modal-title">创建新的预填组</div>
+            <button class="modal-close" onclick="closeNewPrefillGroup()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">组名称 <span style="color:#EF4444;">*</span></label>
+                <input type="text" class="form-input" id="prefillGroupName" placeholder="输入组名称" style="border-radius:12px;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">类型</label>
+                <select class="form-select" id="prefillGroupType" style="border-radius:12px;">
+                    <option value="model">模型（model）</option>
+                    <option value="channel">渠道（channel）</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">描述</label>
+                <textarea class="form-textarea" id="prefillGroupDesc" placeholder="组描述（选填）" rows="2" style="border-radius:12px;"></textarea>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">模型列表</label>
+                <p class="form-hint">输入模型名后按回车键添加</p>
+                <div class="model-tags-wrap" id="prefillModelTagsWrap" onclick="document.getElementById('prefillModelInput').focus()" style="min-height:52px;">
+                    <input type="text" class="model-tags-input" id="prefillModelInput" placeholder="输入模型名后按回车..." autocomplete="off" onkeydown="onPrefillModelKeyDown(event)">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeNewPrefillGroup()">取消</button>
+            <button class="btn btn-primary" onclick="savePrefillGroup()">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新增/编辑供应商弹窗 -->
+<div class="modal-overlay hidden" id="vendorModal">
+    <div class="modal" style="max-width:520px;width:92vw;">
+        <div class="modal-header">
+            <div class="modal-title" id="vendorModalTitle">新增供应商</div>
+            <button class="modal-close" onclick="closeVendorModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="vendorId">
+            <div class="form-group">
+                <label class="form-label">供应商名称 <span style="color:#EF4444;">*</span></label>
+                <input type="text" class="form-input" id="vendorName" placeholder="输入供应商名称，如 OpenAI" style="border-radius:12px;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">描述</label>
+                <textarea class="form-textarea" id="vendorDescription" placeholder="请输入供应商描述" rows="3" style="border-radius:12px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">供应商图标</label>
+                <input type="text" class="form-input" id="vendorIcon" placeholder="如：OpenAI、Claude.Color、OpenRouter.Avatar" style="border-radius:12px;">
+                <p class="form-hint" style="margin-top:6px;">
+                    图标使用 <a href="https://lobehub.com/icons" target="_blank" style="color:var(--c-primary);">@lobehub/icons</a> 库，
+                    如：<code>OpenAI</code>、<code>Claude.Color</code>，支持链式参数：
+                    <code>OpenAI.Avatar.type={'platform'}</code>、<code>OpenRouter.Avatar.shape={'square'}</code>。
+                    <a href="https://lobehub.com/icons" target="_blank" style="color:var(--c-primary);">查询所有可用图标请点击我</a>
+                </p>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label class="capsule-switch-wrap" style="cursor:pointer;">
+                    <span class="capsule-switch">
+                        <input type="checkbox" id="vendorStatus" checked>
+                        <span class="capsule-slider"></span>
+                    </span>
+                    <span class="capsule-switch-label">启用状态</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeVendorModal()">取消</button>
+            <button class="btn btn-primary" onclick="saveVendor()">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- 确认删除弹窗 -->
+<div class="modal-overlay hidden" id="confirmModal">
+    <div class="modal confirm-modal">
+        <div class="modal-body">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" style="margin:0 auto 16px;display:block;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <p id="confirmMessage">确定要删除这条记录吗？</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeConfirmModal()">取消</button>
+            <button class="btn btn-danger" onclick="doConfirmDelete()">确定删除</button>
+        </div>
+    </div>
+</div>
+
+<!-- 主应用容器 -->
+<div class="app-wrapper">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">模型管理</h1>
+            <div class="page-actions">
+                <button class="btn btn-secondary" onclick="openSyncWizard()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                    同步模型
+                </button>
+                <button class="btn btn-secondary" onclick="openPrefillGroupModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    预填组管理
+                </button>
+                <button class="btn btn-secondary" onclick="openVendorModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                    新建供应商
+                </button>
+                <button class="btn btn-primary" onclick="openModelModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    新建模型
+                </button>
+            </div>
+        </div>
+
+        <div class="alert alert-info" style="margin-bottom:20px;font-size:13.5px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <div style="flex:1;text-align:center;">提示：此处配置仅用于控制「模型广场」对用户的展示效果，不会影响模型的实际调用与路由。若需配置真实调用行为，请前往「渠道管理」进行设置。</div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="search-input-wrap">
+                        <svg viewBox="0 0 24 24"><path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+                        <input type="text" class="search-input" id="searchKeyword" placeholder="搜索名称/描述..." onkeypress="if(event.key==='Enter')doSearch()">
+                    </div>
+                    <select class="form-select" id="filterVendor" onchange="loadModels()" style="width:180px;margin-left:12px;border-radius:999px;padding:7px 30px 7px 12px;">
+                        <option value="">全部供应商</option>
+                    </select>
+                    <select class="form-select" id="sortField" onchange="loadModels()" style="width:130px;margin-left:12px;">
+                        <option value="id">ID排序</option>
+                        <option value="model_name">名称排序</option>
+                        <option value="created_time">创建时间排序</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="toggleSortOrder()" style="margin-left:8px;" id="sortOrderBtn" title="切换排序">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" id="sortIcon"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetFilters()" style="margin-left:8px;">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+                        重置
+                    </button>
+                </div>
+                <div class="table-toolbar-right">
+                    <button class="btn btn-secondary" onclick="loadModels()">刷新</button>
+                </div>
+            </div>
+
+            <div class="table-wrap" style="overflow-x:auto;">
+                <table id="modelTable" style="table-layout:auto;min-width:100%;">
+                    <thead>
+                        <tr>
+                            <th style="text-align:center;white-space:nowrap;width:50px;">图标</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:180px;">模型名称</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:100px;">匹配类型</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:100px;">供应商</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:120px;">标签</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:140px;">已绑定渠道</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:120px;">可用分组</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:100px;">计费类型</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:80px;">官方同步</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:60px;">状态</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:120px;">端点</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:140px;">创建时间</th>
+                            <th style="text-align:center;white-space:nowrap;min-width:200px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modelTableBody">
+                        <tr><td colspan="13" style="text-align:center;padding:60px 20px;color:var(--c-text-secondary);">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="modelPagination">
+                <div>共 <span id="totalModels">0</span> 条</div>
+                <div class="pagination-pages" id="paginationPages"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/providers.js"></script>
+<script src="js/model-management.js"></script>
+</body>
+</html>
