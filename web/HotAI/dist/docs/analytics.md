@@ -21,7 +21,7 @@ ENABLE_PPROF=true
 应用 pprof 配置后重启服务：
 
 bash
-docker-compose restart hotai
+docker compose restart hotai
 
 
 ### 3. 验证
@@ -63,7 +63,7 @@ PYROSCOPE_APPLICATION_NAME=hotai
 应用配置后重启 HotAI：
 
 bash
-docker-compose restart hotai
+docker compose restart hotai
 
 
 ### 4. 验证

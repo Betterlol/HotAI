@@ -79,7 +79,7 @@ bun run dev
 使用 Docker Compose 快速启动：
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ## 验证安装

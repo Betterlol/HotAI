@@ -12,8 +12,8 @@ git clone https://github.com/Betterlol/HotAI.git
 cd HotAI
 
 # Start service
-docker-compose up -d
-# Access the service at http://localhost:3000
+docker compose up -d
+# Access the service at http://localhost:2000
 ```
 
 ## 预计实现的功能
