@@ -498,3 +498,74 @@ func TestStreamScannerHandler_StreamStatus_ReplacesPreInitialized(t *testing.T) 
 	assert.Equal(t, relaycommon.StreamEndReasonDone, info.StreamStatus.EndReason)
 	assert.Equal(t, 0, info.StreamStatus.TotalErrorCount())
 }
+
+// ---------- SSE multi-line / literal-newline continuation ----------
+
+// TestStreamScannerHandler_BlankLineFlushesEvent verifies that a blank line
+// flushes the accumulated event data even in compact streams.
+func TestStreamScannerHandler_BlankLineFlushesEvent(t *testing.T) {
+	t.Parallel()
+
+	// Single data: line followed immediately by a blank line then [DONE].
+	body := "data: payload\n\ndata: [DONE]\n\n"
+	c, resp, info := setupStreamTest(t, strings.NewReader(body))
+
+	var received []string
+	StreamScannerHandler(c, resp, info, func(data string, sr *StreamResult) {
+		received = append(received, data)
+	})
+
+	require.Len(t, received, 1)
+	assert.Equal(t, "payload", received[0])
+	assert.Equal(t, relaycommon.StreamEndReasonDone, info.StreamStatus.EndReason)
+}
+
+// TestStreamScannerHandler_LiteralNewlineInJSON simulates the DeepSeek v4-pro
+// streaming bug: a JSON string value contains a literal 0x0A byte, which causes
+// bufio.ScanLines to split the single data: line across two scanner tokens.
+// The second token has no "data:" prefix and must be treated as a continuation.
+func TestStreamScannerHandler_LiteralNewlineInJSON(t *testing.T) {
+	t.Parallel()
+
+	// Craft a stream where the JSON reasoning_content spans two scanner lines.
+	// This mimics what DeepSeek sends when reasoning text contains "\n".
+	line1 := "data: {\"id\":\"test\",\"choices\":[{\"delta\":{\"reasoning_content\":\"line1\n"
+	line2 := "line2\"}}]}\n"
+	done := "data: [DONE]\n"
+	body := line1 + line2 + done
+
+	c, resp, info := setupStreamTest(t, strings.NewReader(body))
+
+	var received []string
+	StreamScannerHandler(c, resp, info, func(data string, sr *StreamResult) {
+		received = append(received, data)
+	})
+
+	require.Len(t, received, 1, "split JSON line must be reassembled into one event")
+	assert.Contains(t, received[0], "line1\nline2", "reasoning content must include the literal newline")
+}
+
+// TestStreamScannerHandler_CompactAndBlankLineMixed verifies that streams using
+// compact format (no blank lines) and streams using blank-line delimiters both
+// produce the correct number of events.
+func TestStreamScannerHandler_CompactAndBlankLineMixed(t *testing.T) {
+	t.Parallel()
+
+	// Compact: 3 events, no blank lines
+	compact := "data: a\ndata: b\ndata: c\ndata: [DONE]\n"
+	c, resp, info := setupStreamTest(t, strings.NewReader(compact))
+	var compactCount int
+	StreamScannerHandler(c, resp, info, func(data string, sr *StreamResult) {
+		compactCount++
+	})
+	assert.Equal(t, 3, compactCount)
+
+	// Blank-line delimited: 3 events
+	blankLine := "data: a\n\ndata: b\n\ndata: c\n\ndata: [DONE]\n\n"
+	c2, resp2, info2 := setupStreamTest(t, strings.NewReader(blankLine))
+	var blCount int
+	StreamScannerHandler(c2, resp2, info2, func(data string, sr *StreamResult) {
+		blCount++
+	})
+	assert.Equal(t, 3, blCount)
+}

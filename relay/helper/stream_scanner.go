@@ -218,6 +218,35 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 			logger.LogDebug(c, "scanner goroutine exited")
 		}()
 
+		var eventData strings.Builder
+
+		// flushEvent 将已累积的 eventData 发送到 dataChan。
+		// 返回 false 表示应停止扫描（[DONE] 或 chan 关闭）。
+		flushEvent := func() bool {
+			if eventData.Len() == 0 {
+				return true
+			}
+			data := eventData.String()
+			eventData.Reset()
+
+			if strings.HasPrefix(data, "[DONE]") {
+				info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonDone, nil)
+				logger.LogDebug(c, "received [DONE], stopping scanner")
+				return false
+			}
+
+			info.SetFirstResponseTime()
+			info.ReceivedResponseCount++
+			select {
+			case dataChan <- data:
+				return true
+			case <-ctx.Done():
+				return false
+			case <-stopChan:
+				return false
+			}
+		}
+
 		for scanner.Scan() {
 			// 检查是否需要停止
 			select {
@@ -232,37 +261,46 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 			}
 
 			ticker.Reset(streamingTimeout)
-			data := scanner.Text()
-			logger.LogDebug(c, "stream scanner data: %s", data)
+			line := scanner.Text()
+			logger.LogDebug(c, "stream scanner line: %s", line)
 
-			if len(data) < 6 {
-				continue
-			}
-			if data[:5] != "data:" && data[:6] != "[DONE]" {
-				continue
-			}
-			data = data[5:]
-			data = strings.TrimSpace(data)
-			if data == "" {
-				continue
-			}
-			if !strings.HasPrefix(data, "[DONE]") {
-				info.SetFirstResponseTime()
-				info.ReceivedResponseCount++
-
-				select {
-				case dataChan <- data:
-				case <-ctx.Done():
-					return
-				case <-stopChan:
+			if line == "" {
+				// 空行：标准 SSE 事件边界，发送已累积内容
+				if !flushEvent() {
 					return
 				}
-			} else {
-				info.StreamStatus.SetEndReason(relaycommon.StreamEndReasonDone, nil)
-				logger.LogDebug(c, "received [DONE], stopping scanner")
-				return
+				continue
+			}
+
+			if strings.HasPrefix(line, "data:") {
+				content := strings.TrimSpace(line[5:])
+				if content == "" {
+					continue
+				}
+				// 紧凑格式（无空行分隔）：新 data: 行到来时先发送前一个事件
+				if eventData.Len() > 0 {
+					if !flushEvent() {
+						return
+					}
+				}
+				eventData.WriteString(content)
+				continue
+			}
+
+			// 非 SSE 字段的裸行：可能是 JSON 字符串中包含字面换行符导致的分行
+			// 若当前正在累积事件数据，则视为续行追加
+			if eventData.Len() > 0 &&
+				!strings.HasPrefix(line, "event:") &&
+				!strings.HasPrefix(line, "id:") &&
+				!strings.HasPrefix(line, "retry:") &&
+				!strings.HasPrefix(line, ":") {
+				eventData.WriteByte('\n')
+				eventData.WriteString(line)
 			}
 		}
+
+		// 流结束时发送任何未以空行终止的剩余事件
+		flushEvent()
 
 		if err := scanner.Err(); err != nil {
 			if err != io.EOF {
