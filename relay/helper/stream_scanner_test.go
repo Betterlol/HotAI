@@ -2,6 +2,7 @@ package helper
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -67,6 +69,19 @@ func TestStreamScannerHandler_NilInputs(t *testing.T) {
 
 	StreamScannerHandler(c, nil, info, func(data string, sr *StreamResult) {})
 	StreamScannerHandler(c, &http.Response{Body: io.NopCloser(strings.NewReader(""))}, info, nil)
+}
+
+func TestSetEventStreamHeaders_UsesUTF8Charset(t *testing.T) {
+	t.Parallel()
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+
+	SetEventStreamHeaders(c)
+	require.NoError(t, StringData(c, `{"choices":[]}`))
+
+	assert.Equal(t, "text/event-stream; charset=utf-8", recorder.Header().Get("Content-Type"))
 }
 
 func TestNewStreamScanner_AllowsLargeStreamLine(t *testing.T) {
@@ -520,10 +535,8 @@ func TestStreamScannerHandler_BlankLineFlushesEvent(t *testing.T) {
 	assert.Equal(t, relaycommon.StreamEndReasonDone, info.StreamStatus.EndReason)
 }
 
-// TestStreamScannerHandler_LiteralNewlineInJSON simulates the DeepSeek v4-pro
-// streaming bug: a JSON string value contains a literal 0x0A byte, which causes
-// bufio.ScanLines to split the single data: line across two scanner tokens.
-// The second token has no "data:" prefix and must be treated as a continuation.
+// TestStreamScannerHandler_LiteralNewlineInJSON verifies that a literal newline
+// in an upstream JSON string is relayed as an escaped newline in valid JSON.
 func TestStreamScannerHandler_LiteralNewlineInJSON(t *testing.T) {
 	t.Parallel()
 
@@ -542,7 +555,44 @@ func TestStreamScannerHandler_LiteralNewlineInJSON(t *testing.T) {
 	})
 
 	require.Len(t, received, 1, "split JSON line must be reassembled into one event")
-	assert.Contains(t, received[0], "line1\nline2", "reasoning content must include the literal newline")
+	var response struct {
+		Choices []struct {
+			Delta struct {
+				ReasoningContent string `json:"reasoning_content"`
+			} `json:"delta"`
+		} `json:"choices"`
+	}
+	require.NoError(t, common.UnmarshalJsonStr(received[0], &response))
+	require.Len(t, response.Choices, 1)
+	assert.Equal(t, "line1\nline2", response.Choices[0].Delta.ReasoningContent)
+}
+
+// TestStreamScannerHandler_UTF8CharacterSplitByLiteralNewline covers the
+// malformed DeepSeek stream observed in the failure report, where the literal
+// newline splits a three-byte Chinese character.
+func TestStreamScannerHandler_UTF8CharacterSplitByLiteralNewline(t *testing.T) {
+	t.Parallel()
+
+	body := append([]byte(`data: {"id":"test","choices":[{"delta":{"reasoning_content":"`), 0xe5, 0xbf, '\n', 0x97)
+	body = append(body, []byte("\"}}]}\ndata: [DONE]\n")...)
+	c, resp, info := setupStreamTest(t, bytes.NewReader(body))
+
+	var received []string
+	StreamScannerHandler(c, resp, info, func(data string, sr *StreamResult) {
+		received = append(received, data)
+	})
+
+	require.Len(t, received, 1)
+	var response struct {
+		Choices []struct {
+			Delta struct {
+				ReasoningContent string `json:"reasoning_content"`
+			} `json:"delta"`
+		} `json:"choices"`
+	}
+	require.NoError(t, common.UnmarshalJsonStr(received[0], &response))
+	require.Len(t, response.Choices, 1)
+	assert.Equal(t, "志", response.Choices[0].Delta.ReasoningContent)
 }
 
 // TestStreamScannerHandler_CompactAndBlankLineMixed verifies that streams using

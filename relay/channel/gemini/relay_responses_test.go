@@ -149,7 +149,7 @@ func TestGeminiResponsesStreamHandlerReturnsOpenAIResponsesSSE(t *testing.T) {
 	assert.Equal(t, 5, usage.TotalTokens)
 
 	got := recorder.Body.String()
-	assert.Equal(t, "text/event-stream", recorder.Header().Get("Content-Type"))
+	assert.Equal(t, "text/event-stream; charset=utf-8", recorder.Header().Get("Content-Type"))
 	assert.Contains(t, got, `event: response.created`)
 	assert.Contains(t, got, `event: response.output_text.delta`)
 	assert.Contains(t, got, `"delta":"hello"`)

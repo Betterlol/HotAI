@@ -68,7 +68,7 @@ func TestOpenaiImageStreamHandlerForwardsSSEAndUsage(t *testing.T) {
 	require.Contains(t, recorder.Body.String(), `data: {"type":"image_generation.partial_image","b64_json":"partial"}`)
 	require.Contains(t, recorder.Body.String(), `data: {"usage":{"input_tokens":3,"output_tokens":4,"total_tokens":7,"input_tokens_details":{"image_tokens":2,"text_tokens":1}}}`)
 	require.Contains(t, recorder.Body.String(), `data: [DONE]`)
-	require.Equal(t, "text/event-stream", recorder.Header().Get("Content-Type"))
+	require.Equal(t, "text/event-stream; charset=utf-8", recorder.Header().Get("Content-Type"))
 }
 
 // TestOpenaiImageStreamHandlerWrapsJSONResponse covers the non-SSE fallback:
@@ -89,7 +89,7 @@ func TestOpenaiImageStreamHandlerWrapsJSONResponse(t *testing.T) {
 	require.Equal(t, 7, usage.TotalTokens)
 	require.Equal(t, 2, usage.PromptTokensDetails.ImageTokens)
 	require.Equal(t, 1, usage.PromptTokensDetails.TextTokens)
-	require.Equal(t, "text/event-stream", recorder.Header().Get("Content-Type"))
+	require.Equal(t, "text/event-stream; charset=utf-8", recorder.Header().Get("Content-Type"))
 	require.Empty(t, recorder.Header().Get("Content-Length"))
 	require.Contains(t, recorder.Body.String(), `event: image_generation.completed`)
 	require.Contains(t, recorder.Body.String(), `"type":"image_generation.completed"`)

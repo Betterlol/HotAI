@@ -67,7 +67,7 @@ func TestOaiResponsesToChatStreamHandlerConvertsSSEOrderAndUsage(t *testing.T) {
 	require.Equal(t, 5, usage.TotalTokens)
 
 	got := recorder.Body.String()
-	require.Equal(t, "text/event-stream", recorder.Header().Get("Content-Type"))
+	require.Equal(t, "text/event-stream; charset=utf-8", recorder.Header().Get("Content-Type"))
 	require.Contains(t, got, `"role":"assistant"`)
 	require.Contains(t, got, `"content":"hello"`)
 	require.Contains(t, got, `"name":"lookup"`)
@@ -147,7 +147,7 @@ func TestOaiChatToResponsesStreamHandlerConvertsSSEOrderAndUsage(t *testing.T) {
 	require.Equal(t, 5, usage.TotalTokens)
 
 	got := recorder.Body.String()
-	require.Equal(t, "text/event-stream", recorder.Header().Get("Content-Type"))
+	require.Equal(t, "text/event-stream; charset=utf-8", recorder.Header().Get("Content-Type"))
 	require.Contains(t, got, `event: response.created`)
 	require.Contains(t, got, `event: response.output_text.delta`)
 	require.Contains(t, got, `"delta":"hello"`)

@@ -2,6 +2,7 @@ package helper
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -37,7 +38,94 @@ func getScannerBufferSize() int {
 func NewStreamScanner(reader io.Reader) *bufio.Scanner {
 	scanner := bufio.NewScanner(reader)
 	scanner.Buffer(make([]byte, InitialScannerBufferSize), getScannerBufferSize())
+	scanner.Split(scanLinesUTF8Safe)
 	return scanner
+}
+
+// scanLinesUTF8Safe is compatible with bufio.ScanLines, except it repairs an
+// invalid line break inserted inside a UTF-8 code point by an upstream SSE
+// server. Returning the complete rune prevents downstream JSON from receiving
+// a truncated string.
+func scanLinesUTF8Safe(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+
+	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+		lineEnd := i
+		if lineEnd > 0 && data[lineEnd-1] == '\r' {
+			lineEnd--
+		}
+		line := data[:lineEnd]
+
+		missing := 0
+		if len(line) > 0 {
+			start := len(line) - 1
+			for start > 0 && len(line)-start < 4 && line[start]&0xc0 == 0x80 {
+				start--
+			}
+
+			var expected int
+			switch firstByte := line[start]; {
+			case firstByte&0x80 == 0:
+				expected = 1
+			case firstByte&0xe0 == 0xc0:
+				expected = 2
+			case firstByte&0xf0 == 0xe0:
+				expected = 3
+			case firstByte&0xf8 == 0xf0:
+				expected = 4
+			}
+			if actual := len(line) - start; actual < expected {
+				missing = expected - actual
+			}
+		}
+
+		if missing > 0 {
+			end := bytes.IndexByte(data[i+1:], '\n')
+			if end < 0 && !atEOF {
+				return 0, nil, nil
+			}
+
+			continuationEnd := len(data)
+			advance = len(data)
+			if end >= 0 {
+				continuationEnd = i + 1 + end
+				advance = continuationEnd + 1
+			}
+			if continuationEnd > i+1 && data[continuationEnd-1] == '\r' {
+				continuationEnd--
+			}
+			continuation := data[i+1 : continuationEnd]
+			validContinuation := len(continuation) >= missing
+			for _, b := range continuation[:min(missing, len(continuation))] {
+				if b&0xc0 != 0x80 {
+					validContinuation = false
+					break
+				}
+			}
+			if validContinuation {
+				joined := make([]byte, 0, len(line)+len(continuation))
+				joined = append(joined, line...)
+				joined = append(joined, continuation...)
+				if end < 0 {
+					return len(data), joined, nil
+				}
+				return advance, joined, nil
+			}
+		}
+
+		return i + 1, line, nil
+	}
+
+	if atEOF {
+		if len(data) > 0 && data[len(data)-1] == '\r' {
+			return len(data), data[:len(data)-1], nil
+		}
+		return len(data), data, nil
+	}
+
+	return 0, nil, nil
 }
 
 func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo, dataHandler func(data string, sr *StreamResult)) {
@@ -110,7 +198,6 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 		close(stopChan)
 	}()
 
-	scanner.Split(bufio.ScanLines)
 	SetEventStreamHeaders(c)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -287,14 +374,15 @@ func StreamScannerHandler(c *gin.Context, resp *http.Response, info *relaycommon
 				continue
 			}
 
-			// 非 SSE 字段的裸行：可能是 JSON 字符串中包含字面换行符导致的分行
-			// 若当前正在累积事件数据，则视为续行追加
+			// A bare line while an event is pending is an invalid literal newline
+			// in an upstream JSON string. Escape it so the relayed data line stays
+			// valid JSON and does not split again for downstream SSE clients.
 			if eventData.Len() > 0 &&
 				!strings.HasPrefix(line, "event:") &&
 				!strings.HasPrefix(line, "id:") &&
 				!strings.HasPrefix(line, "retry:") &&
 				!strings.HasPrefix(line, ":") {
-				eventData.WriteByte('\n')
+				eventData.WriteString("\\n")
 				eventData.WriteString(line)
 			}
 		}
