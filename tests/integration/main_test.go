@@ -6,6 +6,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/glebarez/sqlite"
@@ -23,6 +24,7 @@ func TestMain(m *testing.M) {
 	model.DB = db
 	model.LOG_DB = db
 	common.SetDatabaseTypes(common.DatabaseTypeSQLite, common.DatabaseTypeSQLite)
+	model.InitCol()
 	common.RedisEnabled = false
 	common.BatchUpdateEnabled = false
 	common.LogConsumeEnabled = false
@@ -34,6 +36,7 @@ func TestMain(m *testing.M) {
 		&model.Ability{},
 		&model.Option{},
 		&model.Log{},
+		&model.UserSubscription{},
 	); err != nil {
 		panic("failed to auto-migrate: " + err.Error())
 	}
@@ -41,6 +44,8 @@ func TestMain(m *testing.M) {
 	ratio_setting.InitRatioSettings()
 
 	common.MemoryCacheEnabled = true
+
+	service.InitHttpClient()
 
 	os.Exit(m.Run())
 }

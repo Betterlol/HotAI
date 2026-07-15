@@ -97,11 +97,11 @@ func resetState(t *testing.T) {
 func truncateTables(t *testing.T) {
 	t.Helper()
 	clearDB := func() {
-		model.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&model.User{})
-		model.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&model.Token{})
-		model.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&model.Channel{})
-		model.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&model.Ability{})
-		model.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&model.Log{})
+		model.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&model.User{})
+		model.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&model.Token{})
+		model.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&model.Channel{})
+		model.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&model.Ability{})
+		model.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&model.Log{})
 		resetState(t)
 	}
 	clearDB()
