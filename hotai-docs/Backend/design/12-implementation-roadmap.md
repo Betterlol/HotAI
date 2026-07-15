@@ -156,7 +156,7 @@
 - ✅ 渠道权重根据表现自动微调
 - ✅ 余额不足自动告警
 
-## Phase 4：故障切换规则特化
+## Phase 4：故障切换规则特化 ✅
 
 **背景**：当前所有失败一视同仁走通用熔断路径：`MarkFailure → Record(false) → processChannelError → shouldRetry`。429（限流）、401/403（鉴权）、timeout 被同等处理。实际场景中应差异化对待：
 
@@ -164,33 +164,36 @@
 - **401/403** 是 Key 失效，重试无意义，应立即跳过而非重试拖慢响应
 - 分类判断应在 **`MarkFailure`/`Record` 之前**，而不是在 `processChannelError` 里面
 
-### F-01 错误类型分类 + 差异化处理 (2d)
+### 实现
 
-| 错误类型 | 熔断记录 | 成功率记录 | 重试 | 说明 |
-|----------|----------|-----------|------|------|
-| 429 (限流) | ❌ 不记 | ❌ 不记 | ✅ 等待后重试 | 限流是临时状态，不应影响评分 |
-| 401/403 (鉴权) | ❌ 不记 | ❌ 不记 | ❌ 不复试，立即跳过 | Key 无效，重试多少次都一样 |
-| timeout | ✅ 记 | ✅ 记 | ✅ 重试 | 超时可能是渠道问题 |
-| 5xx | ✅ 记 | ✅ 记 | ✅ 重试 | 服务端异常 |
-| 余额不足 | ✅ 记 | ✅ 记 | ❌ | 已有逻辑复用 |
+**3 次提交完成：**
 
-**文件：**
+| 提交 | 内容 |
+|------|------|
+| `6647fa9` | 基础错误分类 + 主 Relay 路径分流 + `retry_setting` 配置 + 单元测试 |
+| `6d5f278` | `time.Sleep` → context-aware `select`，防止客户端断开后 goroutine 堆积；扩展分类到 `RelayTask` 路径 |
+| `4e69523` | `RelayTask` 同步主路径的完整分流控制（429 backoff + continue，401 fail-fast + break） |
+
+**新增/修改文件：**
+
 | 文件 | 变更 |
 |------|------|
-| `types/error_classification.go` | [新增] `IsRateLimit()`、`IsAuthError()`、`IsTimeout()` 分类函数 |
-| `controller/relay.go` | MarkFailure/Record 前插入分类判断，分流处理路径 |
-| `setting/operation_setting/retry_setting.go` | [新增] `ratelimit_retry_interval`、`ratelimit_retry_times` 配置 |
+| `types/error_classification.go` | [新增] `IsRateLimit()`、`IsAuthError()`、`IsTimeout()` |
+| `types/error_classification_test.go` | [新增] 3 个测试覆盖所有分类函数 |
+| `setting/operation_setting/retry_setting.go` | [新增] `RateLimitRetryInterval`、`RateLimitRetryTimes` |
+| `controller/relay.go` | 主路径 + `RelayTask` 路径：429/401 跳转分流 |
 
-**处理流程（修改后）：**
+### 处理流程
+
 ```
 relayError
   │
-  ├─ IsRateLimit(429) ─→ ❌不记熔断/成功率 → wait → retry
+  ├─ IsRateLimit(429) ─→ ❌不记熔断/成功率 → context-aware delay → retry
   ├─ IsAuthError(401/403) ─→ ❌不记熔断/成功率 → ❌不重试 → break
-  └─ (timeout/5xx/余额) ─→ MarkFailure → Record(false) → processError → shouldRetry
+  └─ (其他) ─→ MarkFailure → Record(false) → processError → shouldRetry
 ```
 
-**Phase 4 总计**：~2 天（F-02/F-03 合并入 F-01，F-04 测试贯穿执行）
+**Phase 4 总计**：~2 天 ✅
 
 ## Phase 5：高级特性（原 Phase 4）
 
@@ -242,11 +245,10 @@ Phase 3: 成本感知 + 动态权重                       Week 5-6
     L-02: 成本感知路由 (3-5d)
     L-03: 动态权重调整 (3-5d)
          │
-Phase 4: 故障切换规则特化 [新增]                   Week 7-8
-    F-01: 错误类型分类 (1d)
-    F-02: 差异化重试与降级 (2d)
-    F-03: 可配置重试参数 (1d)
-    F-04: 故障切换测试执行 (2d)
+Phase 4: 故障切换规则特化 ✅                        Week 7-8
+    6647fa9: 错误分类 + 主路径分流 (1d)
+    6d5f278: context-aware 退避 + RelayTask (0.5d)
+    4e69523: RelayTask 全分流对齐 (0.5d)
          │
 Phase 5: 高级特性 [原 Phase 4]                     Week 9-12
     L-04: 灰度发布 (3-5d)
