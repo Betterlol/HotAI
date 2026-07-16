@@ -99,7 +99,7 @@ relayHandler(c, info) → adaptor.DoRequest() → upstream HTTP response
 
 ---
 
-### 2.2 分类处理（Phase 4 特化）
+### 2.2 分类处理（Phase 4 特化 + Phase 4.2 修复）
 
 在 `controller/relay.go` 的 retry loop 中：
 
@@ -120,7 +120,16 @@ for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
     }
     
     if types.IsAuthError(newAPIError) {
-        // 401/403: 不记熔断/成功率 → break（直接返回）
+        // Phase 4.2 修复：401/403 也应记录并 retry
+        circuitbreaker.MarkFailure(channel.Id)
+        channelsuccessrate.Record(channel.Id, false)
+        if releaseSelectedChannel {
+            channellimiter.Release(channel.Id)
+        }
+        if retryParam.GetRetry() < common.RetryTimes {
+            continue  // retry 其他渠道
+        }
+        break  // 所有渠道试过，返回 401/403
     }
     
     // 其他（500/502/503/504 等）
@@ -137,8 +146,8 @@ for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
 | 状态码 | 分类 | 是否记熔断 | 是否记成功率 | 是否重试其他渠道 | 最终返回 |
 |--------|------|-----------|-------------|-----------------|---------|
 | **429** | RateLimit | ❌ | ❌ | ✅（delay 后 retry） | 成功则 200，超限后返回 429 |
-| **401** | AuthError | ❌ | ❌ | ❌（直接 break） | **直接返回 401** |
-| **403** | AuthError | ❌ | ❌ | ❌（直接 break） | **直接返回 403** |
+| **401** | AuthError | ✅ | ✅ | ✅（retry 其他渠道，除非全部试过） | 成功则 200，全部失败返回 401 |
+| **403** | AuthError | ✅ | ✅ | ✅（retry 其他渠道，除非全部试过） | 成功则 200，全部失败返回 403 |
 | **500** | 5xx | ✅ | ✅ | ✅（根据 `ShouldRetryByStatusCode`） | 成功则 200，耗尽返回 500 |
 | **502** | 5xx | ✅ | ✅ | ✅ | 成功则 200，耗尽返回 502 |
 | **503** | 5xx | ✅ | ✅ | ✅ | 成功则 200，耗尽返回 503 |
@@ -146,51 +155,69 @@ for ; retryParam.GetRetry() <= common.RetryTimes; retryParam.IncreaseRetry() {
 
 ---
 
-## 三、核心问题：401/403 不应该 fail-fast
+## 三、Phase 4.2 修复：401/403 应 retry 其他渠道
 
-### 3.1 当前问题
+### 3.1 原有问题（Phase 4）
 
 ```go
-// controller/relay.go:267-274
+// controller/relay.go:267-274 (Phase 4 原代码)
 if types.IsAuthError(newAPIError) {
     processChannelError(c, chErr, newAPIError)
     if releaseSelectedChannel {
         channellimiter.Release(channel.Id)
     }
-    break  // ← 问题在这里
+    break  // ← 问题：直接返回，不 retry
 }
 ```
 
-**问题：** 渠道侧 401/403 直接 `break`，不 retry 其他渠道。
+**问题：**
+1. 不 retry 其他渠道 — 一个渠道 401 导致用户请求失败，即使其他渠道健康
+2. 不记熔断/成功率 — 问题渠道不会被路由规避
 
-### 3.2 为什么这是错的？
-
-| 场景 | 实际情况 | 当前行为 | 应该行为 |
-|------|---------|---------|---------|
-| 渠道 A Key 过期 | 渠道 B/C 完全正常 | 返回 401，用户失败 | retry B/C，可能成功 |
-| 渠道 A 账号被封 | 渠道 B/C 使用不同账号 | 返回 401，用户失败 | retry B/C，可能成功 |
-| 渠道 A 权限不足 | 渠道 B/C 权限正常 | 返回 403，用户失败 | retry B/C，可能成功 |
-
-### 3.3 正确的处理方式
-
-渠道侧 401/403 应该像 429 一样处理：
+### 3.2 Phase 4.2 修复
 
 ```go
+// controller/relay.go:267-278 (Phase 4.2 修复后)
 if types.IsAuthError(newAPIError) {
-    // ❌ 不记熔断/成功率（保持 Phase 4 设计）
+    chErr := *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan())
     processChannelError(c, chErr, newAPIError)
+    circuitbreaker.MarkFailure(channel.Id)           // ✅ 记录失败
+    channelsuccessrate.Record(channel.Id, false)     // ✅ 记录成功率
     if releaseSelectedChannel {
         channellimiter.Release(channel.Id)
     }
-    // ✅ 应该 retry 其他渠道，除非已经试过所有渠道
     if retryParam.GetRetry() < common.RetryTimes {
-        continue  // retry next channel
+        continue  // ✅ retry 其他渠道
     }
-    break  // 所有渠道都试过，返回 401/403
+    break
 }
 ```
 
-### 3.4 用户侧 401/403 不需要改
+### 3.3 修复后行为
+
+```
+渠道 A 返回 401/403
+    │
+    ├─ 记录熔断：circuitbreaker.MarkFailure(1)
+    ├─ 记录成功率：channelsuccessrate.Record(1, false)
+    ├─ 释放限流：channellimiter.Release(1)
+    ├─ processChannelError（日志/通知）
+    │
+    └─ retryParam < RetryTimes?
+          ├─ 是 → continue（选择渠道 B）
+          └─ 否 → break（所有渠道试过，返回 401/403）
+```
+
+### 3.4 为什么 401/403 应该记录熔断/成功率？
+
+| 维度 | 429 不记录合理 | 401/403 应记录 |
+|------|---------------|---------------|
+| **暂时性** | 429 是临时的，延迟后会恢复 | 401/403 通常是 Key 失效，不会自动恢复 |
+| **渠道健康** | 健康渠道被限流不应惩罚 | 持续 401 的渠道就是不健康，应该被规避 |
+| **路由准确性** | 记录 429 会导致路由偏移 | 记录 401 能让路由自动避开问题渠道 |
+| **恢复预期** | 429 之后自动恢复 | 401 需要人工干预（换 Key） |
+
+### 3.5 用户侧 401/403 不需要改
 
 用户侧 401/403 在 `TokenAuth` 和 `Distribute` 中间件就被拦截了，不会进入 relay retry loop。渠道侧和用户侧的 401/403 在代码流上是分离的。
 
@@ -215,7 +242,7 @@ if types.IsAuthError(newAPIError) {
 │ controller/relay.go retry loop       │
 │ (渠道侧状态码)                        │
 │ - 429: delay → retry                 │
-│ - 401/403: break (当前)              │
+│ - 401/403: 记录失败 → retry（Phase 4.2）│
 │ - 504: break                         │
 │ - 500/502/503: retry or break        │
 └─────────────────────────────────────┘
@@ -232,9 +259,11 @@ if types.IsAuthError(newAPIError) {
 |------|--------|--------|
 | **拦截位置** | 中间件（relay 之前） | relay retry loop |
 | **401/403 来源** | Token 无效/过期/权限不足 | 上游供应商 Key 失效/权限不足 |
-| **当前处理** | 直接返回 | **直接返回（Phase 4 特化）** |
-| **问题** | 无 | ❌ 渠道侧 401/403 应该 retry 其他渠道 |
+| **处理方式** | 直接返回 | **Phase 4.2 修复：记录失败并 retry 其他渠道** |
 | **429 处理** | 直接返回（用户限流） | delay → retry 其他渠道 ✅ |
 | **503 处理** | 无可用渠道时返回 | 所有渠道耗尽后返回最后错误码 |
 
-**核心结论：** 用户侧的 401/403 处理是正确的（直接返回），但渠道侧的 401/403 处理过度激进，应该允许 retry 其他渠道。
+**核心结论：**
+- 用户侧的 401/403 处理是正确的（直接返回）
+- Phase 4.2 修复了渠道侧 401/403 的处理：现在会记录熔断/成功率，并 retry 其他渠道
+- 仅当所有渠道都返回 401/403 时，才返回给用户
