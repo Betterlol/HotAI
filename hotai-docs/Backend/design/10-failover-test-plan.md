@@ -159,12 +159,12 @@ go run main.go
 | 用例 | 场景 | 预计成功 | 预计渠道链 |
 |------|------|----------|-----------|
 | TC-01 | 上游 500 | ✅ | A(500) → B(200) |
-| TC-02 | 鉴权 401 | ✅ | A(401+禁用) → B(200) |
+| TC-02 | 鉴权 401 | ✅ | A(401+禁用)，fail-fast 不重试 |
 | TC-03 | 限流 429 | ✅ | A(429) → B(200) |
 | TC-04 | 超时 504 | ❌ 失败 | A(504，不重试) |
-| TC-05 | 全渠道挂 | ❌ 503 | A→B→C 全部失败 |
+| TC-05 | 全渠道挂 | ❌ 500 | A(500) → B(500)，返回最后错误码 |
 | TC-06 | 恢复启用 | ✅ | A 自动恢复可用 |
-| TC-07 | 跨组降级 | ✅ | vip 失败 → default(200) |
+| TC-07 | 跨组降级 | ✅ | auto → default(200) |
 
 ## 6. 改进建议（基于测试结果填写）
 
@@ -172,8 +172,44 @@ go run main.go
 
 | 维度 | 表现 | 改进建议 |
 |------|------|----------|
-| 重试决策准确性 | 是否按预期重试/跳过 | |
-| 熔断及时性 | 自动禁用是否过快/过慢 | |
-| 通知有效性 | 管理员是否及时收到通知 | |
-| 恢复能力 | 自动启用是否正常工作 | |
-| 用户体验 | 用户侧看到什么错误消息 | |
+| 重试决策准确性 | 500/429 按预期重试，504 正确跳过，401 fail-fast | - |
+| 熔断及时性 | 401 触发自动禁用（需开启 AutomaticDisableChannelEnabled） | 建议文档化默认开关状态 |
+| 通知有效性 | 自动禁用通知依赖 root user 配置，测试环境可能超出发送限制 | 生产环境需配置 SMTP/Webhook |
+| 恢复能力 | 依赖定时渠道测试 runner，测试环境可能未启动 | CI 中可跳过或单独跑 |
+| 用户体验 | 429/500 返回上游原始错误码，401 直接透传 | 可考虑统一错误消息格式 |
+
+## 7. 实际执行记录（2026-07-16）
+
+> 执行方式：集成测试 `tests/integration/failover_e2e_test.go`，使用 `httptest.NewServer` 模拟上游，内存 SQLite 数据库，无真实渠道/运营商依赖。
+
+| 用例 | 执行结果 | 实际行为 | 与预期差异 |
+|------|----------|----------|------------|
+| TC-01 | ✅ PASS | 500 → retry → channel B(200) | 一致 |
+| TC-02 | ✅ PASS | 401 → fail-fast(401)，channel A auto_disabled | 测试计划写 A→B(200)，但 Phase 4 实现为 401 fail-fast，不重试 |
+| TC-03 | ✅ PASS | 429 → retry(delay≥10ms) → channel B(200) | 一致 |
+| TC-04 | ✅ PASS | 504 → no retry → 504 | 一致 |
+| TC-05 | ✅ PASS | 全部渠道返回 500 → 最终返回 500 | 测试计划写 503，实际返回最后渠道的错误码；仅当无可用渠道时才返回 503 |
+| TC-06 | ⏭️ SKIP | 依赖系统渠道测试 runner，CI 环境未启动 | 本地手动验证通过 |
+| TC-07 | ✅ PASS | auto group → default group → 200 | 一致 |
+
+### 执行命令
+
+```bash
+go test ./tests/integration/ -run "TestFailover" -v -count=1 -timeout=120s
+```
+
+### 关键发现
+
+1. **Phase 4 401 fail-fast 行为**：401/403 不再进入通用重试路径，直接返回上游错误码并触发自动禁用（需 `AutomaticDisableChannelEnabled=true`）。这与旧版测试计划的"降级到备用渠道"预期不同，但符合 Phase 4 设计文档。
+2. **TC-05 503 vs 500**：当所有渠道均存在但全部失败时，返回最后一个渠道的错误码（500）；仅当 `GetRandomSatisfiedChannel` 返回 nil（无可用渠道）时才返回 503。
+3. **RetryTimes 默认值为 0**：需在测试中显式设置 `common.RetryTimes = N` 才能触发重试。
+4. **429 重试间隔**：由 `retry_setting.ratelimit_retry_interval` 控制，Phase 4 实现为 context-aware delay，不会在客户端断开后堆积 goroutine。
+
+## 8. 测试文件清单
+
+| 文件 | 说明 |
+|------|------|
+| `tests/integration/failover_e2e_test.go` | 新增：7 个故障切换集成测试 |
+| `tests/integration/suite.go` | 修复：`truncateTables` 使用 `Unscoped().Delete` 避免软删除导致 ID 冲突 |
+| `tests/integration/main_test.go` | 增加 `model.InitCol()` + `service.InitHttpClient()` + `UserSubscription` 迁移 |
+| `model/main.go` | 导出 `InitCol()` 供测试包调用 |
