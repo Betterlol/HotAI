@@ -180,7 +180,7 @@ func TestFailover401DisablesChannelAndFallsBack(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode, "expected 401 fail-fast per Phase 4")
+	assert.Equal(t, http.StatusOK, resp.StatusCode, "expected 200 after retry to channel B")
 
 	require.Eventually(t, func() bool {
 		chA, _ := model.GetChannelById(1, false)

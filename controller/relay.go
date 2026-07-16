@@ -267,8 +267,13 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		if types.IsAuthError(newAPIError) {
 			chErr := *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan())
 			processChannelError(c, chErr, newAPIError)
+			circuitbreaker.MarkFailure(channel.Id)
+			channelsuccessrate.Record(channel.Id, false)
 			if releaseSelectedChannel {
 				channellimiter.Release(channel.Id)
+			}
+			if retryParam.GetRetry() < common.RetryTimes {
+				continue
 			}
 			break
 		}
