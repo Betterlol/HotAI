@@ -292,6 +292,18 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		}
 	}
 
+	// When multiple channels were attempted and all failed, unify the response
+	// to 503 so callers see a stable "no available channel" error instead of
+	// the last upstream status code. Upstream details are still available via
+	// /api/log/.
+	if newAPIError != nil && retryParam.GetRetry() > 0 {
+		newAPIError = types.NewErrorWithStatusCode(
+			errors.New("no available channel"),
+			types.ErrorCodeModelNotFound,
+			http.StatusServiceUnavailable,
+		)
+	}
+
 	useChannel := c.GetStringSlice("use_channel")
 	if len(useChannel) > 1 {
 		retryLogStr := fmt.Sprintf("重试：%s", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(useChannel)), "->"), "[]"))

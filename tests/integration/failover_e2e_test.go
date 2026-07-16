@@ -269,7 +269,7 @@ func TestFailover504SkipsRetry(t *testing.T) {
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode, "expected 504 without retry")
 }
 
-func TestFailoverAllChannelsDownReturns500(t *testing.T) {
+func TestFailoverAllChannelsDownReturns503(t *testing.T) {
 	truncateTables(t)
 	resetAllConfigs(t)
 	resetState(t)
@@ -300,7 +300,7 @@ func TestFailoverAllChannelsDownReturns500(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode, "expected 500 when all channels fail")
+	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode, "expected 503 when all channels fail")
 }
 
 func TestFailoverAutoGroupFallsBackToDefault(t *testing.T) {
