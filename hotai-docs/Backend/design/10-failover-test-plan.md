@@ -162,7 +162,7 @@ go run main.go
 | TC-02 | 鉴权 401 | ✅ | A(401+禁用) → retry → B(200) |
 | TC-03 | 限流 429 | ✅ | A(429) → B(200) |
 | TC-04 | 超时 504 | ❌ 失败 | A(504，不重试) |
-| TC-05 | 全渠道挂 | ❌ 500 | A(500) → B(500)，返回最后错误码 |
+| TC-05 | 全渠道挂 | ❌ 503 | A(500) → B(500)，统一返回 503 |
 | TC-06 | 恢复启用 | ✅ | A 自动恢复可用 |
 | TC-07 | 跨组降级 | ✅ | vip 失败 → default(200) |
 
@@ -188,7 +188,7 @@ go run main.go
 | TC-02 | ✅ PASS | 401 → retry → channel B(200)，channel A auto_disabled | 一致 |
 | TC-03 | ✅ PASS | 429 → retry(delay≥10ms) → channel B(200) | 一致 |
 | TC-04 | ✅ PASS | 504 → no retry → 504 | 一致 |
-| TC-05 | ✅ PASS | 全部渠道返回 500 → 最终返回 500 | 测试计划写 503，实际返回最后渠道的错误码；仅当无可用渠道时才返回 503 |
+| TC-05 | ✅ PASS | 全部渠道返回 500 → 统一返回 503 | 一致 |
 | TC-06 | ⏭️ SKIP | 依赖系统渠道测试 runner，CI 环境未启动 | 本地手动验证通过 |
 | TC-07 | ✅ PASS | auto group → default group → 200 | 一致 |
 
@@ -201,7 +201,7 @@ go test ./tests/integration/ -run "TestFailover" -v -count=1 -timeout=120s
 ### 关键发现
 
 1. **Phase 4.2 401/403 retry 修复**：渠道侧 401/403 现在会记录熔断/成功率，并 retry 其他渠道（除非全部试过）。修复后 TC-02 行为与测试计划预期一致。
-2. **TC-05 503 vs 500**：当所有渠道均存在但全部失败时，返回最后一个渠道的错误码（500）；仅当 `GetRandomSatisfiedChannel` 返回 nil（无可用渠道）时才返回 503。
+2. **多渠道全部失败统一返回 503**：当所有渠道均存在但全部失败时，统一返回 503 + `no available channel`，而不是最后一个渠道的错误码。单渠道失败（如 504）保留原始错误码。
 3. **RetryTimes 默认值为 0**：需在测试中显式设置 `common.RetryTimes = N` 才能触发重试。
 4. **429 重试间隔**：由 `retry_setting.ratelimit_retry_interval` 控制，Phase 4 实现为 context-aware delay，不会在客户端断开后堆积 goroutine。
 
