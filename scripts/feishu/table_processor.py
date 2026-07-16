@@ -175,7 +175,7 @@ def format_check_row_label(data_row_number, model_id):
     return label
 
 
-def check_model_table_content(content):
+def check_table_content(content):
     """检查抓取内容中的第一张模型清单表格。"""
     model_count = 0
     errors = []
@@ -192,6 +192,7 @@ def check_model_table_content(content):
         if line.startswith("|")
     ]
     if len(rows) < 2:
+        # Error 1: 没有可解析的 Markdown 表格
         return ModelTableCheckResult(
             model_count=0,
             errors=["未读取到有效 Markdown 表格。"],
@@ -206,6 +207,7 @@ def check_model_table_content(content):
     for field_name, aliases in CHECK_REQUIRED_FIELD_ALIASES:
         column_index, matched_column = find_column_index(header, aliases)
         if column_index is None:
+            # Error 2: 表头缺少检查所需的关键列
             errors.append(
                 f"缺少关键列：{field_name}（可接受列名：{'、'.join(aliases)}）"
             )
@@ -225,11 +227,11 @@ def check_model_table_content(content):
 
         row_label = format_check_row_label(data_row_number, model_id)
 
-        # Error 1: 模型ID缺失
+        # Error 3: 数据行内缺少模型ID
         if not model_id:
             errors.append(f"{row_label}：缺少模型ID。")
 
-        # Error 2: 模型ID重复
+        # Error 4: 模型ID与前序数据行重复
         elif model_id in seen_model_ids:
             first_row = seen_model_ids[model_id]
             errors.append(
@@ -246,7 +248,7 @@ def check_model_table_content(content):
 
             value = row[column_index].strip() if column_index < len(row) else ""
 
-            # Error 3: 缺失重要字段
+            # Error 5: 数据行缺少关键字段内容
             if not value:
                 column_name = matched_columns[field_name]
                 errors.append(f"{row_label}：缺少{field_name}（列名：{column_name}）。")
@@ -258,12 +260,13 @@ def check_model_table_content(content):
 
             value = row[column_index].strip()
 
-            # Warning: 重要字段内容过短
+            # Warning: 重要描述性字段内容过短
             if value and len(value) < min_length:
                 warnings.append(
                     f"{row_label}：{field_name}内容偏短，建议补充到至少 {min_length} 个字符。"
                 )
 
+    # Error 6: 没有任何有效模型数据行
     if model_count == 0:
         errors.append("未发现有效模型数据行。")
 

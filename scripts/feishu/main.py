@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 
 from fetch_wiki_doc import fetch_wiki_doc_content
 from table_processor import (
-    check_model_table_content,
+    check_table_content,
     extract_first_markdown_table,
     print_check_report,
     render_model_template,
@@ -237,7 +237,7 @@ def run_check(args):
         node, content = fetch_wiki_doc_content(user_access_token, wiki_url, lang=args.lang)
         print_wiki_node(node)
 
-    result = check_model_table_content(content)
+    result = check_table_content(content)
     print_check_report(result)
     if result.errors:
         raise SystemExit(1)
