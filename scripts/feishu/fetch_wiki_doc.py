@@ -1,10 +1,9 @@
 # scripts/feishu/fetch_wiki_doc.py
 
 """
-获取飞书知识库资源的文本内容。
+飞书知识库内容读取工具。
 
-输入 URL 中 /wiki/ 后面的 token 是知识库节点 token。本脚本会先将它解析
-为实际云文档 token，再根据资源类型读取新版文档（docx）或电子表格（sheet）。
+负责解析 Wiki 链接或节点 token，定位节点对应的云文档资源，并导出适合后续处理的文本内容。
 """
 
 from urllib.parse import urlparse

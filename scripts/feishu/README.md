@@ -14,9 +14,10 @@
 
 | 文件 | 作用 |
 | ---- | ---- |
-| `main.py` | 统一入口，负责加载配置、启动授权服务、抓取文档和同步模型介绍页模板 |
+| `main.py` | 统一入口，负责加载配置、命令行参数、授权流程、抓取调度和文件写入 |
 | `oauth_server.py` | 本地 OAuth 回调服务，用于获取 `user_access_token` |
 | `fetch_wiki_doc.py` | 调用飞书 OpenAPI，读取 Wiki 节点背后的 docx 或 sheet 内容 |
+| `table_processor.py` | 处理抓取到的飞书模型表格，生成模型介绍页，并检查模型资料完整性 |
 | `.env.example` | 运维配置示例 |
 | `.env` | 本地实际配置文件，不应提交到仓库 |
 | `requirements.txt` | Python 依赖列表 |
