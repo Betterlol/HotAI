@@ -225,6 +225,18 @@ python scripts/feishu/main.py serve --port 9001
 python scripts/feishu/main.py fetch
 ```
 
+检查飞书模型表格：
+
+```bash
+python scripts/feishu/main.py check
+```
+
+检查本地已抓取内容：
+
+```bash
+python scripts/feishu/main.py check --input docs/feishu_content.txt
+```
+
 直接使用命令行 token 抓取：
 
 ```bash
@@ -238,6 +250,37 @@ python scripts/feishu/main.py fetch --lang 1
 ```
 
 `--lang 0` 表示默认名称，`--lang 1` 表示英文名称。
+
+## 模型表格检查
+
+`check` 子命令用于在生成模型介绍页前检查飞书模型表格质量：
+
+```bash
+python scripts/feishu/main.py check
+```
+
+也可以检查 `fetch` 已保存的本地内容，避免重复访问飞书：
+
+```bash
+python scripts/feishu/main.py check --input docs/feishu_content.txt
+```
+
+检查规则：
+
+- 必须包含可识别为 `模型ID` 的列；当前可接受列名为 `模型ID`、`名称`、`模型名`、`模型名称`。
+- `模型ID` 对应列的值不得为空或重复。
+- 必须包含模型介绍检查所需字段：`模型ID`、`提供商`、`适用场景`、`模型能力`、`价格`、`上下文长度`、`注意事项`。
+- 兼容部分已有列名：
+    - `来源`、`供应商` 可作为 `提供商`；
+    - `应用`、`应用场景`、`适合场景` 可作为 `适用场景`；
+    - `能力`、`能力说明` 可作为 `模型能力`；
+    - `费用`、`计费说明` 可作为 `价格`；
+    - `上下文` 可作为 `上下文长度`；
+    - `注意`、`备注` 可作为 `注意事项`。
+- 每个有效模型的数据行都必须填写上述字段。
+- `适用场景` 和 `模型能力` 内容少于 10 个字符时会输出警告，但不会导致检查失败。
+
+如果检查发现错误，命令会输出错误清单并以非 0 退出码结束，可用于后续接入 CI 或自动化发布流程。
 
 ## 验证更新结果
 
