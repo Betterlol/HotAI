@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	perfmetrics "github.com/QuantumNous/new-api/pkg/perf_metrics"
+	prometheusmetrics "github.com/QuantumNous/new-api/pkg/prometheus_metrics"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/types"
@@ -253,6 +255,16 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 		Group:            relayInfo.UsingGroup,
 		Other:            other,
 	})
+	gopool.Go(func() {
+		perfmetrics.RecordRelaySample(relayInfo, true, int64(usage.OutputTokens))
+		if quota > 0 {
+			channelID := ""
+			if relayInfo.ChannelMeta != nil && relayInfo.ChannelId > 0 {
+				channelID = strconv.Itoa(relayInfo.ChannelId)
+			}
+			prometheusmetrics.RecordRelayCost(modelName, relayInfo.UsingGroup, channelID, quota)
+		}
+	})
 }
 
 func CalcOpenRouterCacheCreateTokens(usage dto.Usage, priceData types.PriceData) int {
@@ -376,6 +388,13 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 	})
 	gopool.Go(func() {
 		perfmetrics.RecordRelaySample(relayInfo, true, int64(usage.CompletionTokens))
+		if quota > 0 {
+			channelID := ""
+			if relayInfo.ChannelMeta != nil && relayInfo.ChannelId > 0 {
+				channelID = strconv.Itoa(relayInfo.ChannelId)
+			}
+			prometheusmetrics.RecordRelayCost(relayInfo.OriginModelName, relayInfo.UsingGroup, channelID, quota)
+		}
 	})
 }
 

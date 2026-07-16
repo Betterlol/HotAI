@@ -80,6 +80,22 @@ var (
 		},
 		[]string{"channel"},
 	)
+
+	relayCostTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "hotai_relay_cost_total",
+			Help: "Total relay business cost in quota units, by model, group, and channel. Includes group ratios and surcharges.",
+		},
+		[]string{"model", "group", "channel"},
+	)
+
+	channelBalance = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "hotai_channel_balance_usd",
+			Help: "Last observed upstream channel balance in USD. Updated periodically by the balance refresh task.",
+		},
+		[]string{"channel"},
+	)
 )
 
 var _ = activeConnections
@@ -159,4 +175,23 @@ func recordSuccessWindow(modelName string, groupName string, channelID string, s
 		stats.success++
 	}
 	return float64(stats.success) / float64(stats.total) * 100
+}
+
+func RecordRelayCost(modelName, groupName, channelID string, quota int) {
+	if quota == 0 {
+		return
+	}
+	modelName = labelOrDefault(modelName, "unknown")
+	groupName = labelOrDefault(groupName, "default")
+	if channelID == "" {
+		channelID = "unknown"
+	}
+	relayCostTotal.WithLabelValues(modelName, groupName, channelID).Add(float64(quota))
+}
+
+func SetChannelBalance(channelID string, balance float64) {
+	if channelID == "" {
+		channelID = "unknown"
+	}
+	channelBalance.WithLabelValues(channelID).Set(balance)
 }
