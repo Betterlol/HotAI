@@ -1,10 +1,9 @@
 # scripts/feishu/oauth_server.py
 
 """
-本地 OAuth2 授权服务。
+飞书 OAuth 本地回调服务。
 
-该模块只负责创建 Flask 应用和处理飞书 OAuth 回调。
-环境变量加载、运行模式选择、文档抓取配置由统一入口 main.py 负责。
+负责生成授权链接、处理授权回调、换取 user_access_token，并执行授权成功后的处理逻辑。
 """
 
 from urllib.parse import urlencode
