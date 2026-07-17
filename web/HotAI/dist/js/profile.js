@@ -265,7 +265,6 @@ async function togglePasskey() {
         }
         
         try {
-<<<<<<< HEAD
             const res = await fetch('/api/user/passkey/register', {
                 method: 'POST',
                 credentials: 'include',
@@ -1077,72 +1076,3 @@ async function redeemCode() {
         showToast(res.message || '兑换失败', 'error');
     }
 }
-=======
-            const result = await API.updateUser({ display_name: displayName });
-            if (result.success) {
-                this.showMessage('资料更新成功', 'success');
-                await this.loadUserData();
-            } else {
-                this.showMessage(result.message || '更新失败', 'error');
-            }
-        } catch (error) {
-            this.showMessage(error.message || '网络错误', 'error');
-        }
-    },
-
-    // 修改密码
-    async changePassword() {
-        const currentPassword = document.getElementById('currentPassword')?.value;
-        const newPassword = document.getElementById('newPassword')?.value;
-        const confirmPassword = document.getElementById('confirmPassword')?.value;
-        
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            this.showMessage('请填写所有密码字段', 'error');
-            return;
-        }
-        
-        if (newPassword.length < 8) {
-            this.showMessage('新密码至少需要 8 个字符', 'error');
-            return;
-        }
-        
-        if (newPassword !== confirmPassword) {
-            this.showMessage('两次输入的新密码不一致', 'error');
-            return;
-        }
-        
-        // TODO: 实现密码修改API
-        this.showMessage('密码修改功能开发中...', 'error');
-    },
-
-    // 显示消息
-    showMessage(text, type = 'success') {
-        // 移除旧消息
-        const oldMessage = document.querySelector('.message');
-        if (oldMessage) {
-            oldMessage.remove();
-        }
-        
-        // 创建新消息
-        const message = document.createElement('div');
-        message.className = `message ${type}`;
-        message.textContent = text;
-        
-        // 插入到当前面板顶部
-        const activePanel = document.querySelector('.content-panel.active');
-        if (activePanel) {
-            activePanel.insertBefore(message, activePanel.firstChild);
-            
-            // 3秒后自动消失
-            setTimeout(() => {
-                message.remove();
-            }, 3000);
-        }
-    }
-};
-
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', () => {
-    ProfilePage.init();
-});
->>>>>>> document
