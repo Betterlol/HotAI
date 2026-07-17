@@ -14,6 +14,8 @@ const (
 	NotifyTypeChannelUpdate    = "channel_update"
 	NotifyTypeChannelTest      = "channel_test"
 	NotifyTypeBalanceWarning   = "balance_warning"
+	NotifyTypeSuccessRateDrop  = "success_rate_drop"
+	NotifyTypeModelUnavailable = "model_unavailable"
 )
 
 func NewNotify(t string, title string, content string, values []interface{}) Notify {
