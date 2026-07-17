@@ -326,6 +326,12 @@ body {
 .toast-info { background: var(--c-primary-light); border: 1px solid #BFDBFE; color: var(--c-primary-dark); }
 @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
 
+/* 管理员菜单隐藏/显示（侧边栏，与 console-shared.css 保持一致）*/
+.admin-only { display: none; }
+.admin-only.show { display: flex; }
+.menu-group.admin-group { display: none; }
+.menu-group.admin-group.show { display: block; }
+
 /* 管理员标签页显示 */
 .admin-tab.hidden { display: none; }
 .admin-tab { display: none; }

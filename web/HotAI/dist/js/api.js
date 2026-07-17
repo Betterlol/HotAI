@@ -335,13 +335,17 @@ const API = {
             body: JSON.stringify({ key, value })
         }),
 
-    // batch update options
+    // batch update options — preserves native JS types:
+    // boolean stays boolean, number stays number, string stays string
     updateOptions: async (payload) => {
         const entries = Object.entries(payload);
         for (const [key, value] of entries) {
+            // Keep boolean and number as-is so the backend receives correct types.
+            // Legacy callers may pass string 'true'/'false'/'1'/etc. — leave those as strings too.
+            const bodyValue = (typeof value === 'boolean' || typeof value === 'number') ? value : String(value);
             const r = await apiRequest('/option/', {
                 method: 'PUT',
-                body: JSON.stringify({ key, value: String(value) })
+                body: JSON.stringify({ key, value: bodyValue })
             });
             if (!r.success) return r;
         }

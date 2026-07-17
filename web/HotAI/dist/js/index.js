@@ -1089,6 +1089,9 @@ function saveChatHistory(content) {
         session.title = generateSessionTitle(content);
     }
     
+    // 立即同步内存消息到会话，不依赖 AI 回复结果
+    updateCurrentSession();
+    
     // 刷新侧边栏
     loadChatHistory();
 }

@@ -4,6 +4,24 @@ function showToast(msg, type='info') {
     const t=document.createElement('div');t.className=`toast toast-${type}`;t.textContent=msg;c.appendChild(t);setTimeout(()=>t.remove(),3500);
 }
 
+// 通用校验函数 - 收集所有违规项并统一提示
+const validationViolations = [];
+
+function validateAndCorrect(fieldName, value, constraint, fallback) {
+    if (!constraint(value)) {
+        validationViolations.push(`${fieldName} 已自动修正为 ${fallback}`);
+        return fallback;
+    }
+    return value;
+}
+
+function flushValidationWarnings() {
+    if (validationViolations.length > 0) {
+        showToast(validationViolations.join('；'), 'warning');
+        validationViolations.length = 0; // 清空
+    }
+}
+
 let settingsData = {};
 
 // Tab 切换功能
@@ -187,13 +205,48 @@ async function loadSettings() {
     safeSetChecked('PingIntervalEnabled', getBool('general_setting.ping_interval_enabled'));
     safeSetValue('PingIntervalSeconds', getNum('general_setting.ping_interval_seconds', 60));
     
-    // 渠道亲和性
-    safeSetChecked('ChannelAffinityEnabled', getBool('channel_affinity_setting.enabled'));
+    // 渠道亲和性（enabled 迁移到智能路由 Tab，此处仅保留高级选项）
     safeSetChecked('ChannelAffinitySwitchOnSuccess', getBool('channel_affinity_setting.switch_on_success'));
     safeSetChecked('ChannelAffinityKeepOnDisabled', getBool('channel_affinity_setting.keep_on_channel_disabled'));
     safeSetValue('ChannelAffinityMaxEntries', getNum('channel_affinity_setting.max_entries', 10000));
     safeSetValue('ChannelAffinityDefaultTTL', getNum('channel_affinity_setting.default_ttl_seconds', 3600));
     safeSetValue('ChannelAffinityRules', getValue('channel_affinity_setting.rules', '{}'));
+    
+    // ========== Tab 智能路由配置 ==========
+    // 延迟感知路由
+    safeSetChecked('LatencyRoutingEnabled', getBool('latency_routing_setting.enabled'));
+    safeSetValue('LatencyRoutingWeightFactor', getNum('latency_routing_setting.weight_factor', 0.3));
+    document.getElementById('LatencyRoutingWeightFactorVal').textContent = getNum('latency_routing_setting.weight_factor', 0.3);
+    
+    // 滑动窗口熔断
+    safeSetChecked('CircuitBreakerEnabled', getBool('circuit_breaker_setting.enabled'));
+    safeSetValue('CircuitBreakerWindowSeconds', getNum('circuit_breaker_setting.window_seconds', 60));
+    safeSetValue('CircuitBreakerBucketSeconds', getNum('circuit_breaker_setting.bucket_seconds', 10));
+    safeSetValue('CircuitBreakerErrorThreshold', getNum('circuit_breaker_setting.error_threshold', 0.5));
+    document.getElementById('CircuitBreakerErrorThresholdVal').textContent = getNum('circuit_breaker_setting.error_threshold', 0.5);
+    safeSetValue('CircuitBreakerMinRequestCount', getNum('circuit_breaker_setting.min_request_count', 10));
+    safeSetValue('CircuitBreakerOpenTimeoutSeconds', getNum('circuit_breaker_setting.open_timeout_seconds', 30));
+    safeSetValue('CircuitBreakerHalfOpenMaxRequests', getNum('circuit_breaker_setting.half_open_max_requests', 3));
+    safeSetValue('CircuitBreakerHalfOpenSuccessThreshold', getNum('circuit_breaker_setting.half_open_success_threshold', 2));
+    
+    // 渠道并发限流
+    safeSetChecked('ChannelLimiterEnabled', getBool('channel_limiter_setting.enabled'));
+    safeSetValue('ChannelLimiterMaxConcurrent', getNum('channel_limiter_setting.max_concurrent_requests', 0));
+    
+    // 渠道亲和性 enabled（从旧位置迁移到智能路由 Tab）
+    safeSetChecked('ChannelAffinityEnabled', getBool('channel_affinity_setting.enabled'));
+    
+    // 成本感知路由
+    safeSetChecked('CostRoutingEnabled', getBool('cost_routing_setting.enabled'));
+    safeSetValue('CostRoutingWeight', getNum('cost_routing_setting.cost_weight', 0.2));
+    document.getElementById('CostRoutingWeightVal').textContent = getNum('cost_routing_setting.cost_weight', 0.2);
+    
+    // 成功率动态权重
+    safeSetChecked('SuccessRateRoutingEnabled', getBool('success_rate_routing_setting.enabled'));
+    safeSetValue('SuccessRateWeightFactor', getNum('success_rate_routing_setting.weight_factor', 0.3));
+    document.getElementById('SuccessRateWeightFactorVal').textContent = getNum('success_rate_routing_setting.weight_factor', 0.3);
+    safeSetValue('SuccessRateWindowMinutes', getNum('success_rate_routing_setting.window_minutes', 5));
+    safeSetValue('SuccessRateMinSamples', getNum('success_rate_routing_setting.min_samples', 10));
     
     // Grok 设置
     safeSetChecked('GrokViolationDeductionEnabled', getBool('grok.violation_deduction_enabled'));
@@ -428,8 +481,8 @@ async function saveAllSettings() {
     payload['general_setting.ping_interval_enabled'] = safeGetChecked('PingIntervalEnabled') ? 'true' : 'false';
     payload['general_setting.ping_interval_seconds'] = safeGetValue('PingIntervalSeconds');
     
-    // 渠道亲和性
-    payload['channel_affinity_setting.enabled'] = safeGetChecked('ChannelAffinityEnabled') ? 'true' : 'false';
+    // 渠道亲和性（enabled 使用原生 boolean 与智能路由 Tab 一致）
+    payload['channel_affinity_setting.enabled'] = safeGetChecked('ChannelAffinityEnabled');
     payload['channel_affinity_setting.switch_on_success'] = safeGetChecked('ChannelAffinitySwitchOnSuccess') ? 'true' : 'false';
     payload['channel_affinity_setting.keep_on_channel_disabled'] = safeGetChecked('ChannelAffinityKeepOnDisabled') ? 'true' : 'false';
     payload['channel_affinity_setting.max_entries'] = safeGetValue('ChannelAffinityMaxEntries');
@@ -536,6 +589,43 @@ async function saveAllSettings() {
     // 维护模式
     payload.MaintenanceMode = safeGetChecked('MaintenanceMode') ? 'true' : 'false';
     payload.MaintenanceMessage = safeGetValue('MaintenanceMessage');
+
+    // ========== Tab 智能路由配置 ==========
+    // 延迟感知路由（使用原生 JS 类型）
+    payload['latency_routing_setting.enabled'] = safeGetChecked('LatencyRoutingEnabled');
+    payload['latency_routing_setting.weight_factor'] = Number(safeGetValue('LatencyRoutingWeightFactor'));
+    
+    // 滑动窗口熔断（带通用校验）
+    payload['circuit_breaker_setting.enabled'] = safeGetChecked('CircuitBreakerEnabled');
+    const windowSeconds = Number(safeGetValue('CircuitBreakerWindowSeconds'));
+    const bucketSeconds = Number(safeGetValue('CircuitBreakerBucketSeconds'));
+    const halfOpenMax = Number(safeGetValue('CircuitBreakerHalfOpenMaxRequests'));
+    const halfOpenSuccess = Number(safeGetValue('CircuitBreakerHalfOpenSuccessThreshold'));
+    
+    payload['circuit_breaker_setting.window_seconds'] = validateAndCorrect('统计窗口', windowSeconds, v => v > 0, 60);
+    payload['circuit_breaker_setting.bucket_seconds'] = validateAndCorrect('时间桶粒度', bucketSeconds, v => v > 0 && v <= windowSeconds, Math.min(10, windowSeconds));
+    payload['circuit_breaker_setting.error_threshold'] = Number(safeGetValue('CircuitBreakerErrorThreshold'));
+    payload['circuit_breaker_setting.min_request_count'] = validateAndCorrect('最小请求数', Number(safeGetValue('CircuitBreakerMinRequestCount')), v => v > 0, 10);
+    payload['circuit_breaker_setting.open_timeout_seconds'] = validateAndCorrect('熔断持续时间', Number(safeGetValue('CircuitBreakerOpenTimeoutSeconds')), v => v > 0, 30);
+    payload['circuit_breaker_setting.half_open_max_requests'] = validateAndCorrect('半开最大请求数', halfOpenMax, v => v > 0, 3);
+    payload['circuit_breaker_setting.half_open_success_threshold'] = validateAndCorrect('半开成功阈值', halfOpenSuccess, v => v > 0 && v <= halfOpenMax, Math.min(2, halfOpenMax));
+    
+    // 渠道并发限流
+    payload['channel_limiter_setting.enabled'] = safeGetChecked('ChannelLimiterEnabled');
+    payload['channel_limiter_setting.max_concurrent_requests'] = Number(safeGetValue('ChannelLimiterMaxConcurrent'));
+    
+    // 成本感知路由
+    payload['cost_routing_setting.enabled'] = safeGetChecked('CostRoutingEnabled');
+    payload['cost_routing_setting.cost_weight'] = Number(safeGetValue('CostRoutingWeight'));
+    
+    // 成功率动态权重
+    payload['success_rate_routing_setting.enabled'] = safeGetChecked('SuccessRateRoutingEnabled');
+    payload['success_rate_routing_setting.weight_factor'] = Number(safeGetValue('SuccessRateWeightFactor'));
+    payload['success_rate_routing_setting.window_minutes'] = validateAndCorrect('成功率统计窗口', Number(safeGetValue('SuccessRateWindowMinutes')), v => v >= 1, 5);
+    payload['success_rate_routing_setting.min_samples'] = validateAndCorrect('成功率最小样本数', Number(safeGetValue('SuccessRateMinSamples')), v => v >= 1, 10);
+    
+    // 刷新所有校验警告
+    flushValidationWarnings();
 
     // 批量更新
     const res = await API.updateOptions(payload);
@@ -895,4 +985,53 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTabs();
     loadSettings();
     loadSystemInfo();
+    
+    // ========== 智能路由配置 - 实时校验 ==========
+    // bucket_seconds 校验：必须 > 0 且 <= window_seconds
+    const bucketInput = document.getElementById('CircuitBreakerBucketSeconds');
+    const windowInput = document.getElementById('CircuitBreakerWindowSeconds');
+    const bucketHint = document.getElementById('CircuitBreakerBucketSecondsHint');
+    
+    if (bucketInput && windowInput) {
+        bucketInput.addEventListener('blur', function() {
+            const bucket = Number(this.value);
+            const windowSec = Number(windowInput.value);
+            if (bucket <= 0 || bucket > windowSec) {
+                this.classList.add('input-error');
+                if (bucketHint) bucketHint.style.display = 'block';
+            } else {
+                this.classList.remove('input-error');
+                if (bucketHint) bucketHint.style.display = 'none';
+            }
+        });
+        
+        // window_seconds 变化时也触发 bucket 校验
+        windowInput.addEventListener('input', function() {
+            bucketInput.dispatchEvent(new Event('blur'));
+        });
+    }
+    
+    // half_open_success_threshold 校验：必须 > 0 且 <= half_open_max_requests
+    const successInput = document.getElementById('CircuitBreakerHalfOpenSuccessThreshold');
+    const maxInput = document.getElementById('CircuitBreakerHalfOpenMaxRequests');
+    const successHint = document.getElementById('CircuitBreakerHalfOpenSuccessHint');
+    
+    if (successInput && maxInput) {
+        successInput.addEventListener('blur', function() {
+            const success = Number(this.value);
+            const max = Number(maxInput.value);
+            if (success <= 0 || success > max) {
+                this.classList.add('input-error');
+                if (successHint) successHint.style.display = 'block';
+            } else {
+                this.classList.remove('input-error');
+                if (successHint) successHint.style.display = 'none';
+            }
+        });
+        
+        // max_requests 变化时也触发 success 校验
+        maxInput.addEventListener('input', function() {
+            successInput.dispatchEvent(new Event('blur'));
+        });
+    }
 });

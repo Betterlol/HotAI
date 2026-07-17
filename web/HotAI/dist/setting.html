@@ -67,6 +67,40 @@
             }
         }
         
+        /* Slider 组件样式 */
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .slider-row input[type="range"] {
+            flex: 1;
+            accent-color: var(--c-primary);
+            cursor: pointer;
+            height: 4px;
+        }
+        .slider-value {
+            min-width: 36px;
+            text-align: right;
+            font-weight: 600;
+            color: var(--c-primary);
+            font-size: 14px;
+        }
+        /* 校验提示 */
+        .validation-hint {
+            font-size: 12px;
+            color: #DC2626;
+            margin-top: 4px;
+            display: none;
+        }
+        .input-error {
+            border-color: #DC2626 !important;
+        }
+        .input-error + .validation-hint,
+        .input-error ~ .validation-hint {
+            display: block;
+        }
+
         /* Pricing 子Tab样式 */
         .pricing-subtab {
             padding: 12px 20px;
@@ -175,6 +209,7 @@
             <button class="tab-item" data-tab="pricing">分组与模型定价</button>
             <button class="tab-item" data-tab="ratelimit">速率限制</button>
             <button class="tab-item" data-tab="models">模型相关设置</button>
+            <button class="tab-item" data-tab="smartrouting" data-i18n="setting.smart_routing">智能路由配置</button>
             <button class="tab-item" data-tab="performance">性能设置</button>
             <button class="tab-item" data-tab="system">系统设置</button>
         </div>
@@ -613,11 +648,10 @@
                         </div>
                     </div>
 
-                    <!-- 渠道亲和性 -->
+                    <!-- 渠道亲和性（enabled 已迁移到「智能路由配置」Tab） -->
                     <div class="setting-card">
-                        <div class="setting-card-header"><h3>渠道亲和性</h3><p>保持用户请求在同一渠道</p></div>
+                        <div class="setting-card-header"><h3>渠道亲和性高级选项</h3><p>启用开关请前往「智能路由配置」Tab 设置</p></div>
                         <div class="setting-card-body">
-                            <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="ChannelAffinityEnabled"><span class="switch-track"></span><span class="switch-label">启用渠道亲和性</span></label></div>
                             <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="ChannelAffinitySwitchOnSuccess"><span class="switch-track"></span><span class="switch-label">成功时切换渠道</span></label></div>
                             <div class="form-group"><label class="form-switch"><input type="checkbox" class="switch-input" id="ChannelAffinityKeepOnDisabled"><span class="switch-track"></span><span class="switch-label">渠道禁用后保持亲和性</span></label></div>
                             <div class="form-group"><label class="form-label">最大缓存条目数</label><input type="number" class="form-input" id="ChannelAffinityMaxEntries" value="10000" min="100"></div>
@@ -648,6 +682,193 @@
                             <div class="form-group"><label class="form-label">io.net API Key</label><input type="password" class="form-input" id="IoNetApiKey" placeholder="io.net API 密钥"></div>
                             <div class="form-group" style="margin-top:16px;">
                                 <button class="btn btn-secondary" onclick="testIoNetConnection()">测试连接</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 智能路由配置 -->
+            <div class="tab-content" id="tab-smartrouting">
+                <div class="settings-grid">
+                    <!-- 延迟感知路由 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <h3 data-i18n="setting.smartrouting.latency">延迟感知路由</h3>
+                            <p data-i18n="setting.smartrouting.latency.desc">根据渠道实时响应延迟动态调整路由权重</p>
+                        </div>
+                        <div class="setting-card-body">
+                            <div class="form-group">
+                                <label class="form-switch">
+                                    <input type="checkbox" class="switch-input" id="LatencyRoutingEnabled">
+                                    <span class="switch-track"></span>
+                                    <span class="switch-label" data-i18n="setting.smartrouting.latency.enabled">启用延迟感知路由</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.latency.weight_factor">延迟权重系数</label>
+                                <div class="slider-row">
+                                    <input type="range" min="0" max="1" step="0.1" value="0.3" id="LatencyRoutingWeightFactor" oninput="document.getElementById('LatencyRoutingWeightFactorVal').textContent=this.value">
+                                    <span class="slider-value" id="LatencyRoutingWeightFactorVal">0.3</span>
+                                </div>
+                                <div class="hint-text" data-i18n="setting.smartrouting.latency.weight_factor.hint">延迟对路由权重的影响程度，0 表示不影响，1 表示最强影响</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 滑动窗口熔断 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <h3 data-i18n="setting.smartrouting.circuit_breaker">滑动窗口熔断</h3>
+                            <p data-i18n="setting.smartrouting.circuit_breaker.desc">基于时间窗口的错误率统计，自动熔断异常渠道</p>
+                        </div>
+                        <div class="setting-card-body">
+                            <div class="form-group">
+                                <label class="form-switch">
+                                    <input type="checkbox" class="switch-input" id="CircuitBreakerEnabled">
+                                    <span class="switch-track"></span>
+                                    <span class="switch-label" data-i18n="setting.smartrouting.circuit_breaker.enabled">启用滑动窗口熔断</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.circuit_breaker.window_seconds">统计窗口（秒）</label>
+                                <input type="number" class="form-input" id="CircuitBreakerWindowSeconds" value="60" min="1">
+                                <div class="hint-text" data-i18n="setting.smartrouting.circuit_breaker.window_seconds.hint">错误率统计的时间窗口，必须大于 0，建议 30~300</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.circuit_breaker.bucket_seconds">时间桶粒度（秒）</label>
+                                <input type="number" class="form-input" id="CircuitBreakerBucketSeconds" value="10" min="1">
+                                <div class="hint-text" data-i18n="setting.smartrouting.circuit_breaker.bucket_seconds.hint">必须大于 0 且不超过统计窗口时长</div>
+                                <div class="validation-hint" id="CircuitBreakerBucketSecondsHint">时间桶粒度必须大于 0 且不超过统计窗口时长</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.circuit_breaker.error_threshold">错误率阈值</label>
+                                <div class="slider-row">
+                                    <input type="range" min="0" max="1" step="0.1" value="0.5" id="CircuitBreakerErrorThreshold" oninput="document.getElementById('CircuitBreakerErrorThresholdVal').textContent=this.value">
+                                    <span class="slider-value" id="CircuitBreakerErrorThresholdVal">0.5</span>
+                                </div>
+                                <div class="hint-text" data-i18n="setting.smartrouting.circuit_breaker.error_threshold.hint">当窗口内错误率超过此值时触发熔断，取值 0~1</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.circuit_breaker.min_request_count">最小请求数</label>
+                                <input type="number" class="form-input" id="CircuitBreakerMinRequestCount" value="10" min="1">
+                                <div class="hint-text" data-i18n="setting.smartrouting.circuit_breaker.min_request_count.hint">窗口内至少达到此请求数才触发熔断评估，必须大于 0</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.circuit_breaker.open_timeout">熔断持续时间（秒）</label>
+                                <input type="number" class="form-input" id="CircuitBreakerOpenTimeoutSeconds" value="30" min="1">
+                                <div class="hint-text" data-i18n="setting.smartrouting.circuit_breaker.open_timeout.hint">熔断开启后多久进入半开状态，必须大于 0</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.circuit_breaker.half_open_max">半开最大请求数</label>
+                                <input type="number" class="form-input" id="CircuitBreakerHalfOpenMaxRequests" value="3" min="1">
+                                <div class="hint-text" data-i18n="setting.smartrouting.circuit_breaker.half_open_max.hint">半开状态下允许通过的最大探测请求数，必须大于 0</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.circuit_breaker.half_open_success">半开成功阈值</label>
+                                <input type="number" class="form-input" id="CircuitBreakerHalfOpenSuccessThreshold" value="2" min="1">
+                                <div class="hint-text" data-i18n="setting.smartrouting.circuit_breaker.half_open_success.hint">必须大于 0 且不超过半开最大请求数，达到后恢复渠道</div>
+                                <div class="validation-hint" id="CircuitBreakerHalfOpenSuccessHint">半开成功阈值必须大于 0 且不超过半开最大请求数</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 渠道并发限流 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <h3 data-i18n="setting.smartrouting.limiter">渠道并发限流</h3>
+                            <p data-i18n="setting.smartrouting.limiter.desc">限制单个渠道的最大并发请求数量</p>
+                        </div>
+                        <div class="setting-card-body">
+                            <div class="form-group">
+                                <label class="form-switch">
+                                    <input type="checkbox" class="switch-input" id="ChannelLimiterEnabled">
+                                    <span class="switch-track"></span>
+                                    <span class="switch-label" data-i18n="setting.smartrouting.limiter.enabled">启用渠道并发限流</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.limiter.max_concurrent">最大并发数</label>
+                                <input type="number" class="form-input" id="ChannelLimiterMaxConcurrent" value="0" min="0">
+                                <div class="hint-text" data-i18n="setting.smartrouting.limiter.max_concurrent.hint">0 表示不限制，填大于 0 的整数即生效</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 渠道亲和性（启用开关，从模型 Tab 迁移） -->
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <h3 data-i18n="setting.smartrouting.affinity">渠道亲和性</h3>
+                            <p data-i18n="setting.smartrouting.affinity.desc">尽量保持同一用户/会话的请求路由到相同渠道</p>
+                        </div>
+                        <div class="setting-card-body">
+                            <div class="form-group">
+                                <label class="form-switch">
+                                    <input type="checkbox" class="switch-input" id="ChannelAffinityEnabled">
+                                    <span class="switch-track"></span>
+                                    <span class="switch-label" data-i18n="setting.smartrouting.affinity.enabled">启用渠道亲和性</span>
+                                </label>
+                            </div>
+                            <div class="hint-text" style="margin-top:8px;">更多亲和性高级选项（TTL、规则等）请前往「模型相关设置」Tab 配置</div>
+                        </div>
+                    </div>
+
+                    <!-- 成本感知路由 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <h3 data-i18n="setting.smartrouting.cost">成本感知路由</h3>
+                            <p data-i18n="setting.smartrouting.cost.desc">优先选择成本更低的渠道，在质量与成本之间取得平衡</p>
+                        </div>
+                        <div class="setting-card-body">
+                            <div class="form-group">
+                                <label class="form-switch">
+                                    <input type="checkbox" class="switch-input" id="CostRoutingEnabled">
+                                    <span class="switch-track"></span>
+                                    <span class="switch-label" data-i18n="setting.smartrouting.cost.enabled">启用成本感知路由</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.cost.weight">成本权重系数</label>
+                                <div class="slider-row">
+                                    <input type="range" min="0" max="1" step="0.1" value="0.2" id="CostRoutingWeight" oninput="document.getElementById('CostRoutingWeightVal').textContent=this.value">
+                                    <span class="slider-value" id="CostRoutingWeightVal">0.2</span>
+                                </div>
+                                <div class="hint-text" data-i18n="setting.smartrouting.cost.weight.hint">成本对路由权重的影响程度，0 表示不影响，1 表示最强影响</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 成功率动态权重 -->
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <h3 data-i18n="setting.smartrouting.success_rate">成功率动态权重</h3>
+                            <p data-i18n="setting.smartrouting.success_rate.desc">根据历史成功率动态调整渠道的路由权重</p>
+                        </div>
+                        <div class="setting-card-body">
+                            <div class="form-group">
+                                <label class="form-switch">
+                                    <input type="checkbox" class="switch-input" id="SuccessRateRoutingEnabled">
+                                    <span class="switch-track"></span>
+                                    <span class="switch-label" data-i18n="setting.smartrouting.success_rate.enabled">启用成功率动态权重</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.success_rate.weight_factor">成功率权重系数</label>
+                                <div class="slider-row">
+                                    <input type="range" min="0" max="1" step="0.1" value="0.3" id="SuccessRateWeightFactor" oninput="document.getElementById('SuccessRateWeightFactorVal').textContent=this.value">
+                                    <span class="slider-value" id="SuccessRateWeightFactorVal">0.3</span>
+                                </div>
+                                <div class="hint-text" data-i18n="setting.smartrouting.success_rate.weight_factor.hint">成功率对路由权重的影响程度，0 表示不影响，1 表示最强影响</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.success_rate.window_minutes">统计窗口（分钟）</label>
+                                <input type="number" class="form-input" id="SuccessRateWindowMinutes" value="5" min="1">
+                                <div class="hint-text" data-i18n="setting.smartrouting.success_rate.window_minutes.hint">计算成功率的历史时间窗口，至少 1 分钟</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" data-i18n="setting.smartrouting.success_rate.min_samples">最小样本数</label>
+                                <input type="number" class="form-input" id="SuccessRateMinSamples" value="10" min="1">
+                                <div class="hint-text" data-i18n="setting.smartrouting.success_rate.min_samples.hint">窗口内至少达到此样本数才参与权重计算，至少为 1</div>
                             </div>
                         </div>
                     </div>
