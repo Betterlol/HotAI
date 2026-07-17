@@ -3,12 +3,12 @@
 若您是第一次接入 HotAI API，可以先阅读前四小节，了解从准备 API Key 到完成首次调用的基本流程，用时约 3 分钟。
 后面小节的语言示例、流式输出和错误码说明，可在实际开发时按需参考。
 
-## 一、操作速览
+## 一、操作步骤速览
 
 | 步骤 | 你要做什么 | 怎么做 |
 | ---- | ---- | ---- |
 | 1 | 准备调用信息 | 拿到 `Base URL`、`API Key`、`模型 ID` |
-| 2 | 验证 Key 是否可用 | 请求 `GET /v1/models` |
+| 2 | 验证 API Key 是否可用 | 请求 `GET /v1/models` |
 | 3 | 发起对话请求 | 请求 `POST /v1/chat/completions` |
 | 4 | 设置鉴权头 | `Authorization: Bearer sk-xxxxxxxx` |
 | 5 | 读取模型回复 | 看 `choices[0].message.content` |
@@ -25,7 +25,7 @@ curl https://api.example.com/v1/chat/completions \
     "messages": [
       {
         "role": "user",
-        "content": "请用一句话介绍 HotAI。"
+        "content": "请用一句话介绍一下 HotAI。"
       }
     ]
   }'
