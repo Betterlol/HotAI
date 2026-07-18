@@ -6,13 +6,6 @@
     <link rel="icon" href="picture/favicon.ico" />
     <link rel="icon" type="image/png" href="picture/logo.png" />
     <title>控制台 - 渠道管理</title>
-    <style>
-        /* 修复页脚溢出：让白色弹窗容器自动向下延伸，包裹住 footer */
-        .modal {
-            max-height: none !important;
-            overflow: visible !important;
-        }
-    </style>
     <link rel="stylesheet" href="css/head.css">
     <link rel="stylesheet" href="css/console-shared.css">
 </head>
@@ -61,7 +54,7 @@
             <button class="modal-close" onclick="closeChannelModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         </div>
         <!-- 单列滚动表单区（不再有左侧导航） -->
-        <div class="modal-body" style="padding:20px 24px;overflow-y:auto;flex:1;" id="channelFormArea">
+        <div class="modal-body" style="padding:20px 24px;max-height:70vh;overflow-y:auto;" id="channelFormArea">
             <div>
                 <input type="hidden" id="chId">
                 <!-- ══ 基础信息 ══ -->
@@ -445,7 +438,6 @@
                     </div>
                     </div>
                 </div>
-            </div>
         </div>
         <div class="modal-footer" style="padding:16px 24px;gap:12px;flex-shrink:0;">
             <button class="btn btn-secondary" onclick="closeChannelModal()">取消</button>
