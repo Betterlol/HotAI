@@ -292,19 +292,20 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		}
 	}
 
-	// When multiple channels were attempted and all failed, unify the response
+	// When one or more channels were attempted and all failed, unify the response
 	// to 503 so callers see a stable "no available channel" error instead of
-	// the last upstream status code. Upstream details are still available via
-	// /api/log/.
-	if newAPIError != nil && retryParam.GetRetry() > 0 {
+	// the last upstream status code. This fires regardless of RetryTimes
+	// (even when RetryTimes=0 and only a single attempt was made) because the
+	// relevant signal is whether any channel was actually tried, not how many
+	// retries happened. Upstream details are still available via /api/log/.
+	useChannel := c.GetStringSlice("use_channel")
+	if newAPIError != nil && len(useChannel) > 0 {
 		newAPIError = types.NewErrorWithStatusCode(
 			errors.New("no available channel"),
 			types.ErrorCodeModelNotFound,
 			http.StatusServiceUnavailable,
 		)
 	}
-
-	useChannel := c.GetStringSlice("use_channel")
 	if len(useChannel) > 1 {
 		retryLogStr := fmt.Sprintf("重试：%s", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(useChannel)), "->"), "[]"))
 		logger.LogInfo(c, retryLogStr)
@@ -685,6 +686,17 @@ func RelayTask(c *gin.Context) {
 	if len(useChannel) > 1 {
 		retryLogStr := fmt.Sprintf("重试：%s", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(useChannel)), "->"), "[]"))
 		logger.LogInfo(c, retryLogStr)
+	}
+
+	// When one or more channels were attempted and all failed, unify the response
+	// to 503 so callers see a stable "no available channel" error instead of
+	// the last upstream status code.
+	if taskErr != nil && len(useChannel) > 0 {
+		taskErr = service.TaskErrorWrapperLocal(
+			errors.New("no available channel"),
+			"no_available_channel",
+			http.StatusServiceUnavailable,
+		)
 	}
 
 	// ── 成功：结算 + 日志 + 插入任务 ──
