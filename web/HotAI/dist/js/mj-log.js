@@ -242,13 +242,14 @@ async function loadMjLogs() {
 
     window._mjData = items;
 
-    tbody.innerHTML = items.map((item, idx) => {
+    tbody.innerHTML = items.map((item) => {
         const status      = item.status || '';
         const badgeClass  = mjStatusBadge[status] || 'badge-gray';
         const statusLabel = mjStatusLabel[status] || status || '-';
         const actionLabel = mjActionLabel[item.action] || item.action || '-';
         const codeClass   = mjCodeBadge[item.code] ?? 'badge-gray';
         const codeLabel   = mjCodeLabel[item.code] ?? (item.code != null ? item.code : '-');
+        const itemKey = escHtml(item.mj_id || String(item.id || ''));
 
         // 进度条
         const pct = item.progress ? parseInt(item.progress.replace('%', '')) || 0 : 0;
@@ -267,7 +268,7 @@ async function loadMjLogs() {
         const duration = calcDuration(item.submit_time, item.finish_time);
 
         return `
-        <tr style="cursor:pointer;" onclick="showMjDetail(${idx})">
+        <tr style="cursor:pointer;" onclick="showMjDetail('${itemKey}')">
             <td data-col="time" class="td-mono">${formatTime(item.submit_time)}</td>
             <td data-col="user">${escHtml(item.username || '-')}</td>
             <td data-col="task_id" class="td-mono" title="${escHtml(item.mj_id || '')}">${escHtml(item.mj_id || '-')}</td>
@@ -319,8 +320,8 @@ function resetMjFilters() {
 }
 
 // ========== 详情弹窗 ==========
-window.showMjDetail = function(idx) {
-    const item = (window._mjData || [])[idx];
+window.showMjDetail = function(itemKey) {
+    const item = (window._mjData || []).find(i => i.mj_id === itemKey || String(i.id) === itemKey);
     if (!item) return;
 
     const modal   = document.getElementById('mjDetailModal');

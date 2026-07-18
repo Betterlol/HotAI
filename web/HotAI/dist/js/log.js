@@ -137,15 +137,16 @@ async function loadLogs() {
     // 存储日志数据供详情弹窗使用
     window._logData = logs;
 
-    tbody.innerHTML = logs.map((log, idx) => {
+    tbody.innerHTML = logs.map((log) => {
         const typeLabel = logTypes[log.type] || '其他';
         const typeBadge = logTypeBadge[log.type] || 'badge-gray';
         
         const channelDisplay = log.channel_name || (log.channel ? `#${log.channel}` : '-');
         const useTimeDisplay = formatUseTime(log.use_time);
+        const logKey = escHtml(log.request_id || String(log.id || ''));
         
         return `
-        <tr style="cursor:pointer;" onclick="showLogDetail(${idx})">
+        <tr style="cursor:pointer;" onclick="showLogDetail('${logKey}')">
             <td data-col="time" class="td-mono" title="${formatTime(log.created_at)}">${formatTime(log.created_at)}</td>
             <td data-col="channel" title="${escHtml(channelDisplay)}">${escHtml(channelDisplay)}</td>
             <td data-col="user" title="${escHtml(log.username || '-')}">${escHtml(log.username || '-')}</td>
@@ -160,7 +161,7 @@ async function loadLogs() {
             <td data-col="ip" class="td-mono" title="${escHtml(log.ip || '-')}">${escHtml(log.ip || '-')}</td>
             <td data-col="retry">-</td>
             <td data-col="detail">
-                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showLogDetail(${idx})">查看</button>
+                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showLogDetail('${logKey}')">查看</button>
             </td>
         </tr>`;
     }).join('');
@@ -237,8 +238,8 @@ function resetFilters() {
 }
 
 // ========== 日志详情弹窗 ==========
-window.showLogDetail = function(idx) {
-    const log = (window._logData || [])[idx];
+window.showLogDetail = function(logKey) {
+    const log = (window._logData || []).find(l => l.request_id === logKey || String(l.id) === logKey);
     if (!log) return;
 
     const modal = document.getElementById('logDetailModal');

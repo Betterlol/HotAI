@@ -123,6 +123,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             loadChannels();
         });
     }
+
+    // 自定义模型输入框回车快速添加
+    const customModelNameInput = document.getElementById('customModelName');
+    if (customModelNameInput) {
+        customModelNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCustomModel();
+            }
+        });
+    }
+    const customModelUpstreamInput = document.getElementById('customModelUpstream');
+    if (customModelUpstreamInput) {
+        customModelUpstreamInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCustomModel();
+            }
+        });
+    }
 });
 
 // ========== 数据加载 ==========
@@ -356,7 +376,11 @@ async function loadChannelToForm(id) {
         if (ch.model_mapping) {
             try {
                 const mapping = JSON.parse(ch.model_mapping);
-                ChannelState.modelMappingRows = Object.entries(mapping).map(([k,v]) => ({source:k, target:v}));
+                ChannelState.modelMappingRows = Object.entries(mapping).map(([k,v]) => ({
+                    _id: '_row_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                    source: k,
+                    target: v
+                }));
             } catch {}
         }
         renderModelMappingEditor();
@@ -921,6 +945,51 @@ async function updateAllChannelsBalance() {
     }
 }
 
+// ========== 自定义模型添加 ==========
+function addCustomModel() {
+    const nameInput = document.getElementById('customModelName');
+    const upstreamInput = document.getElementById('customModelUpstream');
+    const customName = nameInput.value.trim();
+    const upstreamName = upstreamInput.value.trim() || customName;
+
+    if (!customName) {
+        showToast('请输入自定义模型名称', 'warning');
+        return;
+    }
+    if (customName.length > 255) {
+        showToast('模型名称不能超过 255 个字符', 'warning');
+        return;
+    }
+    if (ChannelState.modelTagsState.includes(customName)) {
+        showToast('该模型名已存在', 'warning');
+        return;
+    }
+
+    // 添加到模型列表
+    ChannelState.modelTagsState.push(customName);
+    renderModelTags();
+
+    // 如果上游名与自定义名不同，自动建立模型映射
+    if (customName !== upstreamName) {
+        const existingMapping = ChannelState.modelMappingRows.find(r => r.source === customName);
+        if (!existingMapping) {
+            ChannelState.modelMappingRows.push({
+                _id: '_row_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                source: customName,
+                target: upstreamName
+            });
+            renderModelMappingEditor();
+        }
+    }
+
+    // 清空输入框并聚焦
+    nameInput.value = '';
+    upstreamInput.value = '';
+    nameInput.focus();
+
+    showToast(`已添加自定义模型: ${customName}` + (customName !== upstreamName ? ` → ${upstreamName}` : ''), 'success');
+}
+
 // ========== 模型多选下拉组件 ==========
 // 所有可用模型列表（从 AIProviders 加载，含 logo 信息）
 let _allModelsList = []; // [{name, vendorName, vendorIcon}, ...]
@@ -1189,27 +1258,33 @@ function renderGroupTags() {
 
 // ========== 模型映射编辑器 ==========
 function addModelMappingRow(source='', target='') {
-    ChannelState.modelMappingRows.push({source, target});
+    const rowId = '_row_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    ChannelState.modelMappingRows.push({_id: rowId, source, target});
     renderModelMappingEditor();
 }
 
-function removeModelMappingRow(idx) {
-    ChannelState.modelMappingRows.splice(idx, 1);
+function removeModelMappingRow(rowId) {
+    ChannelState.modelMappingRows = ChannelState.modelMappingRows.filter(row => row._id !== rowId);
     renderModelMappingEditor();
 }
 
 function renderModelMappingEditor() {
     const editor = document.getElementById('modelMappingEditor');
-    editor.innerHTML = ChannelState.modelMappingRows.map((row, i) => `
+    editor.innerHTML = ChannelState.modelMappingRows.map((row) => `
         <div class="kv-row">
-            <input type="text" placeholder="客户端模型名" value="${escapeHtml(row.source)}" oninput="ChannelState.modelMappingRows[${i}].source=this.value">
+            <input type="text" placeholder="客户端模型名" value="${escapeHtml(row.source)}" data-row-id="${row._id}" oninput="updateModelMappingRow('${row._id}', 'source', this.value)">
             <span class="kv-sep">→</span>
-            <input type="text" placeholder="上游模型名" value="${escapeHtml(row.target)}" oninput="ChannelState.modelMappingRows[${i}].target=this.value">
-            <button class="kv-del-btn" onclick="removeModelMappingRow(${i})">
+            <input type="text" placeholder="上游模型名" value="${escapeHtml(row.target)}" data-row-id="${row._id}" oninput="updateModelMappingRow('${row._id}', 'target', this.value)">
+            <button class="kv-del-btn" onclick="removeModelMappingRow('${row._id}')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </button>
         </div>
     `).join('');
+}
+
+function updateModelMappingRow(rowId, field, value) {
+    const row = ChannelState.modelMappingRows.find(r => r._id === rowId);
+    if (row) row[field] = value;
 }
 
 // ========== 预填分组按钮 ==========

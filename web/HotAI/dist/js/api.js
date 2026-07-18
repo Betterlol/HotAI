@@ -29,6 +29,31 @@ async function apiRequest(url, options = {}) {
             }
         });
 
+        // 处理 401 未授权响应（参照 web/default 的 axios 拦截器）
+        if (response.status === 401) {
+            // 清除本地认证状态
+            localStorage.removeItem('user');
+            // 如果不是明确跳过错误处理的请求，则重定向到登录页
+            if (!options.skipErrorHandler) {
+                const currentPath = window.location.pathname + window.location.search;
+                window.location.href = `login.html?redirect=${encodeURIComponent(currentPath)}`;
+            }
+            // 标记会话已失效，方便循环调用方提前退出
+            return { success: false, message: '会话已过期，请重新登录', _authExpired: true };
+        }
+
+        // 检查响应的 Content-Type，防止非 JSON 响应导致解析错误
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            // 非 JSON 响应，尝试读取文本内容
+            const text = await response.text();
+            console.error('Non-JSON response:', text);
+            return { 
+                success: false, 
+                message: response.ok ? '服务器返回了非预期的响应格式' : `请求失败 (${response.status})` 
+            };
+        }
+
         const data = await response.json();
 
         if (!response.ok) {
@@ -38,6 +63,10 @@ async function apiRequest(url, options = {}) {
         return data;
     } catch (error) {
         console.error('API Request Error:', error);
+        // 区分不同类型的错误
+        if (error.name === 'SyntaxError' && error.message.includes('JSON')) {
+            return { success: false, message: '服务器响应格式错误，请稍后重试' };
+        }
         return { success: false, message: error.message || '网络错误' };
     }
 }
@@ -337,19 +366,51 @@ const API = {
 
     // batch update options — preserves native JS types:
     // boolean stays boolean, number stays number, string stays string
+    // 改进：遇到会话失效立即退出；其余错误收集后汇总（参照 web/default 的独立保存模式）
     updateOptions: async (payload) => {
         const entries = Object.entries(payload);
+        const errors = [];
+        let successCount = 0;
+        
         for (const [key, value] of entries) {
-            // Keep boolean and number as-is so the backend receives correct types.
-            // Legacy callers may pass string 'true'/'false'/'1'/etc. — leave those as strings too.
-            const bodyValue = (typeof value === 'boolean' || typeof value === 'number') ? value : String(value);
-            const r = await apiRequest('/option/', {
-                method: 'PUT',
-                body: JSON.stringify({ key, value: bodyValue })
-            });
-            if (!r.success) return r;
+            try {
+                // Keep boolean and number as-is so the backend receives correct types.
+                // Legacy callers may pass string 'true'/'false'/'1'/etc. — leave those as strings too.
+                const bodyValue = (typeof value === 'boolean' || typeof value === 'number') ? value : String(value);
+                const r = await apiRequest('/option/', {
+                    method: 'PUT',
+                    body: JSON.stringify({ key, value: bodyValue })
+                });
+                
+                if (r.success) {
+                    successCount++;
+                } else if (r._authExpired) {
+                    // 会话已失效，apiRequest 已处理跳转，立即退出避免大量无效请求
+                    return r;
+                } else {
+                    errors.push({ key, message: r.message || '保存失败' });
+                }
+            } catch (error) {
+                errors.push({ key, message: error.message || '网络错误' });
+            }
         }
-        return { success: true };
+        
+        if (errors.length === 0) {
+            return { success: true };
+        } else if (successCount > 0) {
+            // 部分成功
+            const failedKeys = errors.map(e => e.key).join(', ');
+            return { 
+                success: false, 
+                message: `已保存 ${successCount} 项设置，但以下 ${errors.length} 项失败：${failedKeys}` 
+            };
+        } else {
+            // 全部失败
+            return { 
+                success: false, 
+                message: errors[0]?.message || '保存失败' 
+            };
+        }
     },
 
     // ========== 充值相关 ==========
