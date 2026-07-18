@@ -633,7 +633,7 @@ async function saveAllSettings() {
     flushValidationWarnings();
     const res = await API.updateOptions(payload);
     if (res.success) {
-        showToast('所有设置已保存', 'success');
+        showToast(res.message || '所有设置已保存', 'success');
         await loadSettings();
     } else {
         showToast(res.message || '保存失败', 'error');

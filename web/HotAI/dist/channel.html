@@ -6,6 +6,13 @@
     <link rel="icon" href="picture/favicon.ico" />
     <link rel="icon" type="image/png" href="picture/logo.png" />
     <title>控制台 - 渠道管理</title>
+    <style>
+        /* 修复页脚溢出：让白色弹窗容器自动向下延伸，包裹住 footer */
+        .modal {
+            max-height: none !important;
+            overflow: visible !important;
+        }
+    </style>
     <link rel="stylesheet" href="css/head.css">
     <link rel="stylesheet" href="css/console-shared.css">
 </head>
@@ -43,8 +50,8 @@
      渠道 创建/编辑 大模态框
      ==================================================== -->
 <div class="modal-overlay hidden" id="channelModal">
-    <div class="modal modal-xl" style="max-width:780px;width:92vw;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;">
-        <div class="modal-header" style="flex-shrink:0;">
+    <div class="modal modal-xl" style="max-width:780px;width:92vw;">
+        <div class="modal-header">
             <div class="modal-title" id="channelModalTitle" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
                 <span id="chModalTypeIcon" style="font-size:20px;flex-shrink:0;"></span>
                 <span id="chModalTitleText" style="flex-shrink:0;">创建渠道</span>
@@ -54,7 +61,7 @@
             <button class="modal-close" onclick="closeChannelModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         </div>
         <!-- 单列滚动表单区（不再有左侧导航） -->
-        <div class="modal-body" style="padding:20px 24px;flex:1;overflow-y:auto;" id="channelFormArea">
+        <div class="modal-body" style="padding:20px 24px;overflow-y:auto;flex:1;" id="channelFormArea">
             <div>
                 <input type="hidden" id="chId">
                 <!-- ══ 基础信息 ══ -->

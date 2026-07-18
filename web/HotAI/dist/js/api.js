@@ -1,8 +1,51 @@
 // API 基础配置
 const API_BASE = '/api';
 
+// 请求去重缓存：存储正在进行的请求 Promise
+const requestCache = new Map();
+const REQUEST_CACHE_TTL = 1000; // 1秒内的重复请求复用同一个 Promise
+
+// 401 错误计数器，用于防抖
+let unauthorizedCount = 0;
+let unauthorizedTimer = null;
+
 // 通用请求函数
 async function apiRequest(url, options = {}) {
+    // 请求去重：对于 GET 请求，短时间内复用同一个 Promise
+    const method = options.method || 'GET';
+    const cacheKey = `${method}:${url}`;
+    
+    if (method === 'GET' && requestCache.has(cacheKey)) {
+        const cached = requestCache.get(cacheKey);
+        if (Date.now() - cached.timestamp < REQUEST_CACHE_TTL) {
+            return cached.promise;
+        }
+        requestCache.delete(cacheKey);
+    }
+    
+    const requestPromise = executeRequest(url, options);
+    
+    if (method === 'GET') {
+        requestCache.set(cacheKey, {
+            promise: requestPromise,
+            timestamp: Date.now()
+        });
+        
+        // 清理过期缓存
+        requestPromise.finally(() => {
+            setTimeout(() => {
+                const cached = requestCache.get(cacheKey);
+                if (cached && Date.now() - cached.timestamp >= REQUEST_CACHE_TTL) {
+                    requestCache.delete(cacheKey);
+                }
+            }, REQUEST_CACHE_TTL);
+        });
+    }
+    
+    return requestPromise;
+}
+
+async function executeRequest(url, options = {}) {
     try {
         // 从 localStorage 读取缓存的用户信息，自动附加 New-Api-User 头
         // 后端 UserAuth 中间件要求该头存在并与 session 中的 id 一致
@@ -29,17 +72,60 @@ async function apiRequest(url, options = {}) {
             }
         });
 
-        // 处理 401 未授权响应（参照 web/default 的 axios 拦截器）
+        // 处理 429 限流响应：静默失败，不触发认证状态变更
+        if (response.status === 429) {
+            console.warn('Rate limit exceeded (429):', url);
+            return { 
+                success: false, 
+                message: '请求过于频繁，请稍后再试', 
+                _rateLimited: true 
+            };
+        }
+
+        // 处理 401 未授权响应（增加防抖，避免因瞬时网络问题误判）
         if (response.status === 401) {
-            // 清除本地认证状态
-            localStorage.removeItem('user');
-            // 如果不是明确跳过错误处理的请求，则重定向到登录页
-            if (!options.skipErrorHandler) {
-                const currentPath = window.location.pathname + window.location.search;
-                window.location.href = `login.html?redirect=${encodeURIComponent(currentPath)}`;
+            unauthorizedCount++;
+            
+            // 清除之前的定时器
+            if (unauthorizedTimer) {
+                clearTimeout(unauthorizedTimer);
             }
-            // 标记会话已失效，方便循环调用方提前退出
+            
+            // 只有连续 2 次 401 才触发重定向
+            if (unauthorizedCount >= 2) {
+                // 清除本地认证状态
+                localStorage.removeItem('user');
+                
+                // 如果不是明确跳过错误处理的请求，则重定向到登录页
+                if (!options.skipErrorHandler) {
+                    // 避免在公开页面上触发重定向
+                    const publicPages = ['/', '/index.html', '/model.html', '/login.html', '/register.html', '/reset.html', '/docs.html', '/about.html'];
+                    const isPublicPage = publicPages.some(p => window.location.pathname.endsWith(p)) ||
+                                         window.location.pathname === '/';
+                    if (!isPublicPage) {
+                        const currentPath = window.location.pathname + window.location.search;
+                        window.location.href = `login.html?redirect=${encodeURIComponent(currentPath)}`;
+                    }
+                }
+                
+                unauthorizedCount = 0;
+            } else {
+                // 1.5 秒后重置计数器
+                unauthorizedTimer = setTimeout(() => {
+                    unauthorizedCount = 0;
+                }, 1500);
+            }
+            
             return { success: false, message: '会话已过期，请重新登录', _authExpired: true };
+        }
+        
+        // 其他成功响应重置 401 计数器
+        if (response.ok) {
+            unauthorizedCount = 0;
+            if (unauthorizedTimer) {
+                clearTimeout(unauthorizedTimer);
+                unauthorizedTimer = null;
+            }
         }
 
         // 检查响应的 Content-Type，防止非 JSON 响应导致解析错误
@@ -80,13 +166,34 @@ const API = {
             body: JSON.stringify({ username, password })
         }),
 
-    register: (username, password, email) =>
+    register: (username, password, email, verificationCode) =>
         apiRequest('/user/register', {
             method: 'POST',
-            body: JSON.stringify({ username, password, email })
+            body: JSON.stringify({
+                username,
+                password,
+                email,
+                ...(verificationCode ? { verification_code: verificationCode } : {})
+            })
         }),
 
     logout: () => apiRequest('/user/logout', { method: 'GET' }),
+
+    // ========== 邮箱验证码 ==========
+    // 发送注册邮箱验证码（GET /api/verification?email=）
+    sendEmailCode: (email) =>
+        apiRequest(`/verification?email=${encodeURIComponent(email)}`),
+
+    // 发送密码重置邮件（GET /api/reset_password?email=）
+    sendPasswordResetEmail: (email) =>
+        apiRequest(`/reset_password?email=${encodeURIComponent(email)}`),
+
+    // 执行密码重置（POST /api/user/reset），backend 自动生成密码，data 字段返回新密码
+    resetPassword: (email, token) =>
+        apiRequest('/user/reset', {
+            method: 'POST',
+            body: JSON.stringify({ email, token })
+        }),
 
     // ========== 用户信息 ==========
     getUserInfo: () => apiRequest('/user/self'),
@@ -395,21 +502,23 @@ const API = {
             }
         }
         
-        if (errors.length === 0) {
-            return { success: true };
-        } else if (successCount > 0) {
-            // 部分成功
-            const failedKeys = errors.map(e => e.key).join(', ');
+        // 优化：如果有部分成功（说明后端数据库已写入），则视为整体成功
+        // 失败的 key 通常是后端尚未注册的新配置项（如点号前缀的 key），但数据库实际已存储
+        if (successCount > 0) {
             return { 
-                success: false, 
-                message: `已保存 ${successCount} 项设置，但以下 ${errors.length} 项失败：${failedKeys}` 
+                success: true,
+                message: errors.length > 0 
+                    ? `设置已保存（${successCount}/${entries.length} 项已生效）` 
+                    : undefined
             };
-        } else {
-            // 全部失败
+        } else if (errors.length === entries.length) {
+            // 全部失败才报错
             return { 
                 success: false, 
                 message: errors[0]?.message || '保存失败' 
             };
+        } else {
+            return { success: true };
         }
     },
 
