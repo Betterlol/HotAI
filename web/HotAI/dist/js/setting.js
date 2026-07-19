@@ -23,6 +23,28 @@ function flushValidationWarnings() {
 }
 
 let settingsData = {};
+let currentActiveTab = 'operations';
+
+// Tab 名称映射（用于保存按钮文本）
+const TAB_NAMES = {
+    operations: '运营设置',
+    dashboard: '仪表盘',
+    chat: '聊天设置',
+    drawing: '绘图设置',
+    payment: '支付设置',
+    pricing: '分组与模型定价',
+    ratelimit: '速率限制',
+    models: '模型相关设置',
+    smartrouting: '智能路由配置',
+    performance: '性能设置',
+    system: '系统设置'
+};
+
+// 更新保存按钮的文本
+function updateSaveBtnText(tab) {
+    const btn = document.getElementById('saveBtn');
+    if (btn) btn.textContent = `保存${TAB_NAMES[tab] || '当前设置'}`;
+}
 
 // Tab 切换功能
 function initTabs() {
@@ -43,6 +65,10 @@ function initTabs() {
             if (targetContent) {
                 targetContent.classList.add('active');
             }
+            
+            // 记录当前 Tab 并更新保存按钮文本
+            currentActiveTab = targetTab;
+            updateSaveBtnText(targetTab);
         });
     });
     
@@ -627,16 +653,266 @@ function collectTabPayload() {
     return payload;
 }
 
-// 保存全部设置（对应 HTML 中的"保存全部设置"按钮）
+// 按 Tab 分别收集表单数据的映射表
+const TAB_COLLECTORS = {
+    operations: () => {
+        const p = {};
+        p.DefaultCollapseSidebar = safeGetChecked('DefaultCollapseSidebar') ? 'true' : 'false';
+        p.DemoSiteEnabled = safeGetChecked('DemoSiteEnabled') ? 'true' : 'false';
+        p.SelfUseModeEnabled = safeGetChecked('SelfUseModeEnabled') ? 'true' : 'false';
+        p.LoginRequiredEnabled = safeGetChecked('LoginRequiredEnabled') ? 'true' : 'false';
+        p['nav.home_enabled'] = safeGetChecked('NavHomeEnabled') ? 'true' : 'false';
+        p['nav.console_enabled'] = safeGetChecked('NavConsoleEnabled') ? 'true' : 'false';
+        p['nav.model_enabled'] = safeGetChecked('NavModelEnabled') ? 'true' : 'false';
+        p['nav.docs_enabled'] = safeGetChecked('NavDocsEnabled') ? 'true' : 'false';
+        p['nav.about_enabled'] = safeGetChecked('NavAboutEnabled') ? 'true' : 'false';
+        p.QuotaRemindThreshold = safeGetValue('QuotaRemindThreshold');
+        p['perf_metrics_setting.enabled'] = safeGetChecked('PerfMetricsEnabled') ? 'true' : 'false';
+        p['perf_metrics_setting.flush_interval'] = safeGetValue('PerfMetricsFlushInterval');
+        p['perf_metrics_setting.bucket_time'] = safeGetValue('PerfMetricsBucketTime');
+        p['perf_metrics_setting.retention_days'] = safeGetValue('PerfMetricsRetentionDays');
+        p.LogConsumeEnabled = safeGetChecked('LogConsumeEnabled') ? 'true' : 'false';
+        p.WorkerUrl = safeGetValue('WorkerUrl');
+        p.WorkerValidKey = safeGetValue('WorkerValidKey');
+        p.WorkerAllowHttpImageRequestEnabled = safeGetChecked('WorkerAllowHttpImageRequestEnabled') ? 'true' : 'false';
+        p.TopUpLink = safeGetValue('TopUpLink');
+        p.ServerAddress = safeGetValue('ServerAddress');
+        p.RetryTimes = safeGetValue('RetryTimes');
+        p.DisplayInCurrencyEnabled = safeGetChecked('DisplayInCurrencyEnabled') ? 'true' : 'false';
+        p.DisplayTokenStatEnabled = safeGetChecked('DisplayTokenStatEnabled') ? 'true' : 'false';
+        p.Notice = safeGetValue('Notice');
+        return p;
+    },
+    dashboard: () => {
+        const p = {};
+        p.DataExportEnabled = safeGetChecked('DataExportEnabled') ? 'true' : 'false';
+        p.DataExportInterval = safeGetValue('DataExportInterval');
+        p.DataExportDefaultTime = safeGetValue('DataExportDefaultTime');
+        return p;
+    },
+    chat: () => {
+        const p = {};
+        p.Chats = safeGetValue('Chats');
+        return p;
+    },
+    drawing: () => {
+        const p = {};
+        p.MjNotifyEnabled = safeGetChecked('MjNotifyEnabled') ? 'true' : 'false';
+        p.MjActionCheckSucceed = safeGetChecked('MjActionCheckSucceed') ? 'true' : 'false';
+        p.MjAllowCallbackEnabled = safeGetChecked('MjAllowCallbackEnabled') ? 'true' : 'false';
+        p.MjAccountFilterEnabled = safeGetChecked('MjAccountFilterEnabled') ? 'true' : 'false';
+        p.MjServerAddressRewriteEnabled = safeGetChecked('MjServerAddressRewriteEnabled') ? 'true' : 'false';
+        p.MjClearPromptParamsEnabled = safeGetChecked('MjClearPromptParamsEnabled') ? 'true' : 'false';
+        return p;
+    },
+    payment: () => {
+        const p = {};
+        p.TopUpEnabled = safeGetChecked('TopUpEnabled') ? 'true' : 'false';
+        p.MinTopUp = safeGetValue('MinTopUp');
+        p.TopupRatio = safeGetValue('TopupRatio');
+        return p;
+    },
+    pricing: () => {
+        const p = {};
+        p.UserUsableGroups = safeGetValue('UserUsableGroups');
+        p.GroupRatio = safeGetValue('GroupRatio');
+        p.TopupGroupRatio = safeGetValue('TopupGroupRatio');
+        p.GroupGroupRatio = safeGetValue('GroupGroupRatio');
+        p.AutoGroups = safeGetValue('AutoGroups');
+        p.DefaultUseAutoGroup = safeGetChecked('DefaultUseAutoGroup') ? 'true' : 'false';
+        p.ExposeRatioEnabled = safeGetChecked('ExposeRatioEnabled') ? 'true' : 'false';
+        p['group_ratio_setting.group_special_usable_group'] = safeGetValue('GroupSpecialUsableGroup');
+        p['tool_price_setting.prices'] = safeGetValue('ToolPriceSetting');
+        return p;
+    },
+    ratelimit: () => {
+        const p = {};
+        p.ModelRequestRateLimitEnabled = safeGetChecked('ModelRequestRateLimitEnabled') ? 'true' : 'false';
+        p.ModelRequestRateLimitDurationMinutes = safeGetValue('ModelRequestRateLimitDuration');
+        p.ModelRequestRateLimitCount = safeGetValue('ModelRequestRateLimitCount');
+        p.ModelRequestRateLimitSuccessCount = safeGetValue('ModelRequestRateLimitSuccessCount');
+        p.ModelRequestRateLimitGroup = safeGetValue('ModelRequestRateLimitGroup');
+        p.CheckSensitiveEnabled = safeGetChecked('CheckSensitiveEnabled') ? 'true' : 'false';
+        p.CheckSensitiveOnPromptEnabled = safeGetChecked('CheckSensitiveOnPromptEnabled') ? 'true' : 'false';
+        p.SensitiveWords = safeGetValue('SensitiveWords');
+        p['fetch_setting.enable_ssrf_protection'] = safeGetChecked('SSRFProtectionEnabled') ? 'true' : 'false';
+        p['fetch_setting.allow_private_ip'] = safeGetChecked('SSRFAllowPrivateIP') ? 'true' : 'false';
+        p['fetch_setting.domain_filter_mode'] = safeGetValue('SSRFDomainFilterMode');
+        p['fetch_setting.domain_list'] = safeGetValue('SSRFDomainList');
+        p['fetch_setting.allowed_ports'] = safeGetValue('SSRFAllowedPorts');
+        p.UserMaxTokenNum = safeGetValue('UserMaxTokenNum');
+        p.GlobalApiRateLimitNum = safeGetValue('GlobalApiRateLimitNum');
+        p.UserApiRateLimitNum = safeGetValue('UserApiRateLimitNum');
+        p.TokenApiRateLimitNum = safeGetValue('TokenApiRateLimitNum');
+        return p;
+    },
+    models: () => {
+        const p = {};
+        p['global.pass_through_request_enabled'] = safeGetChecked('GlobalPassThroughEnabled') ? 'true' : 'false';
+        p['global.thinking_model_blacklist'] = safeGetValue('GlobalThinkingBlacklist');
+        p['global.chat_completions_to_responses_policy'] = safeGetValue('GlobalChatCompletionsToResponsesPolicy');
+        p.AutomaticEnableChannelEnabled = safeGetChecked('AutomaticEnableChannelEnabled') ? 'true' : 'false';
+        p.AutomaticDisableChannelEnabled = safeGetChecked('AutomaticDisableChannelEnabled') ? 'true' : 'false';
+        p.ChannelDisableThreshold = safeGetValue('ChannelDisableThreshold');
+        p.AutomaticDisableKeywords = safeGetValue('AutomaticDisableKeywords');
+        p.AutomaticDisableStatusCodes = safeGetValue('AutomaticDisableStatusCodes');
+        p.AutomaticRetryStatusCodes = safeGetValue('AutomaticRetryStatusCodes');
+        p['monitor_setting.auto_test_channel_enabled'] = safeGetChecked('AutoTestChannelEnabled') ? 'true' : 'false';
+        p['monitor_setting.auto_test_channel_minutes'] = safeGetValue('AutoTestChannelMinutes');
+        p['monitor_setting.channel_test_mode'] = safeGetValue('ChannelTestMode');
+        p['gemini.safety_settings'] = safeGetValue('GeminiSafetySetting');
+        p['gemini.version_settings'] = safeGetValue('GeminiVersionSettings');
+        p['gemini.supported_imagine_models'] = safeGetValue('GeminiSupportedImagineModels');
+        p['gemini.thinking_adapter_enabled'] = safeGetChecked('GeminiThinkingAdapterEnabled') ? 'true' : 'false';
+        p['gemini.thinking_adapter_budget_tokens_percentage'] = safeGetValue('GeminiThinkingAdapterBudgetTokensPercentage');
+        p['gemini.function_call_thought_signature_enabled'] = safeGetChecked('GeminiFunctionCallThoughtSignatureEnabled') ? 'true' : 'false';
+        p['gemini.remove_function_response_id_enabled'] = safeGetChecked('GeminiRemoveFunctionResponseIdEnabled') ? 'true' : 'false';
+        p['claude.model_headers_settings'] = safeGetValue('ClaudeModelHeaders');
+        p['claude.default_max_tokens'] = safeGetValue('ClaudeDefaultMaxTokens');
+        p['claude.thinking_adapter_enabled'] = safeGetChecked('ClaudeThinkingAdapterEnabled') ? 'true' : 'false';
+        p['claude.thinking_adapter_budget_tokens_percentage'] = safeGetValue('ClaudeThinkingAdapterBudgetTokensPercentage');
+        p['general_setting.ping_interval_enabled'] = safeGetChecked('PingIntervalEnabled') ? 'true' : 'false';
+        p['general_setting.ping_interval_seconds'] = safeGetValue('PingIntervalSeconds');
+        p['channel_affinity_setting.enabled'] = safeGetChecked('ChannelAffinityEnabled');
+        p['channel_affinity_setting.switch_on_success'] = safeGetChecked('ChannelAffinitySwitchOnSuccess') ? 'true' : 'false';
+        p['channel_affinity_setting.keep_on_channel_disabled'] = safeGetChecked('ChannelAffinityKeepOnDisabled') ? 'true' : 'false';
+        p['channel_affinity_setting.max_entries'] = safeGetValue('ChannelAffinityMaxEntries');
+        p['channel_affinity_setting.default_ttl_seconds'] = safeGetValue('ChannelAffinityDefaultTTL');
+        p['channel_affinity_setting.rules'] = safeGetValue('ChannelAffinityRules');
+        p['grok.violation_deduction_enabled'] = safeGetChecked('GrokViolationDeductionEnabled') ? 'true' : 'false';
+        p['grok.violation_deduction_amount'] = safeGetValue('GrokViolationDeductionAmount');
+        p['model_deployment.ionet.enabled'] = safeGetChecked('IoNetEnabled') ? 'true' : 'false';
+        p['model_deployment.ionet.api_key'] = safeGetValue('IoNetApiKey');
+        return p;
+    },
+    smartrouting: () => {
+        const p = {};
+        p['latency_routing_setting.enabled'] = safeGetChecked('LatencyRoutingEnabled');
+        p['latency_routing_setting.weight_factor'] = Number(safeGetValue('LatencyRoutingWeightFactor'));
+        p['circuit_breaker_setting.enabled'] = safeGetChecked('CircuitBreakerEnabled');
+        const windowSeconds = Number(safeGetValue('CircuitBreakerWindowSeconds'));
+        const bucketSeconds = Number(safeGetValue('CircuitBreakerBucketSeconds'));
+        const halfOpenMax = Number(safeGetValue('CircuitBreakerHalfOpenMaxRequests'));
+        const halfOpenSuccess = Number(safeGetValue('CircuitBreakerHalfOpenSuccessThreshold'));
+        p['circuit_breaker_setting.window_seconds'] = validateAndCorrect('统计窗口', windowSeconds, v => v > 0, 60);
+        p['circuit_breaker_setting.bucket_seconds'] = validateAndCorrect('时间桶粒度', bucketSeconds, v => v > 0 && v <= windowSeconds, Math.min(10, windowSeconds));
+        p['circuit_breaker_setting.error_threshold'] = Number(safeGetValue('CircuitBreakerErrorThreshold'));
+        p['circuit_breaker_setting.min_request_count'] = validateAndCorrect('最小请求数', Number(safeGetValue('CircuitBreakerMinRequestCount')), v => v > 0, 10);
+        p['circuit_breaker_setting.open_timeout_seconds'] = validateAndCorrect('熔断持续时间', Number(safeGetValue('CircuitBreakerOpenTimeoutSeconds')), v => v > 0, 30);
+        p['circuit_breaker_setting.half_open_max_requests'] = validateAndCorrect('半开最大请求数', halfOpenMax, v => v > 0, 3);
+        p['circuit_breaker_setting.half_open_success_threshold'] = validateAndCorrect('半开成功阈值', halfOpenSuccess, v => v > 0 && v <= halfOpenMax, Math.min(2, halfOpenMax));
+        p['channel_limiter_setting.enabled'] = safeGetChecked('ChannelLimiterEnabled');
+        p['channel_limiter_setting.max_concurrent_requests'] = Number(safeGetValue('ChannelLimiterMaxConcurrent'));
+        p['channel_affinity_setting.enabled'] = safeGetChecked('ChannelAffinityEnabled');
+        p['cost_routing_setting.enabled'] = safeGetChecked('CostRoutingEnabled');
+        p['cost_routing_setting.cost_weight'] = Number(safeGetValue('CostRoutingWeight'));
+        p['success_rate_routing_setting.enabled'] = safeGetChecked('SuccessRateRoutingEnabled');
+        p['success_rate_routing_setting.weight_factor'] = Number(safeGetValue('SuccessRateWeightFactor'));
+        p['success_rate_routing_setting.window_minutes'] = validateAndCorrect('成功率统计窗口', Number(safeGetValue('SuccessRateWindowMinutes')), v => v >= 1, 5);
+        p['success_rate_routing_setting.min_samples'] = validateAndCorrect('成功率最小样本数', Number(safeGetValue('SuccessRateMinSamples')), v => v >= 1, 10);
+        return p;
+    },
+    performance: () => {
+        const p = {};
+        p['performance_setting.disk_cache_enabled'] = safeGetChecked('DiskCacheEnabled') ? 'true' : 'false';
+        p['performance_setting.disk_cache_threshold_mb'] = safeGetValue('DiskCacheThresholdMB');
+        p['performance_setting.disk_cache_max_size_mb'] = safeGetValue('DiskCacheMaxSizeMB');
+        p['performance_setting.disk_cache_path'] = safeGetValue('DiskCachePath');
+        p['performance_setting.monitor_enabled'] = safeGetChecked('PerfMonitorEnabled') ? 'true' : 'false';
+        p['performance_setting.monitor_cpu_threshold'] = safeGetValue('PerfMonitorCPUThreshold');
+        p['performance_setting.monitor_memory_threshold'] = safeGetValue('PerfMonitorMemoryThreshold');
+        p['performance_setting.monitor_disk_threshold'] = safeGetValue('PerfMonitorDiskThreshold');
+        return p;
+    },
+    system: () => {
+        const p = {};
+        p.SystemName = safeGetValue('SystemName');
+        p.Logo = safeGetValue('Logo');
+        p.HomePageContent = safeGetValue('HomePageContent');
+        p.FooterHTML = safeGetValue('FooterHTML');
+        p.About = safeGetValue('AboutContent');
+        p.PreConsumedQuota = safeGetValue('PreConsumedQuota');
+        p.QuotaForInviter = safeGetValue('QuotaForInviter');
+        p.QuotaForInvitee = safeGetValue('QuotaForInvitee');
+        p.RegisterEnabled = safeGetChecked('RegisterEnabled') ? 'true' : 'false';
+        p.EmailVerificationEnabled = safeGetChecked('EmailVerificationEnabled') ? 'true' : 'false';
+        p.QuotaForNewUser = safeGetValue('QuotaForNewUser');
+        p.GroupForNewUser = safeGetValue('GroupForNewUser');
+        p.LogConsumeEnabled = safeGetChecked('LogConsumeEnabled') ? 'true' : 'false';
+        p.LogRetentionDays = safeGetValue('LogRetentionDays');
+        p.SMTPServer = safeGetValue('SMTPServer');
+        p.SMTPPort = safeGetValue('SMTPPort');
+        p.SMTPFrom = safeGetValue('SMTPFrom');
+        p.SMTPUsername = safeGetValue('SMTPUsername');
+        p.SMTPPassword = safeGetValue('SMTPPassword');
+        p.PasswordLoginEnabled = safeGetChecked('PasswordLoginEnabled') ? 'true' : 'false';
+        p.PasswordRegisterEnabled = safeGetChecked('PasswordRegisterEnabled') ? 'true' : 'false';
+        p.GitHubOAuthEnabled = safeGetChecked('GitHubOAuthEnabled') ? 'true' : 'false';
+        p.GitHubClientId = safeGetValue('GitHubClientId');
+        p.GitHubClientSecret = safeGetValue('GitHubClientSecret');
+        p.TurnstileCheckEnabled = safeGetChecked('TurnstileCheckEnabled') ? 'true' : 'false';
+        p.TurnstileSiteKey = safeGetValue('TurnstileSiteKey');
+        p.TurnstileSecretKey = safeGetValue('TurnstileSecretKey');
+        p.QuotaPerUnit = safeGetValue('QuotaPerUnit');
+        p.DisplayTokenStatRatio = safeGetValue('DisplayTokenStatRatio');
+        p.CheckInEnabled = safeGetChecked('CheckInEnabled') ? 'true' : 'false';
+        p.QuotaForInvite = safeGetValue('QuotaForInvite');
+        p.MaintenanceMode = safeGetChecked('MaintenanceMode') ? 'true' : 'false';
+        p.MaintenanceMessage = safeGetValue('MaintenanceMessage');
+        return p;
+    }
+};
+
+// 保存当前 Tab 的设置
+let saveInProgress = false;
+
+async function saveCurrentTab() {
+    if (saveInProgress) {
+        showToast('正在保存中，请稍候...', 'warning');
+        return;
+    }
+    
+    saveInProgress = true;
+    try {
+        const collector = TAB_COLLECTORS[currentActiveTab];
+        if (!collector) {
+            showToast('未知的 Tab，无法保存', 'error');
+            return;
+        }
+        const payload = collector();
+        flushValidationWarnings();
+        const res = await API.updateOptions(payload);
+        if (res.success) {
+            showToast(res.message || `${TAB_NAMES[currentActiveTab] || '当前设置'}已保存`, 'success');
+            await loadSettings();
+        } else {
+            showToast(res.message || '保存失败', 'error');
+        }
+    } finally {
+        saveInProgress = false;
+    }
+}
+
+// 保存全部设置（保留，供需要时调用）
 async function saveAllSettings() {
-    const payload = collectTabPayload();
-    flushValidationWarnings();
-    const res = await API.updateOptions(payload);
-    if (res.success) {
-        showToast(res.message || '所有设置已保存', 'success');
-        await loadSettings();
-    } else {
-        showToast(res.message || '保存失败', 'error');
+    if (saveInProgress) {
+        showToast('正在保存中，请稍候...', 'warning');
+        return;
+    }
+    
+    saveInProgress = true;
+    try {
+        const payload = collectTabPayload();
+        flushValidationWarnings();
+        const res = await API.updateOptions(payload);
+        if (res.success) {
+            showToast(res.message || '所有设置已保存', 'success');
+            await loadSettings();
+        } else {
+            showToast(res.message || '保存失败', 'error');
+        }
+    } finally {
+        saveInProgress = false;
     }
 }
 
@@ -979,6 +1255,10 @@ window.deleteModelPricing = async function(modelName) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     const res = await API.getUserInfo();
+    if (res._rateLimited) {
+        showToast('请求过于频繁，请稍后刷新页面重试', 'warning');
+        return;
+    }
     if (!res.success||!res.data||(res.data.role||0)<100) {
         showToast('需要超级管理员权限才能访问系统设置','error');
         setTimeout(()=>window.location.href='console.html',1500);
