@@ -292,14 +292,17 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		}
 	}
 
-	// When one or more channels were attempted and all failed, unify the response
-	// to 503 so callers see a stable "no available channel" error instead of
-	// the last upstream status code. This fires regardless of RetryTimes
-	// (even when RetryTimes=0 and only a single attempt was made) because the
-	// relevant signal is whether any channel was actually tried, not how many
-	// retries happened. Upstream details are still available via /api/log/.
+	// Unify the final error to 503 when either:
+	// - the last error is an upstream auth failure (401/403), which MUST NOT
+	//   leak to the frontend because the client would confuse it with a user
+	//   authentication failure and redirect to the login page; or
+	// - multiple channels were attempted (at least one retry happened), so
+	//   callers see a stable "no available channel" error instead of whichever
+	//   upstream status code happened to be last.
+	// Single-channel non-auth errors (504, 500, etc.) pass through so that
+	// the client can distinguish timeouts from service outages.
 	useChannel := c.GetStringSlice("use_channel")
-	if newAPIError != nil && len(useChannel) > 0 {
+	if newAPIError != nil && len(useChannel) > 0 && (types.IsAuthError(newAPIError) || retryParam.GetRetry() > 0) {
 		newAPIError = types.NewErrorWithStatusCode(
 			errors.New("no available channel"),
 			types.ErrorCodeModelNotFound,
