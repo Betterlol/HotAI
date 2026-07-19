@@ -24,17 +24,18 @@ const ChannelState = {
         {value:11,label:'Google PaLM',icon:'🅖'},{value:14,label:'Claude',icon:'🎭'},{value:15,label:'Baidu',icon:'🐾'},
         {value:16,label:'Zhipu',icon:'智'},{value:17,label:'Ali',icon:'🐱'},{value:18,label:'Xunfei',icon:'讯'},
         {value:19,label:'360 GPT',icon:'360'},{value:23,label:'Tencent',icon:'腾'},{value:24,label:'Gemini',icon:'✨'},
-        {value:25,label:'Moonshot',icon:'🌙'},{value:26,label:'Baichuan',icon:'百'},{value:27,label:'Minimax',icon:'Ⓜ️'},
+        {value:25,label:'Moonshot',icon:'🌙'},{value:26,label:'Zhipu V4',icon:'智'},{value:27,label:'Perplexity',icon:'❓'},
         {value:28,label:'Deepseek',icon:'🔍'},{value:29,label:'Groq',icon:'⚡'},{value:30,label:'Ollama',icon:'🦙'},
-        {value:31,label:'零一万物',icon:'01'},{value:32,label:'StepFun',icon:'阶'},{value:33,label:'Coze',icon:'🎨'},
-        {value:34,label:'Cohere',icon:'cohère'},{value:35,label:'Mistral',icon:'🌬️'},{value:36,label:'OpenRouter',icon:'🔀'},
-        {value:37,label:'Together',icon:'🤝'},{value:38,label:'Cloudflare',icon:'☁️'},{value:39,label:'Vertex AI',icon:'🔷'},
-        {value:41,label:'Vertex AI',icon:'🔶'},{value:42,label:'Hunyuan',icon:'混'},{value:43,label:'SiliconFlow',icon:'硅'},
-        {value:44,label:'Doubao',icon:'豆'},{value:45,label:'VolcEngine',icon:'火'},{value:46,label:'Novita',icon:'🆕'},
-        {value:47,label:'X.AI',icon:'✖️'},{value:48,label:'Perplexity',icon:'❓'},{value:49,label:'AWS Bedrock',icon:'🪨'},
-        {value:50,label:'Stepfun',icon:'步'},{value:51,label:'Github',icon:'🐙'},{value:52,label:'VoyageAI',icon:'⛵'},
-        {value:53,label:'JinaAI',icon:'🍱'},{value:54,label:'DeepL',icon:'🇩🇪'},{value:55,label:'FakeAI',icon:'🎪'},
-        {value:56,label:'Luma',icon:'🎬'},{value:57,label:'Codex',icon:'📝'},{value:58,label:'高级自定义',icon:'⚙️'}
+        {value:31,label:'零一万物',icon:'01'},{value:32,label:'StepFun',icon:'阶'},{value:33,label:'AWS Bedrock',icon:'🪨'},
+        {value:34,label:'Cohere',icon:'cohère'},{value:35,label:'Minimax',icon:'Ⓜ️'},{value:36,label:'SunoAPI',icon:'🎵'},
+        {value:37,label:'Dify',icon:'🤖'},{value:38,label:'Jina',icon:'🍱'},{value:39,label:'Cloudflare',icon:'☁️'},
+        {value:40,label:'SiliconFlow',icon:'硅'},{value:41,label:'Vertex AI',icon:'🔷'},{value:42,label:'Mistral',icon:'🌬️'},
+        {value:43,label:'DeepSeek',icon:'🔍'},{value:44,label:'MokaAI',icon:'🤖'},{value:45,label:'VolcEngine',icon:'火'},
+        {value:46,label:'Baidu V2',icon:'🐾'},{value:47,label:'Xinference',icon:'🔧'},{value:48,label:'X.AI',icon:'✖️'},
+        {value:49,label:'Coze',icon:'🎨'},{value:50,label:'Kling',icon:'🎬'},{value:51,label:'Jimeng',icon:'🖼️'},
+        {value:52,label:'Vidu',icon:'🎥'},{value:53,label:'Submodel',icon:'🤖'},{value:54,label:'DoubaoVideo',icon:'豆'},
+        {value:55,label:'Sora',icon:'🎥'},{value:56,label:'Replicate',icon:'🔄'},{value:57,label:'Codex',icon:'📝'},
+        {value:58,label:'高级自定义',icon:'⚙️'}
     ].sort((a, b) => a.label.localeCompare(b.label, 'zh-CN')),
     isEditing: false,
     editingId: null,
@@ -121,6 +122,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             ChannelState.filters.sort_by = e.target.value;
             ChannelState.currentPage = 1;
             loadChannels();
+        });
+    }
+
+    // 自定义模型输入框回车快速添加
+    const customModelNameInput = document.getElementById('customModelName');
+    if (customModelNameInput) {
+        customModelNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCustomModel();
+            }
+        });
+    }
+    const customModelUpstreamInput = document.getElementById('customModelUpstream');
+    if (customModelUpstreamInput) {
+        customModelUpstreamInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCustomModel();
+            }
         });
     }
 });
@@ -356,7 +377,11 @@ async function loadChannelToForm(id) {
         if (ch.model_mapping) {
             try {
                 const mapping = JSON.parse(ch.model_mapping);
-                ChannelState.modelMappingRows = Object.entries(mapping).map(([k,v]) => ({source:k, target:v}));
+                ChannelState.modelMappingRows = Object.entries(mapping).map(([k,v]) => ({
+                    _id: '_row_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                    source: k,
+                    target: v
+                }));
             } catch {}
         }
         renderModelMappingEditor();
@@ -692,19 +717,25 @@ async function batchSetTag(tag) {
 
 // ========== 类型下拉 ==========
 // 渠道类型 -> lobehub icon 名称映射
+// 类型 ID 与后端 constant/channel.go 对应：
+//   40=SiliconFlow, 41=VertexAI, 42=Mistral, 43=DeepSeek, 44=MokaAI,
+//   45=VolcEngine, 46=BaiduV2, 47=Xinference, 48=xAI, 49=Coze,
+//   50=Kling, 51=Jimeng, 52=Vidu, 53=Submodel, 54=DoubaoVideo,
+//   55=Sora, 56=Replicate, 57=Codex, 58=AdvancedCustom
 const CHANNEL_TYPE_TO_ICON = {
-    1:'OpenAI',6:'OpenAI',7:'OpenAI',8:'OpenAI',58:'NewAPI',3:'Azure',
-    14:'Claude',24:'Gemini',11:'Google',41:'Gemini',
-    33:'Aws',39:'Cloudflare',
-    15:'Baidu',46:'Baidu',16:'Zhipu',26:'Zhipu',17:'Qwen',18:'Spark',
-    23:'Hunyuan',19:'Ai360',25:'Moonshot',31:'Yi',35:'Minimax',45:'Volcengine',
-    4:'Ollama',30:'Ollama',27:'Perplexity',34:'Cohere',42:'Mistral',43:'DeepSeek',
-    28:'DeepSeek',48:'XAI',49:'Coze',40:'SiliconCloud',44:'Doubao',20:'OpenRouter',
-    2:'Midjourney',5:'Midjourney',50:'Kling',51:'Jimeng',52:'Vidu',
-    36:'Suno',55:'OpenAI',54:'Doubao',56:'Replicate',
-    37:'Dify',38:'Jina',22:'FastGPT',47:'Xinference',53:'OpenAI',
-    10:'OpenAI',21:'OpenAI',12:'OpenAI',13:'OpenAI',9:'OpenAI',
-    29:'Groq',32:'StepFun',36:'OpenRouter',47:'XAI'
+    1:'OpenAI', 2:'Midjourney', 3:'Azure', 4:'Ollama', 5:'Midjourney',
+    6:'OpenAI', 7:'OpenAI', 8:'OpenAI', 9:'OpenAI', 10:'OpenAI',
+    11:'Google', 12:'OpenAI', 13:'OpenAI', 14:'Claude',
+    15:'Baidu', 16:'Zhipu', 17:'Qwen', 18:'Spark', 19:'Ai360',
+    20:'OpenRouter', 21:'OpenAI', 22:'FastGPT', 23:'Hunyuan',
+    24:'Gemini', 25:'Moonshot', 26:'Zhipu', 27:'Perplexity',
+    28:'DeepSeek', 29:'Groq', 30:'Ollama', 31:'Yi', 32:'StepFun',
+    33:'Aws', 34:'Cohere', 35:'Minimax', 36:'Suno', 37:'Dify',
+    38:'Jina', 39:'Cloudflare', 40:'SiliconCloud', 41:'VertexAI',
+    42:'Mistral', 43:'DeepSeek', 44:'OpenAI', 45:'Volcengine',
+    46:'Baidu', 47:'Xinference', 48:'XAI', 49:'Coze',
+    50:'Kling', 51:'Jimeng', 52:'Vidu', 53:'OpenAI', 54:'Doubao',
+    55:'OpenAI', 56:'Replicate', 57:'OpenAI', 58:'NewAPI'
 };
 
 function getChannelLogoUrl(type) {
@@ -919,6 +950,51 @@ async function updateAllChannelsBalance() {
     } catch (err) {
         showToast('更新失败', 'error');
     }
+}
+
+// ========== 自定义模型添加 ==========
+function addCustomModel() {
+    const nameInput = document.getElementById('customModelName');
+    const upstreamInput = document.getElementById('customModelUpstream');
+    const customName = nameInput.value.trim();
+    const upstreamName = upstreamInput.value.trim() || customName;
+
+    if (!customName) {
+        showToast('请输入自定义模型名称', 'warning');
+        return;
+    }
+    if (customName.length > 255) {
+        showToast('模型名称不能超过 255 个字符', 'warning');
+        return;
+    }
+    if (ChannelState.modelTagsState.includes(customName)) {
+        showToast('该模型名已存在', 'warning');
+        return;
+    }
+
+    // 添加到模型列表
+    ChannelState.modelTagsState.push(customName);
+    renderModelTags();
+
+    // 如果上游名与自定义名不同，自动建立模型映射
+    if (customName !== upstreamName) {
+        const existingMapping = ChannelState.modelMappingRows.find(r => r.source === customName);
+        if (!existingMapping) {
+            ChannelState.modelMappingRows.push({
+                _id: '_row_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                source: customName,
+                target: upstreamName
+            });
+            renderModelMappingEditor();
+        }
+    }
+
+    // 清空输入框并聚焦
+    nameInput.value = '';
+    upstreamInput.value = '';
+    nameInput.focus();
+
+    showToast(`已添加自定义模型: ${customName}` + (customName !== upstreamName ? ` → ${upstreamName}` : ''), 'success');
 }
 
 // ========== 模型多选下拉组件 ==========
@@ -1189,27 +1265,33 @@ function renderGroupTags() {
 
 // ========== 模型映射编辑器 ==========
 function addModelMappingRow(source='', target='') {
-    ChannelState.modelMappingRows.push({source, target});
+    const rowId = '_row_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    ChannelState.modelMappingRows.push({_id: rowId, source, target});
     renderModelMappingEditor();
 }
 
-function removeModelMappingRow(idx) {
-    ChannelState.modelMappingRows.splice(idx, 1);
+function removeModelMappingRow(rowId) {
+    ChannelState.modelMappingRows = ChannelState.modelMappingRows.filter(row => row._id !== rowId);
     renderModelMappingEditor();
 }
 
 function renderModelMappingEditor() {
     const editor = document.getElementById('modelMappingEditor');
-    editor.innerHTML = ChannelState.modelMappingRows.map((row, i) => `
+    editor.innerHTML = ChannelState.modelMappingRows.map((row) => `
         <div class="kv-row">
-            <input type="text" placeholder="客户端模型名" value="${escapeHtml(row.source)}" oninput="ChannelState.modelMappingRows[${i}].source=this.value">
+            <input type="text" placeholder="客户端模型名" value="${escapeHtml(row.source)}" data-row-id="${row._id}" oninput="updateModelMappingRow('${row._id}', 'source', this.value)">
             <span class="kv-sep">→</span>
-            <input type="text" placeholder="上游模型名" value="${escapeHtml(row.target)}" oninput="ChannelState.modelMappingRows[${i}].target=this.value">
-            <button class="kv-del-btn" onclick="removeModelMappingRow(${i})">
+            <input type="text" placeholder="上游模型名" value="${escapeHtml(row.target)}" data-row-id="${row._id}" oninput="updateModelMappingRow('${row._id}', 'target', this.value)">
+            <button class="kv-del-btn" onclick="removeModelMappingRow('${row._id}')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </button>
         </div>
     `).join('');
+}
+
+function updateModelMappingRow(rowId, field, value) {
+    const row = ChannelState.modelMappingRows.find(r => r._id === rowId);
+    if (row) row[field] = value;
 }
 
 // ========== 预填分组按钮 ==========

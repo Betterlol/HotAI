@@ -211,8 +211,9 @@ async function loadTaskLogs() {
     // 存储数据供详情弹窗使用
     window._taskData = items;
 
-    tbody.innerHTML = items.map((item, idx) => {
+    tbody.innerHTML = items.map((item) => {
         const cells = [];
+        const itemKey = item.task_id || String(item.id || '');
         
         // 提交时间
         if (visibleColumns[COLUMNS.SUBMIT_TIME]) {
@@ -255,7 +256,7 @@ async function loadTaskLogs() {
         // 任务ID
         if (visibleColumns[COLUMNS.TASK_ID]) {
             const taskIdShort = (item.task_id || '').slice(0, 16) || '-';
-            cells.push(`<td style="text-align:center;"><span class="td-mono" style="font-size:11px;cursor:pointer;color:var(--c-primary);" title="${escHtml(item.task_id||'')}" onclick="showTaskDetail(${idx})">${escHtml(taskIdShort)}</span></td>`);
+            cells.push(`<td style="text-align:center;"><span class="td-mono" style="font-size:11px;cursor:pointer;color:var(--c-primary);" title="${escHtml(item.task_id||'')}" onclick="showTaskDetail('${escHtml(itemKey)}')">${escHtml(taskIdShort)}</span></td>`);
         }
         
         // 任务状态
@@ -283,10 +284,10 @@ async function loadTaskLogs() {
         
         // 详情
         if (visibleColumns[COLUMNS.DETAIL]) {
-            cells.push(`<td style="text-align:center;"><button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();showTaskDetail(${idx})" style="font-size:11px;padding:4px 12px;">详情</button></td>`);
+            cells.push(`<td style="text-align:center;"><button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();showTaskDetail('${escHtml(itemKey)}')" style="font-size:11px;padding:4px 12px;">详情</button></td>`);
         }
 
-        return `<tr style="cursor:pointer;" onclick="showTaskDetail(${idx})">${cells.join('')}</tr>`;
+        return `<tr style="cursor:pointer;" onclick="showTaskDetail('${escHtml(itemKey)}')">${cells.join('')}</tr>`;
     }).join('');
 
     renderPagination();
@@ -333,8 +334,8 @@ function resetTaskFilters() {
 }
 
 // ========== 任务详情 ==========
-window.showTaskDetail = function(idx) {
-    const item = (window._taskData || [])[idx];
+window.showTaskDetail = function(itemKey) {
+    const item = (window._taskData || []).find(t => t.task_id === itemKey || String(t.id) === itemKey);
     if (!item) return;
 
     const modal = document.getElementById('taskDetailModal');

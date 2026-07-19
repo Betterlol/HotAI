@@ -70,8 +70,8 @@ const Auth = {
     }
 };
 
-// 初始化导航栏用户菜单
-function initNavbarUserMenu() {
+// 初始化导航栏用户菜单（接收认证状态和用户数据作为参数）
+function initNavbarUserMenu(isAuth, userData) {
     const navLoginBtn = document.getElementById('navLoginBtn');
     const navSignupBtn = document.getElementById('navSignupBtn');
     const navUserMenu = document.getElementById('navUserMenu');
@@ -83,76 +83,34 @@ function initNavbarUserMenu() {
     // 如果页面没有这些元素，直接返回
     if (!navLoginBtn || !navUserMenu) return;
     
-    // 检查登录状态并更新UI
-    Auth.checkAuth().then(isAuth => {
-        if (isAuth) {
-            // 已登录：隐藏登录/注册按钮，显示用户菜单
-            navLoginBtn.classList.add('hidden');
-            navSignupBtn.classList.add('hidden');
-            navUserMenu.classList.remove('hidden');
-            
-            // 获取用户信息并更新显示（包括余额）
-            API.getUserInfo().then(result => {
-                if (result.success && result.data) {
-                    const user = result.data;
-                    
-                    // 更新用户名和头像
-                    if (user.username) {
-                        if (navUsername) navUsername.textContent = user.username;
-                        if (navUserAvatar) navUserAvatar.textContent = user.username.charAt(0).toUpperCase();
-                    }
-                    
-                    // 更新余额显示
-                    const navUserBalance = document.getElementById('navUserBalance');
-                    if (navUserBalance && typeof user.quota === 'number') {
-                        // quota单位转换为美元
-                        const balanceUSD = (user.quota / 500000).toFixed(4);
-                        navUserBalance.textContent = `余额 $${balanceUSD}`;
-                    }
-                    
-                    // 保存用户信息到本地存储
-                    localStorage.setItem('user', JSON.stringify(user));
-                } else {
-                    // API返回失败，使用缓存的用户信息
-                    const user = Auth.getCurrentUser();
-                    if (user && user.username) {
-                        if (navUsername) navUsername.textContent = user.username;
-                        if (navUserAvatar) navUserAvatar.textContent = user.username.charAt(0).toUpperCase();
-                        
-                        // 显示缓存的余额
-                        const navUserBalance = document.getElementById('navUserBalance');
-                        if (navUserBalance && typeof user.quota === 'number') {
-                            const balanceUSD = (user.quota / 500000).toFixed(4);
-                            navUserBalance.textContent = `余额 $${balanceUSD}`;
-                        }
-                    }
-                }
-            }).catch(error => {
-                console.error('获取用户信息失败:', error);
-                // 出错时使用缓存信息
-                const user = Auth.getCurrentUser();
-                if (user && user.username) {
-                    if (navUsername) navUsername.textContent = user.username;
-                    if (navUserAvatar) navUserAvatar.textContent = user.username.charAt(0).toUpperCase();
-                    
-                    const navUserBalance = document.getElementById('navUserBalance');
-                    if (navUserBalance) {
-                        if (typeof user.quota === 'number') {
-                            const balanceUSD = (user.quota / 500000).toFixed(4);
-                            navUserBalance.textContent = `余额 $${balanceUSD}`;
-                        } else {
-                            navUserBalance.textContent = '余额加载失败';
-                        }
-                    }
-                }
-            });
-        } else {
-            // 未登录：显示登录/注册按钮，隐藏用户菜单
-            navLoginBtn.classList.remove('hidden');
-            navSignupBtn.classList.remove('hidden');
-            navUserMenu.classList.add('hidden');
+    if (isAuth && userData) {
+        // 已登录：隐藏登录/注册按钮，显示用户菜单
+        navLoginBtn.classList.add('hidden');
+        navSignupBtn.classList.add('hidden');
+        navUserMenu.classList.remove('hidden');
+        
+        // 更新用户名和头像
+        if (userData.username) {
+            if (navUsername) navUsername.textContent = userData.username;
+            if (navUserAvatar) navUserAvatar.textContent = userData.username.charAt(0).toUpperCase();
         }
-    });
+        
+        // 更新余额显示
+        const navUserBalance = document.getElementById('navUserBalance');
+        if (navUserBalance && typeof userData.quota === 'number') {
+            // quota单位转换为美元
+            const balanceUSD = (userData.quota / 500000).toFixed(4);
+            navUserBalance.textContent = `余额 $${balanceUSD}`;
+        }
+        
+        // 保存用户信息到本地存储
+        localStorage.setItem('user', JSON.stringify(userData));
+    } else {
+        // 未登录：显示登录/注册按钮，隐藏用户菜单
+        navLoginBtn.classList.remove('hidden');
+        navSignupBtn.classList.remove('hidden');
+        navUserMenu.classList.add('hidden');
+    }
     
     // 用户菜单下拉交互（优化：增加延迟，便于点击）
     if (navUserMenu && navUserDropdown) {
@@ -276,38 +234,54 @@ function initLanguageSelector() {
 // 页面加载时自动检查认证状态（排除登录/注册页）
 document.addEventListener('DOMContentLoaded', async () => {
     const currentPage = window.location.pathname;
-    const publicPages = ['/', '/index.html', '/model.html', '/login.html', '/register.html', '/reset.html', '/docs.html'];
-    const protectedPages = ['/console.html', '/profile.html'];
-    
-    // 初始化导航栏用户菜单
-    initNavbarUserMenu();
-    
+    const publicPages = ['/', '/index.html', '/model.html', '/login.html', '/register.html', '/reset.html', '/docs.html', 'about.html'];
+    const protectedPages = ['console.html'];
+
     // 初始化公告功能（所有页面共享）
     initNoticeFeature();
-    
+
     // 初始化语言切换功能（所有页面共享）
     initLanguageSelector();
-    
-    // 如果是公开页面，不需要验证
+
+    // 统一发起一次用户信息请求，供导航栏和页面认证同时使用
     const isPublicPage = publicPages.some(page => currentPage.endsWith(page));
     const isProtectedPage = protectedPages.some(page => currentPage.endsWith(page));
-    
+
+    let userInfo = null;
+    let isAuth = false;
+
+    try {
+        // 仅一次 API 调用，供导航栏初始化和页面认证判断共同使用
+        const result = await API.getUserInfo();
+        if (result.success && result.data) {
+            isAuth = true;
+            userInfo = result.data;
+        } else if (result._rateLimited) {
+            // 被限流时，从缓存中恢复用户状态，避免误判为未登录
+            const cached = Auth.getCurrentUser();
+            if (cached) {
+                isAuth = true;
+                userInfo = cached;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load user info:', error);
+        // 出错时尝试从缓存恢复，避免因网络抖动误判登录状态
+        const cached = Auth.getCurrentUser();
+        if (cached) {
+            isAuth = true;
+            userInfo = cached;
+        }
+    }
+
+    // 初始化导航栏用户菜单（传入已获取的数据，无需重复请求）
+    initNavbarUserMenu(isAuth, userInfo);
+
+    // 受保护页面需要强制验证
     if (!isPublicPage || isProtectedPage) {
-        const isAuth = await Auth.checkAuth();
         if (!isAuth) {
             window.location.href = `login.html?redirect=${encodeURIComponent(currentPage)}`;
-        } else {
-            // 加载用户信息到页面
-            try {
-                const result = await API.getUserInfo();
-                if (result.success && result.data) {
-                    localStorage.setItem('user', JSON.stringify(result.data));
-                    // 刷新导航栏用户信息
-                    initNavbarUserMenu();
-                }
-            } catch (error) {
-                console.error('Failed to load user info:', error);
-            }
         }
     }
 });
+

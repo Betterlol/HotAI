@@ -371,11 +371,11 @@ function safeGetChecked(id, defaultValue = false) {
     return el ? el.checked : defaultValue;
 }
 
-async function saveAllSettings() {
+// 按 Tab 收集表单数据的辅助函数
+function collectTabPayload() {
     const payload = {};
 
     // ========== Tab 1: 运营设置 ==========
-    // 系统行为
     payload.DefaultCollapseSidebar = safeGetChecked('DefaultCollapseSidebar') ? 'true' : 'false';
     payload.DemoSiteEnabled = safeGetChecked('DemoSiteEnabled') ? 'true' : 'false';
     payload.SelfUseModeEnabled = safeGetChecked('SelfUseModeEnabled') ? 'true' : 'false';
@@ -624,16 +624,19 @@ async function saveAllSettings() {
     payload['success_rate_routing_setting.window_minutes'] = validateAndCorrect('成功率统计窗口', Number(safeGetValue('SuccessRateWindowMinutes')), v => v >= 1, 5);
     payload['success_rate_routing_setting.min_samples'] = validateAndCorrect('成功率最小样本数', Number(safeGetValue('SuccessRateMinSamples')), v => v >= 1, 10);
     
-    // 刷新所有校验警告
-    flushValidationWarnings();
+    return payload;
+}
 
-    // 批量更新
+// 保存全部设置（对应 HTML 中的"保存全部设置"按钮）
+async function saveAllSettings() {
+    const payload = collectTabPayload();
+    flushValidationWarnings();
     const res = await API.updateOptions(payload);
     if (res.success) {
-        showToast('设置已保存','success');
-        loadSettings();
+        showToast(res.message || '所有设置已保存', 'success');
+        await loadSettings();
     } else {
-        showToast(res.message||'保存失败','error');
+        showToast(res.message || '保存失败', 'error');
     }
 }
 
