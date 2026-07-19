@@ -714,27 +714,48 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ========== 性能数据 ==========
     window.loadPerformanceData = async function() {
-        const res = await API.getPerfMetrics();
-        if (res.success && res.data) {
-            const d = res.data;
-            document.getElementById('perfP50').textContent = d.p50 ? `${d.p50}ms` : '--';
-            document.getElementById('perfP99').textContent = d.p99 ? `${d.p99}ms` : '--';
-            document.getElementById('perfCurrentRPM').textContent = d.rpm ? d.rpm.toFixed(2) : '--';
-            document.getElementById('perfCurrentTPM').textContent = d.tpm ? d.tpm.toLocaleString() : '--';
-            document.getElementById('perfErrorRate').textContent = d.error_rate !== undefined ? `${(d.error_rate * 100).toFixed(2)}%` : '--';
-            document.getElementById('perfFailCount').textContent = d.fail_count !== undefined ? d.fail_count.toLocaleString() : '--';
-            document.getElementById('perfActiveChannels').textContent = d.active_channels ?? '--';
-            document.getElementById('perfErrorChannels').textContent = d.error_channels ?? '--';
+        // 性能指标汇总
+        const perfRes = await API.getPerfMetricsSummary(24);
+        if (perfRes.success && perfRes.data && perfRes.data.models && perfRes.data.models.length > 0) {
+            const models = perfRes.data.models;
+            const count = models.length;
+            const totalP50 = models.reduce((s, m) => s + (m.p50_latency_ms || 0), 0);
+            const totalP99 = models.reduce((s, m) => s + (m.p99_latency_ms || 0), 0);
+            const totalTps = models.reduce((s, m) => s + (m.avg_tps || 0), 0);
+            const totalSuccessRate = models.reduce((s, m) => s + (m['success_rate'] || 0), 0);
+            const avgSuccessRate = count > 0 ? totalSuccessRate / count : 100;
+            const errorRate = Math.max(0, Math.min(100, 100 - avgSuccessRate));
+
+            document.getElementById('perfP50').textContent = count > 0 ? `${Math.round(totalP50 / count)}ms` : '--';
+            document.getElementById('perfP99').textContent = count > 0 ? `${Math.round(totalP99 / count)}ms` : '--';
+            document.getElementById('perfCurrentRPM').textContent = totalTps > 0 ? totalTps.toFixed(2) : '--';
+            document.getElementById('perfCurrentTPM').textContent = totalTps > 0 ? (totalTps * 60).toLocaleString() : '--';
+            document.getElementById('perfErrorRate').textContent = `${errorRate.toFixed(2)}%`;
+            document.getElementById('perfFailCount').textContent = '--';
+        } else {
+            ['perfP50','perfP99','perfCurrentRPM','perfCurrentTPM','perfErrorRate','perfFailCount'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '--';
+            });
         }
-        
+
+        // 渠道健康：从渠道列表获取
+        const chanHealthRes = await API.getChannels(1, 100);
+        if (chanHealthRes.success && chanHealthRes.data) {
+            const chans = chanHealthRes.data.items || [];
+            const active = chans.filter(c => c.status === 1).length;
+            const error = chans.filter(c => c.status !== 1).length;
+            document.getElementById('perfActiveChannels').textContent = active;
+            document.getElementById('perfErrorChannels').textContent = error;
+        }
+
         // 渠道响应时间排行
-        const chanRes = await API.getChannels(1, 100);
-        if (chanRes.success && chanRes.data) {
-            const channels = (chanRes.data.data || chanRes.data || [])
+        if (chanHealthRes.success && chanHealthRes.data) {
+            const channels = (chanHealthRes.data.items || [])
                 .filter(c => c.response_time > 0)
                 .sort((a, b) => a.response_time - b.response_time)
                 .slice(0, 10);
-            
+
             document.getElementById('channelPerfTable').innerHTML = channels.length > 0 ? `
                 <table style="width:100%;font-size:13px;">
                     <thead><tr>

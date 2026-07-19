@@ -868,6 +868,12 @@ const API = {
             method: 'POST',
             body: JSON.stringify({ id })
         }),
+
+    // ========== 性能监控 ==========
+    getPerfMetricsSummary: (hours) => {
+        const qs = hours ? `?hours=${hours}` : '';
+        return apiRequest(`/perf-metrics/summary${qs}`);
+    },
 };
 
 // 导出 API（兼容模块和全局）
