@@ -723,15 +723,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             const totalP99 = models.reduce((s, m) => s + (m.p99_latency_ms || 0), 0);
             const totalTps = models.reduce((s, m) => s + (m.avg_tps || 0), 0);
             const totalSuccessRate = models.reduce((s, m) => s + (m['success_rate'] || 0), 0);
+            const totalReqs = models.reduce((s, m) => s + (m['request_count'] || 0), 0);
             const avgSuccessRate = count > 0 ? totalSuccessRate / count : 100;
             const errorRate = Math.max(0, Math.min(100, 100 - avgSuccessRate));
+            const failCount = totalReqs > 0 ? Math.round(totalReqs * (1 - avgSuccessRate / 100)) : 0;
 
             document.getElementById('perfP50').textContent = count > 0 ? `${Math.round(totalP50 / count)}ms` : '--';
             document.getElementById('perfP99').textContent = count > 0 ? `${Math.round(totalP99 / count)}ms` : '--';
             document.getElementById('perfCurrentRPM').textContent = totalTps > 0 ? totalTps.toFixed(2) : '--';
             document.getElementById('perfCurrentTPM').textContent = totalTps > 0 ? (totalTps * 60).toLocaleString() : '--';
             document.getElementById('perfErrorRate').textContent = `${errorRate.toFixed(2)}%`;
-            document.getElementById('perfFailCount').textContent = '--';
+            document.getElementById('perfFailCount').textContent = totalReqs > 0 ? failCount.toLocaleString() : '0';
         } else {
             ['perfP50','perfP99','perfCurrentRPM','perfCurrentTPM','perfErrorRate','perfFailCount'].forEach(id => {
                 const el = document.getElementById(id);
