@@ -213,11 +213,41 @@ async function loadChannels() {
     }
 }
 
+// ========== 额度显示函数 ==========
+function quotaToDisplay(q) {
+    return '$' + (Math.abs(q || 0) / 500000).toFixed(4);
+}
+
+function renderQuotaProgress(quota, usedQuota) {
+    const total = Math.abs(quota || 0);
+    const used = Math.abs(usedQuota || 0);
+    const percentage = total > 0 ? Math.min((used / total) * 100, 100) : 0;
+    const displayUsed = quotaToDisplay(used);
+    const displayTotal = quotaToDisplay(total);
+
+    let barColor = '#10b981'; // 绿色
+    if (percentage >= 90) barColor = '#ef4444'; // 红色
+    else if (percentage >= 70) barColor = '#f59e0b'; // 橙色
+
+    return `
+        <div style="min-width:120px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;">
+                <span style="color:var(--c-text-secondary);">${displayUsed}</span>
+                <span style="color:var(--c-text-secondary);">${displayTotal}</span>
+            </div>
+            <div style="width:100%;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;">
+                <div style="width:${percentage}%;height:100%;background:${barColor};transition:width 0.3s;"></div>
+            </div>
+            <div style="font-size:10px;color:var(--c-text-secondary);text-align:center;margin-top:2px;">${percentage.toFixed(1)}%</div>
+        </div>
+    `;
+}
+
 // ========== 表格渲染 ==========
 function renderChannelTable() {
     const tbody = document.getElementById('channelTableBody');
     if (!ChannelState.channels.length) {
-        tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;padding:40px;color:var(--c-text-secondary);">暂无数据</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--c-text-secondary);">暂无数据</td></tr>';
         return;
     }
     
@@ -233,9 +263,7 @@ function renderChannelTable() {
             <td>${ch.tag ? `<span class="badge badge-gray">${escapeHtml(ch.tag)}</span>` : '-'}</td>
             <td>${ch.priority||0}</td>
             <td>${ch.weight||0}</td>
-            <td>$${formatMoney(ch.balance)}</td>
-            <td>$${formatMoney(ch.used_quota)}</td>
-            <td>$${formatMoney((ch.balance||0)-(ch.used_quota||0))}</td>
+            <td style="text-align:center;">${renderQuotaProgress(ch.balance, ch.used_quota)}</td>
             <td>${ch.response_time ? ch.response_time+'ms' : '-'}</td>
             <td>${formatTime(ch.test_time)}</td>
             <td class="td-actions">
