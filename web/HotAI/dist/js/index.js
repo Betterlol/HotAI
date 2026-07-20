@@ -1,3 +1,21 @@
+// ========== 模型参数限制配置表 ==========
+// 通过关键字匹配模型，缺失的参数表示无限制
+// min/max 各自可选，同时存在且相等表示锁定为固定值
+const modelParamLimits = {
+    'Kimi': {
+        temperature: { min: 1, max: 1 },      // 必须为 1（锁定，全灰）
+        top_p: { min: 0.95, max: 0.95 },       // 必须为 0.95（锁定，全灰）
+    },
+    // 示例：可添加其他模型的限制
+    // 'Claude': {
+    //     temperature: { max: 1.5 },          // 仅上限收窄
+    //     top_p: { min: 0.2 },                // 仅下限收窄
+    // },
+    // 'GPT': {
+    //     frequency_penalty: { min: -1, max: 1 }, // 支持负数范围
+    // },
+};
+
 // ========== 操练场配置状态 ==========
 let playgroundConfig = {
     model: '',
@@ -408,6 +426,172 @@ function renderGroupList(groups) {
     });
 }
 
+// ========== 模型参数限制辅助函数 ==========
+
+// 滑条的原始范围定义
+const sliderDefaults = {
+    temperature:       { min: 0,  max: 2,  step: 0.1,  configKey: 'temperature',       sliderId: 'temperature',       valueId: 'temperatureValue' },
+    top_p:             { min: 0,  max: 1,  step: 0.05, configKey: 'top_p',             sliderId: 'topP',              valueId: 'topPValue' },
+    frequency_penalty: { min: -2, max: 2,  step: 0.1,  configKey: 'frequency_penalty', sliderId: 'frequencyPenalty',  valueId: 'frequencyPenaltyValue' },
+    presence_penalty:  { min: -2, max: 2,  step: 0.1,  configKey: 'presence_penalty',  sliderId: 'presencePenalty',   valueId: 'presencePenaltyValue' },
+};
+
+// 根据模型名称关键字查找对应的限制配置
+function getModelParamLimits(modelId) {
+    if (!modelId) return null;
+    const lower = modelId.toLowerCase();
+    for (const [keyword, limits] of Object.entries(modelParamLimits)) {
+        if (lower.includes(keyword.toLowerCase())) {
+            return { keyword, limits };
+        }
+    }
+    return null;
+}
+
+// 将值夹紧到限制范围
+function clampToLimit(value, limitMin, limitMax, origMin, origMax) {
+    const effectiveMin = (limitMin !== undefined) ? limitMin : origMin;
+    const effectiveMax = (limitMax !== undefined) ? limitMax : origMax;
+    return Math.min(effectiveMax, Math.max(effectiveMin, value));
+}
+
+// 更新滑条的背景渐变和交互状态
+function updateSliderTrack(slider, origMin, origMax, limitMin, limitMax) {
+    const isLocked = (limitMin !== undefined && limitMax !== undefined && limitMin === limitMax);
+    const totalRange = origMax - origMin;
+
+    if (isLocked) {
+        // 固定值：全灰 + disabled
+        slider.disabled = true;
+        slider.style.cursor = 'not-allowed';
+        slider.style.background = '#d1d5db';
+        slider.classList.add('config-slider-locked');
+    } else {
+        // 范围收窄：蓝灰分段渐变
+        slider.disabled = false;
+        slider.style.cursor = 'pointer';
+        slider.classList.remove('config-slider-locked');
+
+        const effMin = (limitMin !== undefined) ? limitMin : origMin;
+        const effMax = (limitMax !== undefined) ? limitMax : origMax;
+
+        const leftPct  = ((effMin - origMin) / totalRange) * 100;
+        const rightPct = ((effMax - origMin) / totalRange) * 100;
+
+        slider.style.background = [
+            `linear-gradient(to right,`,
+            `  #d1d5db 0%, #d1d5db ${leftPct}%,`,
+            `  var(--c-primary-light) ${leftPct}%, var(--c-primary) ${rightPct}%,`,
+            `  #d1d5db ${rightPct}%, #d1d5db 100%)`
+        ].join(' ');
+    }
+}
+
+// 恢复滑条为默认蓝色样式
+function resetSliderTrack(slider) {
+    slider.disabled = false;
+    slider.style.cursor = 'pointer';
+    slider.style.background = '';
+    slider.classList.remove('config-slider-locked');
+}
+
+// 应用参数限制到所有滑条
+function applyParamLimits(limits) {
+    for (const [key, def] of Object.entries(sliderDefaults)) {
+        const slider = document.getElementById(def.sliderId);
+        const valueEl = document.getElementById(def.valueId);
+        if (!slider) continue;
+
+        const limitRange = limits[key];
+        if (limitRange) {
+            const { min: lMin, max: lMax } = limitRange;
+
+            // 更新滑条范围属性
+            if (lMin !== undefined) slider.min = lMin;
+            else slider.min = def.min;
+            if (lMax !== undefined) slider.max = lMax;
+            else slider.max = def.max;
+
+            // 夹紧当前值
+            const newVal = clampToLimit(
+                playgroundConfig[def.configKey],
+                lMin, lMax, def.min, def.max
+            );
+            playgroundConfig[def.configKey] = newVal;
+            slider.value = newVal;
+            if (valueEl) valueEl.textContent = newVal;
+
+            // 更新轨道颜色
+            updateSliderTrack(slider, def.min, def.max, lMin, lMax);
+        } else {
+            // 该参数无限制，恢复默认
+            slider.min = def.min;
+            slider.max = def.max;
+            resetSliderTrack(slider);
+        }
+    }
+}
+
+// 恢复所有滑条为默认状态
+function resetParamLimits() {
+    for (const [key, def] of Object.entries(sliderDefaults)) {
+        const slider = document.getElementById(def.sliderId);
+        if (!slider) continue;
+        slider.min = def.min;
+        slider.max = def.max;
+        resetSliderTrack(slider);
+    }
+}
+
+// 参数名称的友好展示文本
+function getParamDisplayName(key) {
+    const names = {
+        temperature:       '温度',
+        top_p:             'Top P',
+        max_tokens:        '最大 Token',
+        frequency_penalty: '频率惩罚',
+        presence_penalty:  '存在惩罚',
+        seed:              '随机种子',
+    };
+    return names[key] || key;
+}
+
+// 显示模型参数限制弹窗
+function showModelLimitAlert(keyword, limits, changedParams) {
+    const titleEl   = document.getElementById('modelLimitToastTitle');
+    const contentEl = document.getElementById('modelLimitToastContent');
+    const toastEl   = document.getElementById('modelLimitToast');
+    if (!toastEl || !contentEl) return;
+
+    if (titleEl) titleEl.textContent = `${keyword} 模型参数限制`;
+
+    let html = '<ul class="model-limit-list">';
+    for (const [paramKey, range] of Object.entries(limits)) {
+        const name = getParamDisplayName(paramKey);
+        const isLocked = (range.min !== undefined && range.max !== undefined && range.min === range.max);
+        if (isLocked) {
+            html += `<li><span class="limit-param-name">${name}</span>：固定为 <strong>${range.min}</strong>（滑条已灰显，不可调整）</li>`;
+        } else {
+            const minStr = range.min !== undefined ? range.min : '不限';
+            const maxStr = range.max !== undefined ? range.max : '不限';
+            html += `<li><span class="limit-param-name">${name}</span>：调整范围限制为 [<strong>${minStr}</strong>, <strong>${maxStr}</strong>]，范围外部分已灰显</li>`;
+        }
+    }
+    html += '</ul>';
+
+    if (changedParams.length > 0) {
+        html += '<div class="limit-changed-notice">以下参数已自动调整到限制范围内：</div>';
+        html += '<ul class="model-limit-list">';
+        changedParams.forEach(({ key, oldVal, newVal }) => {
+            html += `<li><span class="limit-param-name">${getParamDisplayName(key)}</span>：${oldVal} → <strong>${newVal}</strong></li>`;
+        });
+        html += '</ul>';
+    }
+
+    contentEl.innerHTML = html;
+    toastEl.style.display = 'flex';
+}
+
 // ========== 选择模型 ==========
 function selectModel(modelId) {
     playgroundConfig.model = modelId;
@@ -424,7 +608,30 @@ function selectModel(modelId) {
             }
         });
     }
-    
+
+    // 应用参数限制
+    const limitInfo = getModelParamLimits(modelId);
+    if (limitInfo) {
+        const { keyword, limits } = limitInfo;
+
+        // 记录哪些参数被自动调整了
+        const changedParams = [];
+        for (const [key, def] of Object.entries(sliderDefaults)) {
+            const range = limits[key];
+            if (!range) continue;
+            const oldVal = playgroundConfig[def.configKey];
+            const newVal = clampToLimit(oldVal, range.min, range.max, def.min, def.max);
+            if (Math.abs(newVal - oldVal) > 1e-9) {
+                changedParams.push({ key, oldVal, newVal });
+            }
+        }
+
+        applyParamLimits(limits);
+        showModelLimitAlert(keyword, limits, changedParams);
+    } else {
+        resetParamLimits();
+    }
+
     saveConfig();
 }
 
@@ -1265,4 +1472,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (newChatBtn) {
         newChatBtn.addEventListener('click', handleNewChat);
     }
+
+    // 模型限制弹窗关闭逻辑
+    const toastEl      = document.getElementById('modelLimitToast');
+    const closeBtn     = document.getElementById('modelLimitToastClose');
+    const confirmBtn   = document.getElementById('modelLimitToastConfirm');
+    const overlayEl    = document.getElementById('modelLimitToastOverlay');
+
+    function closeModelLimitToast() {
+        if (toastEl) toastEl.style.display = 'none';
+    }
+
+    if (closeBtn)   closeBtn.addEventListener('click', closeModelLimitToast);
+    if (confirmBtn) confirmBtn.addEventListener('click', closeModelLimitToast);
+    if (overlayEl)  overlayEl.addEventListener('click', closeModelLimitToast);
 });
