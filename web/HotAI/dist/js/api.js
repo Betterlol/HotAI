@@ -491,6 +491,13 @@ const API = {
                 
                 if (r.success) {
                     successCount++;
+                } else if (r._rateLimited) {
+                    // 被限流时立即停止，避免大量无效请求进一步触发限流
+                    return { 
+                        success: false, 
+                        message: '请求过于频繁，请稍后再试',
+                        _rateLimited: true 
+                    };
                 } else if (r._authExpired) {
                     // 会话已失效，apiRequest 已处理跳转，立即退出避免大量无效请求
                     return r;
