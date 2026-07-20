@@ -958,6 +958,186 @@ body {
 }
 
 /* =========================================
+   4.8. 模型参数限制：锁定滑条样式
+   ========================================= */
+
+/* 锁定状态滑条的 thumb 变灰 */
+.config-slider-locked::-webkit-slider-thumb {
+    background: #9ca3af;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.config-slider-locked::-moz-range-thumb {
+    background: #9ca3af;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.config-slider-locked::-webkit-slider-thumb:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.config-slider-locked::-moz-range-thumb:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* =========================================
+   4.9. 模型参数限制弹窗样式
+   ========================================= */
+.model-limit-toast {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.model-limit-toast-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+}
+
+.model-limit-toast-card {
+    position: relative;
+    width: 90%;
+    max-width: 460px;
+    background: var(--c-white);
+    border-radius: var(--radius-card);
+    box-shadow: 0 8px 32px rgba(45, 111, 245, 0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 9999;
+    animation: limitToastIn 0.2s ease;
+}
+
+@keyframes limitToastIn {
+    from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.model-limit-toast-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--c-border);
+    background: var(--c-primary-light);
+}
+
+.model-limit-toast-header h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--c-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.model-limit-toast-header h3::before {
+    content: "⚠";
+    font-size: 16px;
+}
+
+.model-limit-toast-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--c-text-secondary);
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.model-limit-toast-close:hover {
+    background: rgba(45, 111, 245, 0.1);
+    color: var(--c-primary);
+}
+
+.model-limit-toast-content {
+    padding: 16px 20px;
+    color: var(--c-text-main);
+    font-size: 13px;
+    line-height: 1.6;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.model-limit-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 4px 0;
+}
+
+.model-limit-list li {
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: var(--c-gray-hover);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    font-size: 13px;
+}
+
+.limit-param-name {
+    font-weight: 600;
+    color: var(--c-primary);
+    white-space: nowrap;
+}
+
+.limit-changed-notice {
+    font-size: 12px;
+    color: var(--c-text-secondary);
+    margin: 10px 0 6px 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--c-border);
+}
+
+.model-limit-toast-footer {
+    padding: 12px 20px 16px;
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--c-border);
+}
+
+.model-limit-toast-btn {
+    background: var(--c-primary);
+    color: var(--c-white);
+    border: none;
+    padding: 8px 24px;
+    border-radius: var(--radius-tag);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.model-limit-toast-btn:hover {
+    background: var(--c-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(45, 111, 245, 0.3);
+}
+
+/* =========================================
    5. 移动端适配
    ========================================= */
 @media (max-width: 768px) {
