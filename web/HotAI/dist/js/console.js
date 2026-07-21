@@ -109,8 +109,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('statTotalTokens').textContent = formatNumber(total_tokens || 0);
             document.getElementById('statAvgTPM').textContent = formatNumber(tpm || 0);
             document.getElementById('statAvgRPM').textContent = (rpm || 0).toFixed(3);
+
+            const timeDiffMin = (filterParams.end - filterParams.start) / 60;
+            const avgRpm = timeDiffMin > 0 ? ((rpm || 0) / timeDiffMin) : 0;
+            const avgTpm = timeDiffMin > 0 ? ((tpm || 0) / timeDiffMin) : 0;
+            document.getElementById('cardAvgRPM').textContent = isFinite(avgRpm) ? avgRpm.toFixed(3) : '0';
+            document.getElementById('cardAvgTPM').textContent = isFinite(avgTpm) ? avgTpm.toFixed(3) : '0';
         } else {
-            ['statTotalTokens', 'statAvgTPM', 'statAvgRPM'].forEach(id => {
+            ['statTotalTokens', 'statAvgTPM', 'statAvgRPM', 'cardAvgRPM', 'cardAvgTPM'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = '0';
             });
@@ -721,9 +727,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const p50 = `${Math.round(totalP50 / count)}ms`;
             const err = `${errorRate.toFixed(2)}%`;
-            // 顶部卡片
-            document.getElementById('cardP50').textContent = p50;
-            document.getElementById('cardErrorRate').textContent = err;
             // 性能概览 Tab
             document.getElementById('perfP50').textContent = p50;
             document.getElementById('perfP99').textContent = count > 0 ? `${Math.round(totalP99 / count)}ms` : '--';
