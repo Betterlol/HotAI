@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return user;
     }
 
-    // ========== 加载日志统计数据（quota / RPM / TPM）==========
+    // ========== 加载日志统计数据（total_tokens / RPM / TPM）==========
     async function loadLogStats() {
         const params = {
             start_timestamp: filterParams.start,
@@ -104,13 +104,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 顶部卡片始终显示个人数据；管理员看全体走下方的「性能概览」Tab
         const res = await API.getUserLogsStat(params);
         if (res.success && res.data) {
-            const { quota, rpm, tpm } = res.data;
+            const { total_tokens, rpm, tpm } = res.data;
 
-            document.getElementById('statStatQuota').textContent = quotaToDisplay(quota);
+            document.getElementById('statTotalTokens').textContent = formatNumber(total_tokens || 0);
             document.getElementById('statAvgTPM').textContent = formatNumber(tpm || 0);
             document.getElementById('statAvgRPM').textContent = (rpm || 0).toFixed(3);
         } else {
-            ['statStatQuota', 'statAvgTPM', 'statAvgRPM'].forEach(id => {
+            ['statTotalTokens', 'statAvgTPM', 'statAvgRPM'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = '0';
             });
