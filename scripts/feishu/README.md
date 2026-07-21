@@ -1,6 +1,6 @@
 # 飞书模型介绍页自动更新运维指南
 
-本目录提供飞书知识库文档抓取工具，用于从指定飞书 Wiki 节点读取模型信息，并自动生成项目内的模型介绍页模板。
+本目录提供飞书知识库文档抓取工具，用于从指定飞书 Wiki 节点读取模型信息，并自动生成项目内的模型介绍页。
 
 默认流程为：
 
@@ -8,7 +8,7 @@
 2. 使用 token 读取配置的飞书 Wiki 文档或电子表格。
 3. 将抓取结果转换为 Markdown。
 4. 从 Markdown 中提取第一张表格。
-5. 根据表格中的 `模型ID` 列生成 `docs/模型介绍页模板.md`。
+5. 根据表格中的 `模型ID` 列生成 `web/HotAI/dist/docs/model-info.md`。
 
 ## 文件说明
 
@@ -80,16 +80,16 @@ FEISHU_REDIRECT_URI=http://localhost:9000/
 ```env
 FEISHU_WIKI_URL=https://pcn43kg7pnzs.feishu.cn/wiki/DG5cwq12EiuaQGk8UbtcaQKdnif
 FEISHU_DOC_OUTPUT=docs/feishu_content.txt
-FEISHU_SYNC_MODEL_TEMPLATE=true
-FEISHU_MODEL_TEMPLATE_PATH=docs/模型介绍页模板.md
+FEISHU_SYNC_MODEL_INFO=true
+FEISHU_MODEL_INFO_PATH=web/HotAI/dist/docs/model-info.md
 ```
 
 说明：
 
 - `FEISHU_WIKI_URL`：要抓取的飞书 Wiki 链接，也可以填写 Wiki token。
 - `FEISHU_DOC_OUTPUT`：保存原始抓取结果的路径。相对路径按仓库根目录解析。
-- `FEISHU_SYNC_MODEL_TEMPLATE`：是否在抓取后同步生成模型介绍页模板，默认 `true`。
-- `FEISHU_MODEL_TEMPLATE_PATH`：模型介绍页模板输出路径，默认 `docs/模型介绍页模板.md`。
+- `FEISHU_SYNC_MODEL_INFO`：是否在抓取后同步生成模型介绍页，默认 `true`。
+- `FEISHU_MODEL_INFO_PATH`：模型介绍页输出路径，默认 `web/HotAI/dist/docs/model-info.md`。
 
 ### 可选配置
 
@@ -129,7 +129,7 @@ http://localhost:9000/auth
 2. 如果 `FEISHU_SAVE_USER_ACCESS_TOKEN=true`，把 token 写入 `scripts/feishu/.env`。
 3. 根据 `FEISHU_WIKI_URL` 抓取飞书文档。
 4. 如果配置了 `FEISHU_DOC_OUTPUT`，保存原始抓取结果。
-5. 如果 `FEISHU_SYNC_MODEL_TEMPLATE=true`，生成或覆盖模型介绍页模板。
+5. 如果 `FEISHU_SYNC_MODEL_INFO=true`，生成或覆盖模型介绍页。
 
 成功时控制台会输出类似信息：
 
@@ -137,7 +137,7 @@ http://localhost:9000/auth
 文档标题: xxx
 文档类型: sheet
 文档 token: xxx
-模型介绍页模板已更新: /path/to/HotAI/docs/模型介绍页模板.md
+模型介绍页已更新: /path/to/HotAI/web/HotAI/dist/docs/model-info.md
 文档内容已写入: /path/to/HotAI/docs/feishu_content.txt
 ```
 
@@ -161,7 +161,7 @@ python scripts/feishu/main.py fetch "https://example.feishu.cn/wiki/xxxx"
 python scripts/feishu/main.py fetch --output docs/feishu_content.txt
 ```
 
-注意：只要 `FEISHU_SYNC_MODEL_TEMPLATE` 未关闭，`fetch` 成功后也会同步更新模型介绍页模板。
+注意：只要 `FEISHU_SYNC_MODEL_INFO` 未关闭，`fetch` 成功后也会同步更新模型介绍页。
 
 ## 模型表格格式要求
 
@@ -288,13 +288,13 @@ python scripts/feishu/main.py check --input docs/feishu_content.txt
 执行更新后，检查以下文件：
 
 ```bash
-ls -l docs/feishu_content.txt docs/模型介绍页模板.md
+ls -l docs/feishu_content.txt web/HotAI/dist/docs/model-info.md
 ```
 
 查看模型介绍页头部和前几个模型：
 
 ```bash
-sed -n '1,80p' docs/模型介绍页模板.md
+sed -n '1,80p' web/HotAI/dist/docs/model-info.md
 ```
 
 如果本次更新正确，应看到：
@@ -351,8 +351,8 @@ sed -n '1,80p' docs/模型介绍页模板.md
 
 检查项：
 
-- `FEISHU_SYNC_MODEL_TEMPLATE` 是否为 `false`。
-- `FEISHU_MODEL_TEMPLATE_PATH` 是否可写。
+- `FEISHU_SYNC_MODEL_INFO` 是否为 `false`。
+- `FEISHU_MODEL_INFO_PATH` 是否可写。
 - 飞书文档第一张表是否包含 `模型ID` 表头。
 - 表格行是否存在非空 `模型ID`。
 

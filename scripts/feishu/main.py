@@ -20,14 +20,14 @@ from table_processor import (
     check_table_content,
     extract_first_markdown_table,
     print_check_report,
-    render_model_template,
+    render_model_info,
 )
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 DEFAULT_WIKI_URL = "https://pcn43kg7pnzs.feishu.cn/wiki/DG5cwq12EiuaQGk8UbtcaQKdnif"
-DEFAULT_MODEL_TEMPLATE_PATH = "docs/模型介绍页模板.md"
+DEFAULT_MODEL_INFO_PATH = "web/HotAI/dist/docs/model-info.md"
 
 
 def load_local_env():
@@ -117,27 +117,27 @@ def write_fetched_content(output_path, content):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
 
-    template_path = sync_model_template_from_content(content)
-    if template_path:
-        print(f"模型介绍页模板已更新: {template_path}")
+    info_path = sync_model_info_from_content(content)
+    if info_path:
+        print(f"模型介绍页已更新: {info_path}")
     return path
 
 
-def sync_model_template_from_content(content):
+def sync_model_info_from_content(content):
     """从抓取结果的第一张表格生成模型介绍页。"""
-    if not env_bool("FEISHU_SYNC_MODEL_TEMPLATE", True):
+    if not env_bool("FEISHU_SYNC_MODEL_INFO", True):
         return None
 
-    template_path = os.getenv("FEISHU_MODEL_TEMPLATE_PATH", DEFAULT_MODEL_TEMPLATE_PATH)
+    info_path = os.getenv("FEISHU_MODEL_INFO_PATH", DEFAULT_MODEL_INFO_PATH)
     markdown_table = extract_first_markdown_table(content)
-    return write_model_template_file(template_path, markdown_table)
+    return write_model_info_file(info_path, markdown_table)
 
 
-def write_model_template_file(template_path, markdown_table):
+def write_model_info_file(info_path, markdown_table):
     """渲染并写入模型介绍页文件。"""
-    path = repo_path(template_path)
+    path = repo_path(info_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_model_template(markdown_table), encoding="utf-8")
+    path.write_text(render_model_info(markdown_table), encoding="utf-8")
     return path
 
 
@@ -171,7 +171,7 @@ def build_oauth_server_config(args):
         "fetch_doc_after_auth": env_bool("FEISHU_FETCH_DOC_AFTER_AUTH", True),
         "write_content": write_fetched_content,
         "doc_output": args.output or os.getenv("FEISHU_DOC_OUTPUT"),
-        "sync_model_template": sync_model_template_from_content,
+        "sync_model_info": sync_model_info_from_content,
         "lang": args.lang,
     }
 
@@ -219,9 +219,9 @@ def run_fetch(args):
         output_path = write_fetched_content(output, content)
         print(f"内容已写入: {output_path}")
     else:
-        template_path = sync_model_template_from_content(content)
-        if template_path:
-            print(f"模型介绍页模板已更新: {template_path}")
+        info_path = sync_model_info_from_content(content)
+        if info_path:
+            print(f"模型介绍页已更新: {info_path}")
         print()
         print(content)
 

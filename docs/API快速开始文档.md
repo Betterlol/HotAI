@@ -48,7 +48,7 @@ curl https://api.example.com/v1/chat/completions \
 | 模型 ID | 需要调用的模型名称，可先用 `/v1/models` 查询 | `deepseek-v4-flash` |
 
 - API Key 只在请求头中使用，不要写入公开文档、截图、前端代码或 Git 仓库。
-- 更多模型信息可参考：[模型介绍页模板](./模型介绍页模板.md)。
+- 更多模型信息可参考：[模型总览](web/HotAI/dist/docs/model-info.md)。
 
 ## 三、验证 API Key 和模型列表
 
