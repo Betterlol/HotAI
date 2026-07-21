@@ -10,8 +10,8 @@ from dataclasses import dataclass
 
 
 MODEL_ID_COLUMN = "模型ID"
-MODEL_TEMPLATE_IGNORED_COLUMNS = {"编号", MODEL_ID_COLUMN}
-MODEL_TEMPLATE_HEADER = "# 模型介绍\n\n本平台提供的模型及其属性如下（共{count}款）："
+MODEL_INFO_IGNORED_COLUMNS = {"编号", MODEL_ID_COLUMN}
+MODEL_INFO_HEADER = "# 模型总览\n\n本平台提供的模型及其属性如下（共{count}款）："
 
 CHECK_REQUIRED_FIELD_ALIASES = (
     ("模型ID", ("模型ID", "名称", "模型名", "模型名称")),
@@ -42,11 +42,11 @@ class ModelTableCheckResult:
     warnings: list[str]
 
 
-def render_model_template(markdown_table):
+def render_model_info(markdown_table):
     """根据模型清单 Markdown 表格生成模型介绍页内容。"""
     model_table = parse_model_table(markdown_table)
     if not model_table:
-        header = MODEL_TEMPLATE_HEADER.format(count=0)
+        header = MODEL_INFO_HEADER.format(count=0)
         return f"{header}\n\n{markdown_table.strip()}\n"
 
     sections = []
@@ -70,14 +70,14 @@ def render_model_template(markdown_table):
         ]
         for index, name in enumerate(model_table.header):
             name = name.strip()
-            if not name or name in MODEL_TEMPLATE_IGNORED_COLUMNS:
+            if not name or name in MODEL_INFO_IGNORED_COLUMNS:
                 continue
             value = row[index].strip() if index < len(row) else ""
             lines.append(f"| {name} | {value} |")
 
         sections.append("\n".join(lines))
 
-    header = MODEL_TEMPLATE_HEADER.format(count=model_count)
+    header = MODEL_INFO_HEADER.format(count=model_count)
     body = "\n\n".join(sections) if sections else markdown_table.strip()
     return f"{header}\n\n{body}\n"
 

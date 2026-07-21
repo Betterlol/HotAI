@@ -67,9 +67,9 @@ def fetch_doc_after_auth(access_token, config):
         output_path = config["write_content"](config["doc_output"], content)
         print(f"文档内容已写入: {output_path}")
     else:
-        template_path = config["sync_model_template"](content)
-        if template_path:
-            print(f"模型介绍页模板已更新: {template_path}")
+        info_path = config["sync_model_info"](content)
+        if info_path:
+            print(f"模型介绍页已更新: {info_path}")
         print("文档内容:")
         print(content)
 
@@ -101,7 +101,7 @@ def create_app(config):
         if state != config["oauth_state"]:
             return "授权失败，state 不匹配", 400
 
-        print(f"成功获取授权码: {code}")
+        print(f"✅ 成功获取授权码: {code}")
 
         # code 只能使用一次，拿到后立即换取 user_access_token。
         try:
