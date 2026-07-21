@@ -95,34 +95,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         return user;
     }
 
-    // ========== 加载日志统计数据（tokens / RPM / TPM）==========
+    // ========== 加载日志统计数据（quota / RPM / TPM）==========
     async function loadLogStats() {
         const params = {
             start_timestamp: filterParams.start,
             end_timestamp: filterParams.end,
         };
-        const endpoint = isAdmin ? API.getAllLogsStat : API.getUserLogsStat;
-        const res = await endpoint(params);
+        // 顶部卡片始终显示个人数据；管理员看全体走下方的「性能概览」Tab
+        const res = await API.getUserLogsStat(params);
         if (res.success && res.data) {
-            const { count, quota, prompt_tokens, completion_tokens } = res.data;
-            const totalTokens = (prompt_tokens || 0) + (completion_tokens || 0);
-            const timeDiffMin = (filterParams.end - filterParams.start) / 60;
+            const { quota, rpm, tpm } = res.data;
 
-            document.getElementById('statStatCount').textContent = formatNumber(count);
             document.getElementById('statStatQuota').textContent = quotaToDisplay(quota);
-            document.getElementById('statStatTokens').textContent = formatNumber(totalTokens);
-
-            let rpm = timeDiffMin > 0 ? (count / timeDiffMin) : 0;
-            let tpm = timeDiffMin > 0 ? Math.round(totalTokens / timeDiffMin) : 0;
-            
-            // 确保 NaN 显示为 0
-            if (isNaN(rpm) || !isFinite(rpm)) rpm = 0;
-            if (isNaN(tpm) || !isFinite(tpm)) tpm = 0;
-            
-            document.getElementById('statAvgRPM').textContent = rpm.toFixed(3);
-            document.getElementById('statAvgTPM').textContent = formatNumber(tpm);
+            document.getElementById('statAvgTPM').textContent = formatNumber(tpm || 0);
+            document.getElementById('statAvgRPM').textContent = (rpm || 0).toFixed(3);
         } else {
-            ['statStatCount', 'statStatQuota', 'statStatTokens', 'statAvgRPM', 'statAvgTPM'].forEach(id => {
+            ['statStatQuota', 'statAvgTPM', 'statAvgRPM'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = '0';
             });
@@ -731,14 +719,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             const totalFail = totalReqs - Math.round(totalSuccess);
             const errorRate = totalReqs > 0 ? (1 - totalSuccess / totalReqs) * 100 : 0;
 
-            document.getElementById('perfP50').textContent = count > 0 ? `${Math.round(totalP50 / count)}ms` : '--';
+            const p50 = `${Math.round(totalP50 / count)}ms`;
+            const err = `${errorRate.toFixed(2)}%`;
+            // 顶部卡片
+            document.getElementById('cardP50').textContent = p50;
+            document.getElementById('cardErrorRate').textContent = err;
+            // 性能概览 Tab
+            document.getElementById('perfP50').textContent = p50;
             document.getElementById('perfP99').textContent = count > 0 ? `${Math.round(totalP99 / count)}ms` : '--';
             document.getElementById('perfCurrentRPM').textContent = totalTps > 0 ? totalTps.toFixed(2) : '--';
             document.getElementById('perfCurrentTPM').textContent = totalTps > 0 ? (totalTps * 60).toLocaleString() : '--';
-            document.getElementById('perfErrorRate').textContent = `${errorRate.toFixed(2)}%`;
+            document.getElementById('perfErrorRate').textContent = err;
             document.getElementById('perfFailCount').textContent = totalReqs > 0 ? totalFail.toLocaleString() : '0';
         } else {
-            ['perfP50','perfP99','perfCurrentRPM','perfCurrentTPM','perfErrorRate','perfFailCount'].forEach(id => {
+            ['perfP50','perfErrorRate','perfP99','perfCurrentRPM','perfCurrentTPM','perfFailCount'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = '--';
             });
@@ -804,6 +798,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadChartData(),
         loadApiInfo(),
     ]);
+
+    // 预加载系统性能指标（填充顶部卡片）
+    if (typeof loadPerformanceData === 'function') {
+        loadPerformanceData();
+    }
 
     // 定时刷新（每60秒）
     setInterval(async () => {

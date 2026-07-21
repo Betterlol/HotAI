@@ -201,8 +201,8 @@
                     </div>
                     <div class="stat-item">
                         <span class="icon-circle" style="background:#e0f2fe; color:#0284c7;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9-4-18-3 9H2"/></svg></span>
-                        <span>统计次数</span>
-                        <span class="val" id="statStatCount">--</span>
+                        <span>近期请求数</span>
+                        <span class="val" id="statAvgRPM">--</span>
                     </div>
                 </div>
             </div>
@@ -220,8 +220,8 @@
                     </div>
                     <div class="stat-item">
                         <span class="icon-circle" style="background:#fce7f3; color:#be185d;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-                        <span>统计Tokens</span>
-                        <span class="val" id="statStatTokens">--</span>
+                        <span>近期Token数</span>
+                        <span class="val" id="statAvgTPM">--</span>
                     </div>
                 </div>
             </div>
@@ -229,18 +229,18 @@
             <div class="stat-card">
                 <div class="stat-card-header">
                     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-                    <span>性能指标</span>
+                    <span>系统性能指标</span>
                 </div>
                 <div class="stat-list">
                     <div class="stat-item">
                         <span class="icon-circle" style="background:#e0f2fe; color:#0284c7;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span>
-                        <span>平均RPM</span>
-                        <span class="val" id="statAvgRPM">--</span>
+                        <span>P50延迟</span>
+                        <span class="val" id="cardP50">--</span>
                     </div>
                     <div class="stat-item">
                         <span class="icon-circle" style="background:#fef3c7; color:#b45309;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span>
-                        <span>平均TPM</span>
-                        <span class="val" id="statAvgTPM">--</span>
+                        <span>错误率</span>
+                        <span class="val" id="cardErrorRate">--</span>
                     </div>
                 </div>
             </div>
