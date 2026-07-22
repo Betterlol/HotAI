@@ -351,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 检查 URL hash
         const hash = window.location.hash.substring(1);
         
-        let initialDoc = 'docs/quickstart.md';
+        let initialDoc = 'docs/user/101-user-guide.md';
         
         if (hash && hash.startsWith('docs/')) {
             initialDoc = hash;

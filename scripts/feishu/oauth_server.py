@@ -7,6 +7,7 @@
 """
 
 from urllib.parse import urlencode
+import time
 
 from flask import Flask, redirect, request
 import requests
@@ -93,13 +94,14 @@ def create_app(config):
     @app.route("/")
     def callback():
         # 飞书 OAuth 回调会携带 code 和 state，state 用于防止串改请求。
+        callback_time = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
         code = request.args.get("code")
         state = request.args.get("state")
 
         if not code:
-            return "授权失败，未获取到授权码", 400
+            return f"授权失败，未获取到授权码<br>当前时间：{callback_time}", 400
         if state != config["oauth_state"]:
-            return "授权失败，state 不匹配", 400
+            return f"授权失败，state 不匹配<br>当前时间：{callback_time}", 400
 
         print(f"✅ 成功获取授权码: {code}")
 
@@ -112,7 +114,7 @@ def create_app(config):
             )
         except Exception as exc:
             print(f"❌ 获取 Token 失败: {exc}")
-            return f"授权失败: {exc}", 400
+            return f"授权失败: {exc}<br>当前时间：{callback_time}", 400
 
         access_token = token_data["access_token"]
         print(f"✅ 获取 Token 成功: {access_token}")
@@ -121,13 +123,13 @@ def create_app(config):
             config["save_user_access_token"](access_token)
 
         if not config["fetch_doc_after_auth"]:
-            return "授权成功！user_access_token 已打印到控制台，已跳过文档抓取。"
+            return f"授权成功！user_access_token 已打印到控制台，已跳过文档抓取。<br>当前时间：{callback_time}"
 
         try:
             node, content = fetch_doc_after_auth(access_token, config)
         except Exception as exc:
             print(f"❌ 文档抓取失败: {exc}")
-            return f"授权成功，但文档抓取失败: {exc}", 500
+            return f"授权成功，但文档抓取失败: {exc}<br>当前时间：{callback_time}", 500
 
         output_msg = (
             f"文档内容已写入 {config['doc_output']}"
@@ -138,6 +140,7 @@ def create_app(config):
             f"授权成功，并已完成文档抓取！<br>"
             f"标题：{node['title']}<br>"
             f"内容长度：{len(content)} 字符<br>"
+            f"当前时间：{callback_time}<br>"
             f"{output_msg}"
         )
 

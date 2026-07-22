@@ -8,7 +8,7 @@
 2. 使用 token 读取配置的飞书 Wiki 文档或电子表格。
 3. 将抓取结果转换为 Markdown。
 4. 从 Markdown 中提取第一张表格。
-5. 根据表格中的 `模型ID` 列生成 `web/HotAI/dist/docs/model-info.md`。
+5. 根据表格中的 `模型ID` 列生成 `web/HotAI/dist/docs/user/103-model-info.md`。
 
 ## 文件说明
 
@@ -81,7 +81,7 @@ FEISHU_REDIRECT_URI=http://localhost:9000/
 FEISHU_WIKI_URL=https://pcn43kg7pnzs.feishu.cn/wiki/DG5cwq12EiuaQGk8UbtcaQKdnif
 FEISHU_DOC_OUTPUT=docs/feishu_content.txt
 FEISHU_SYNC_MODEL_INFO=true
-FEISHU_MODEL_INFO_PATH=web/HotAI/dist/docs/model-info.md
+FEISHU_MODEL_INFO_PATH=web/HotAI/dist/docs/user/103-model-info.md
 ```
 
 说明：
@@ -89,7 +89,7 @@ FEISHU_MODEL_INFO_PATH=web/HotAI/dist/docs/model-info.md
 - `FEISHU_WIKI_URL`：要抓取的飞书 Wiki 链接，也可以填写 Wiki token。
 - `FEISHU_DOC_OUTPUT`：保存原始抓取结果的路径。相对路径按仓库根目录解析。
 - `FEISHU_SYNC_MODEL_INFO`：是否在抓取后同步生成模型介绍页，默认 `true`。
-- `FEISHU_MODEL_INFO_PATH`：模型介绍页输出路径，默认 `web/HotAI/dist/docs/model-info.md`。
+- `FEISHU_MODEL_INFO_PATH`：模型介绍页输出路径，默认 `web/HotAI/dist/docs/user/103-model-info.md`。
 
 ### 可选配置
 
@@ -137,7 +137,7 @@ http://localhost:9000/auth
 文档标题: xxx
 文档类型: sheet
 文档 token: xxx
-模型介绍页已更新: /path/to/HotAI/web/HotAI/dist/docs/model-info.md
+模型介绍页已更新: /path/to/HotAI/web/HotAI/dist/docs/user/103-model-info.md
 文档内容已写入: /path/to/HotAI/docs/feishu_content.txt
 ```
 
@@ -288,13 +288,13 @@ python scripts/feishu/main.py check --input docs/feishu_content.txt
 执行更新后，检查以下文件：
 
 ```bash
-ls -l docs/feishu_content.txt web/HotAI/dist/docs/model-info.md
+ls -l docs/feishu_content.txt web/HotAI/dist/docs/user/103-model-info.md
 ```
 
 查看模型介绍页头部和前几个模型：
 
 ```bash
-sed -n '1,80p' web/HotAI/dist/docs/model-info.md
+sed -n '1,80p' web/HotAI/dist/docs/user/103-model-info.md
 ```
 
 如果本次更新正确，应看到：

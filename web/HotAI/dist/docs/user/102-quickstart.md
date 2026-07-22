@@ -48,7 +48,7 @@ curl https://api.example.com/v1/chat/completions \
 | 模型 ID | 需要调用的模型名称，可先用 `/v1/models` 查询 | `deepseek-v4-flash` |
 
 - API Key 只在请求头中使用，不要写入公开文档、截图、前端代码或 Git 仓库。
-- 更多模型信息可参考：[模型总览](web/HotAI/dist/docs/model-info.md)。
+- 更多模型信息可参考：[模型总览](#docs/user/103-model-info.md)。
 
 ## 三、验证 API Key 和模型列表
 
@@ -236,7 +236,7 @@ curl https://api.example.com/v1/chat/completions \
 | `429` | 触发请求频率限制或并发限制 | 降低请求频率，稍后重试，或联系管理员调整限额 |
 | `500` | 服务端或上游模型服务异常 | 稍后重试；如持续出现，记录请求时间、模型 ID 和错误信息后反馈 |
 
-更多排查方法详见：[FAQ 与常见报错排查](./FAQ与常见报错排查.md)。
+更多排查方法详见：[FAQ 与常见报错排查](#docs/user/104-faq.md)。
 
 ## 八、接入检查清单
 
