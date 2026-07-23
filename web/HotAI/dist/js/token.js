@@ -486,7 +486,7 @@ async function toggleTokenStatus(id, currentStatus) {
 }
 
 async function deleteToken(id, name) {
-    if (!confirm(`确定删除令牌「${name}」？此操作不可恢复。`)) return;
+    if (!confirm(I18n.t('token.delete_confirm').replace('{}', name))) return;
     const res = await API.deleteToken(id);
     if (res.success) {
         showToast('令牌已删除', 'success');
@@ -537,7 +537,7 @@ async function batchDisableTokens() {
 
 async function batchDeleteTokens() {
     if (!selectedTokens.size) return;
-    if (!confirm(`确定删除选中的 ${selectedTokens.size} 个令牌？`)) return;
+    if (!confirm(I18n.t('token.batch_delete_confirm').replace('{}', selectedTokens.size))) return;
     await Promise.all([...selectedTokens].map(id => API.deleteToken(id)));
     showToast(`已删除 ${selectedTokens.size} 个令牌`, 'success');
     selectedTokens.clear(); updateTokenBatchActions(); loadTokens();

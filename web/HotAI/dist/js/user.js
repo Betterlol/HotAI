@@ -422,7 +422,7 @@ async function promoteUser(userId, currentRole, username) {
         return;
     }
     const nextRoleName = currentRole === 1 ? roleNames[10] : roleNames[100];
-    if (!confirm(`确定要将用户「${username}」提升为${nextRoleName}吗？`)) return;
+    if (!confirm(I18n.t('user.promote_confirm').replace('{}', username).replace('{}', nextRoleName))) return;
 
     const res = await API.manageUser({id: userId, action: 'promote'});
     if (res.success) {
@@ -439,7 +439,7 @@ async function demoteUser(userId, currentRole, username) {
         return;
     }
     const prevRoleName = currentRole === 100 ? roleNames[10] : roleNames[1];
-    if (!confirm(`确定要将用户「${username}」降低为${prevRoleName}吗？`)) return;
+    if (!confirm(I18n.t('user.demote_confirm').replace('{}', username).replace('{}', prevRoleName))) return;
 
     const res = await API.manageUser({id: userId, action: 'demote'});
     if (res.success) {
@@ -467,7 +467,7 @@ async function toggleUserStatus(id, currentStatus) {
 }
 
 async function deleteUser(id, username) {
-    if (!confirm(`确定删除用户「${username}」？此操作不可撤销。`)) return;
+    if (!confirm(I18n.t('user.delete_confirm').replace('{}', username))) return;
     const res = await API.deleteUser(id);
     if (res.success) {
         showToast('用户已删除', 'success');
@@ -563,7 +563,7 @@ function closeSubscriptionModal() {
 }
 
 async function invalidateSubscription(subId) {
-    if (!confirm('确定要使该订阅失效吗？')) return;
+    if (!confirm(I18n.t('user.subscription_invalid_confirm'))) return;
     const res = await API.invalidateUserSubscription(subId);
     if (res.success) {
         showToast('订阅已失效', 'success');
@@ -576,7 +576,7 @@ async function invalidateSubscription(subId) {
 }
 
 async function deleteSubscription(subId) {
-    if (!confirm('确定要删除该订阅吗？此操作不可撤销。')) return;
+    if (!confirm(I18n.t('user.subscription_delete_confirm'))) return;
     const res = await API.deleteUserSubscription(subId);
     if (res.success) {
         showToast('订阅已删除', 'success');
@@ -589,7 +589,7 @@ async function deleteSubscription(subId) {
 }
 
 async function resetPasskey(userId, username) {
-    if (!confirm(`确定要重置用户「${username}」的Passkey吗？用户将需要重新注册Passkey。`)) return;
+    if (!confirm(I18n.t('user.passkey_reset_confirm').replace('{}', username))) return;
     const res = await API.resetUserPasskey(userId);
     if (res.success) {
         showToast(`已重置「${username}」的Passkey`, 'success');
@@ -599,7 +599,7 @@ async function resetPasskey(userId, username) {
 }
 
 async function reset2FA(userId, username) {
-    if (!confirm(`确定要重置用户「${username}」的2FA吗？用户将需要重新设置2FA。`)) return;
+    if (!confirm(I18n.t('user.twofa_reset_confirm').replace('{}', username))) return;
     const res = await API.resetUser2FA(userId);
     if (res.success) {
         showToast(`已重置「${username}」的2FA`, 'success');
@@ -728,7 +728,7 @@ async function batchUnbanUsers() {
 
 async function batchDeleteUsers() {
     if (!selectedUsers.size) return;
-    if (!confirm(`确定删除选中的 ${selectedUsers.size} 个用户？`)) return;
+    if (!confirm(I18n.t('user.batch_delete_confirm').replace('{}', selectedUsers.size))) return;
     await Promise.all([...selectedUsers].map(id => API.deleteUser(id)));
     showToast(`已删除 ${selectedUsers.size} 个用户`, 'success');
     selectedUsers.clear();

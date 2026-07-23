@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="picture/favicon.ico" />
     <link rel="icon" type="image/png" href="picture/logo.png" />
-    <title>404 - 页面未找到</title>
+    <title data-i18n="404.title">404 - 页面未找到</title>
     <link rel="stylesheet" href="css/head.css">
     <style>
         .error-container {
@@ -84,13 +84,13 @@
     <div class="error-container">
         <div class="error-icon">🔍</div>
         <div class="error-code">404</div>
-        <div class="error-title">页面未找到</div>
-        <div class="error-message">
+        <div class="error-title" data-i18n="404.error_title">页面未找到</div>
+        <div class="error-message" data-i18n="404.error_message">
             抱歉，您访问的页面不存在或已被移除。请检查 URL 是否正确，或返回首页继续浏览。
         </div>
         <div class="error-actions">
-            <a href="index.html" class="error-btn error-btn-primary">返回首页</a>
-            <button onclick="history.back()" class="error-btn error-btn-secondary">返回上一页</button>
+            <a href="index.html" class="error-btn error-btn-primary" data-i18n="404.btn_home">返回首页</a>
+            <button onclick="history.back()" class="error-btn error-btn-secondary" data-i18n="404.btn_back">返回上一页</button>
         </div>
     </div>
 

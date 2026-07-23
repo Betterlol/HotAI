@@ -939,7 +939,7 @@ async function loadSystemInfo() {
 }
 
 window.clearSystemLogs = async function() {
-    if (!confirm('确定要清理系统日志吗？此操作不可撤销。')) return;
+    if (!confirm(I18n.t('setting.clean_log_confirm'))) return;
     const res = await API.clearLogs();
     showToast(res.success ? '清理成功' : (res.message || '清理失败'), res.success ? 'success' : 'error');
 };
@@ -960,7 +960,7 @@ window.purgeOldLogs = async function() {
         showToast('请选择日期', 'error');
         return;
     }
-    if (!confirm(`确定要清除 ${dateInput.value} 之前的所有日志吗？此操作不可撤销。`)) return;
+    if (!confirm(I18n.t('setting.clean_log_before_confirm').replace('{}', dateInput.value))) return;
     
     // 调用后端API清除日志（需要后端支持）
     showToast('日志清除功能需要后端API支持', 'info');
@@ -1203,7 +1203,7 @@ window.savePricing = async function() {
 };
 
 window.deleteModelPricing = async function(modelName) {
-    if (!confirm(`确定要删除模型 ${modelName} 的定价配置吗？`)) return;
+    if (!confirm(I18n.t('setting.delete_model_pricing_confirm').replace('{}', modelName))) return;
     
     try {
         const modelPrice = JSON.parse(settingsData.ModelPrice || '{}');
