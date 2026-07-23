@@ -362,6 +362,17 @@ body {
     margin: 16px 0;
 }
 
+#md-content .manual-screenshot {
+    display: block;
+    width: min(100%, 760px);
+    border: 1px solid var(--c-border);
+    box-shadow: var(--shadow-card);
+}
+
+#md-content .manual-screenshot-wide {
+    width: min(100%, 860px);
+}
+
 #md-content hr {
     border: none;
     border-top: 1px solid var(--c-border);

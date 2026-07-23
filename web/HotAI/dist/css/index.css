@@ -548,6 +548,7 @@ body {
 
 /* 调整长标题样式，防止视觉失衡 */
 .brand-logo {
+    display: block;
     font-size: 42px; /* 缩小字号以适应长文本 */
     font-weight: 900;
     letter-spacing: 1px;
@@ -557,6 +558,20 @@ body {
     text-align: center;
     word-break: break-word; /* 防止极端情况溢出 */
     max-width: 90%;
+}
+
+.brand-logo .brand-logo-line {
+    display: inline-block;
+    line-height: 1.15;
+}
+
+.brand-logo .brand-logo-cn {
+    font-size: 1em;
+}
+
+.brand-logo .brand-logo-en {
+    margin-top: 6px;
+    font-size: 0.72em;
 }
 
 /* 拉伸输入框宽度，配合长标题 */

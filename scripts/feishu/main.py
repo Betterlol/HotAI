@@ -27,7 +27,7 @@ from table_processor import (
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 DEFAULT_WIKI_URL = "https://pcn43kg7pnzs.feishu.cn/wiki/DG5cwq12EiuaQGk8UbtcaQKdnif"
-DEFAULT_MODEL_INFO_PATH = "web/HotAI/dist/docs/model-info.md"
+DEFAULT_MODEL_INFO_PATH = "web/HotAI/dist/docs/user/103-model-info.md"
 
 
 def load_local_env():
