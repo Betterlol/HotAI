@@ -55,7 +55,7 @@ const I18n = {
             
             // === 主体区域 (首页) ===
             'main.input_placeholder': '输入您的问题...',
-            'main.subtitle': '国内外 AI api 智能聚合平台，众多合作模型供您选择',
+            'main.subtitle': '国内外 AI API 智能聚合平台，众多合作模型供您选择',
             'main.more_platforms': '更多',
             'main.loading': '加载中...',
             'main.load_failed': '加载失败',
@@ -189,6 +189,7 @@ const I18n = {
             'docs.menu_model_info': '模型总览',
             'docs.menu_user_manual': '用户手册',
             'docs.menu_faq': 'FAQ 与常见报错',
+            'docs.menu_feedback': '填写使用反馈',
             'docs.menu_features': '特性说明',
             'docs.menu_architecture': '技术架构',
             'docs.menu_analytics': '分析工具设置指南',
@@ -571,6 +572,7 @@ const I18n = {
             'docs.menu_model_info': 'Model Information',
             'docs.menu_user_manual': 'User Manual',
             'docs.menu_faq': 'FAQ & Troubleshooting',
+            'docs.menu_feedback': 'Fill Out Usage Feedback',
             'docs.menu_features': 'Features',
             'docs.menu_architecture': 'Architecture',
             'docs.menu_analytics': 'Analytics Setup',
