@@ -68,8 +68,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const markdownText = await response.text();
             
             // 渲染 Markdown 为 HTML
-            const htmlContent = md.render(markdownText);
+            let htmlContent = md.render(markdownText);
+            
+            // 将 mermaid 代码块转换为 mermaid div
+            const temp = document.createElement('div');
+            temp.innerHTML = htmlContent;
+            const mermaidBlocks = temp.querySelectorAll('pre code.language-mermaid');
+            mermaidBlocks.forEach(block => {
+                const source = block.textContent.trim();
+                const pre = block.closest('pre');
+                const div = document.createElement('div');
+                div.className = 'mermaid';
+                div.textContent = source;
+                if (pre && pre.parentNode) {
+                    pre.parentNode.replaceChild(div, pre);
+                }
+            });
+            htmlContent = temp.innerHTML;
+            
             mdContent.innerHTML = htmlContent;
+            
+            // 渲染 mermaid 图表
+            if (typeof mermaid !== 'undefined') {
+                try {
+                    mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
+                } catch (e) {
+                    console.warn('mermaid 渲染失败:', e);
+                }
+            }
             
             // 重新应用翻译到动态加载的文档内容
             if (typeof I18n !== 'undefined') {
