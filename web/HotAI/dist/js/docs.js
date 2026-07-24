@@ -75,6 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
         linkify: true,
         typographer: true,
         highlight: function (str, lang) {
+            if (lang === 'mermaid') {
+                return '<div class="mermaid">' + md.utils.escapeHtml(str) + '</div>';
+            }
             if (lang && hljs.getLanguage(lang)) {
                 try {
                     return '<pre class="hljs"><code>' +
@@ -109,24 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const markdownText = await response.text();
             
             // 渲染 Markdown 为 HTML
-            let htmlContent = md.render(markdownText);
-            
-            // 将 mermaid 代码块转换为 mermaid div
-            const temp = document.createElement('div');
-            temp.innerHTML = htmlContent;
-            const mermaidBlocks = temp.querySelectorAll('pre code.language-mermaid');
-            mermaidBlocks.forEach(block => {
-                const source = block.textContent.trim();
-                const pre = block.closest('pre');
-                const div = document.createElement('div');
-                div.className = 'mermaid';
-                div.textContent = source;
-                if (pre && pre.parentNode) {
-                    pre.parentNode.replaceChild(div, pre);
-                }
-            });
-            htmlContent = temp.innerHTML;
-            
+            const htmlContent = md.render(markdownText);
             mdContent.innerHTML = htmlContent;
             
             // 渲染 mermaid 图表
