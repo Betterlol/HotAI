@@ -518,7 +518,7 @@ function collectFormData() {
 }
 
 async function deleteChannel(id) {
-    if (!confirm('确认删除该渠道？此操作不可恢复')) return;
+    if (!confirm(I18n.t('channel.delete_confirm'))) return;
     try {
         const res = await API.deleteChannel(id);
         if (res.success) {
@@ -624,7 +624,7 @@ async function checkUpstreamUpdate(id) {
 }
 
 async function syncUpstreamUpdate(id) {
-    if (!confirm('确认同步上游模型更新？')) return;
+    if (!confirm(I18n.t('channel.sync_confirm'))) return;
     try {
         const res = await API.syncUpstreamModelUpdate(id);
         if (res.success) {
@@ -706,7 +706,7 @@ async function batchDisableChannels() {
 
 async function batchDeleteChannels() {
     if (ChannelState.selectedIds.size === 0) return;
-    if (!confirm(`确认删除选中的 ${ChannelState.selectedIds.size} 个渠道？`)) return;
+    if (!confirm(I18n.t('channel.batch_delete_confirm').replace('{}', ChannelState.selectedIds.size))) return;
     try {
         const res = await API.batchDeleteChannels([...ChannelState.selectedIds]);
         if (res.success) {

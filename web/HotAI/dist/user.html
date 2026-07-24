@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="picture/favicon.ico"/>
     <link rel="icon" type="image/png" href="picture/logo.png"/>
-    <title>控制台 - 用户管理</title>
+    <title data-i18n="user.page_title">控制台 - 用户管理</title>
     <link rel="stylesheet" href="css/head.css">
     <link rel="stylesheet" href="css/console-shared.css">
 </head>
@@ -13,19 +13,19 @@
 <header class="navbar">
     <div class="nav-left">
         <a href="index.html" class="nav-logo"><img src="picture/logo.png" alt="图灵智算"
-                                                   style="width:36px;height:36px;object-fit:contain;">图灵智算</a>
-        <div class="nav-links"><a href="index.html">首页</a><a href="console.html" class="active">控制台</a><a
-                href="model.html">模型广场</a><a href="docs.html">文档</a><a href="about.html">关于</a></div>
+                                                    style="width:36px;height:36px;object-fit:contain;">图灵智算</a>
+        <div class="nav-links"><a href="index.html" data-i18n="nav.home">首页</a><a href="console.html" class="active" data-i18n="nav.console">控制台</a><a
+                href="model.html" data-i18n="nav.models">模型广场</a><a href="docs.html" data-i18n="nav.docs">文档</a><a href="about.html" data-i18n="nav.about">关于</a></div>
     </div>
     <div class="nav-right">
-        <button class="icon-btn" id="noticeBtn" title="公告">
+        <button class="icon-btn" id="noticeBtn" data-i18n-title="nav.notice" title="公告">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
         </button>
         <div class="language-selector">
-            <button class="icon-btn" id="languageBtn" title="语言">
+            <button class="icon-btn" id="languageBtn" data-i18n-title="nav.language" title="语言">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"/>
                     <path d="M2 12h20"/>
@@ -33,20 +33,20 @@
                 </svg>
             </button>
             <div class="language-dropdown" id="languageDropdown">
-                <div class="language-option" data-lang="zh"><span>中文</span></div>
-                <div class="language-option" data-lang="en"><span>English</span></div>
+                <div class="language-option" data-lang="zh"><span data-i18n="lang.zh">中文</span></div>
+                <div class="language-option" data-lang="en"><span data-i18n="lang.en">English</span></div>
             </div>
         </div>
-        <a href="login.html" class="btn-login" id="navLoginBtn">登录</a><a href="register.html" class="btn-signup"
-                                                                           id="navSignupBtn">注册</a>
+        <a href="login.html" class="btn-login" id="navLoginBtn" data-i18n="nav.login">登录</a><a href="register.html" class="btn-signup"
+                                                                            id="navSignupBtn" data-i18n="nav.signup">注册</a>
         <div class="user-menu hidden" id="navUserMenu">
             <div class="user-trigger">
                 <div class="user-avatar-top" id="navUserAvatar">U</div>
                 <span id="navUsername">User</span></div>
             <div class="user-dropdown" id="navUserDropdown">
-                <a href="profile.html" class="user-dropdown-item">个人设置</a>
+                <a href="profile.html" class="user-dropdown-item" data-i18n="nav.profile">个人设置</a>
                 <div class="user-dropdown-divider"></div>
-                <button id="navLogoutBtn" class="user-dropdown-item">退出登录</button>
+                <button id="navLogoutBtn" class="user-dropdown-item" data-i18n="nav.logout">退出登录</button>
             </div>
         </div>
     </div>
@@ -54,7 +54,7 @@
 <div class="notice-modal" id="noticeModal" style="display:none;">
     <div class="notice-overlay" id="noticeOverlay"></div>
     <div class="notice-card">
-        <div class="notice-header"><h3>公告</h3>
+        <div class="notice-header"><h3 data-i18n="notice.title">公告</h3>
             <button class="notice-close" id="noticeClose">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 6L6 18M6 6l12 12"/>
@@ -62,7 +62,7 @@
             </button>
         </div>
         <div class="notice-content" id="noticeContent">
-            <div class="notice-loading">加载中...</div>
+            <div class="notice-loading" data-i18n="notice.loading">加载中...</div>
         </div>
     </div>
 </div>
@@ -72,7 +72,7 @@
 <div class="modal-overlay hidden" id="userModal">
     <div class="modal" style="max-width:680px;">
         <div class="modal-header">
-            <div class="modal-title" id="userModalTitle">编辑用户</div>
+            <div class="modal-title" id="userModalTitle" data-i18n="user.edit">编辑用户</div>
             <button class="modal-close" onclick="closeUserModal()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 6L6 18M6 6l12 12"/>
@@ -82,7 +82,6 @@
         <div class="modal-body" style="padding:24px;max-height:70vh;overflow-y:auto;">
             <input type="hidden" id="userId">
 
-            <!-- 基础信息区块 -->
             <div style="background:#eff6ff;border:1px solid var(--c-border);border-radius:12px;padding:20px;margin-bottom:20px;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;color:var(--c-text-primary);font-weight:600;font-size:15px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -91,54 +90,54 @@
                         <line x1="12" y1="18" x2="12" y2="12"/>
                         <line x1="9" y1="15" x2="15" y2="15"/>
                     </svg>
-                    <span>基础信息</span>
+                    <span data-i18n="user.basic_info">基础信息</span>
                 </div>
-                <p style="font-size:13px;color:var(--c-text-secondary);margin:0 0 16px 28px;">用户的基本账户信息</p>
+                <p style="font-size:13px;color:var(--c-text-secondary);margin:0 0 16px 28px;" data-i18n="user.basic_info_desc">用户的基本账户信息</p>
                 <div style="display:grid;gap:12px;">
-                    <div class="form-group" style="margin:0;"><label class="form-label">用户名 *</label><input
+                    <div class="form-group" style="margin:0;"><label class="form-label" data-i18n="user.username">用户名 *</label><input
                             type="text" class="form-input" id="editUsername" readonly
                             style="background:var(--c-bg-tertiary,#f3f4f6);"/></div>
-                    <div class="form-group" style="margin:0;"><label class="form-label">密码</label><input
-                            type="password" class="form-input" id="editPassword" placeholder="留空不修改，最短 8 位"/>
+                    <div class="form-group" style="margin:0;"><label class="form-label" data-i18n="user.password">密码</label><input
+                            type="password" class="form-input" id="editPassword" data-i18n-placeholder="user.password_hint" placeholder="留空不修改，最短 8 位"/>
                     </div>
-                    <div class="form-group" style="margin:0;"><label class="form-label">显示名称</label><input
-                            type="text" class="form-input" id="editDisplayName" placeholder="用户的展示名称"/></div>
-                    <div class="form-group" style="margin:0;"><label class="form-label">邮箱</label><input type="email"
-                                                                                                           class="form-input"
-                                                                                                           id="editEmail"
-                                                                                                           placeholder="user@example.com"/>
+                    <div class="form-group" style="margin:0;"><label class="form-label" data-i18n="user.display_name">显示名称</label><input
+                            type="text" class="form-input" id="editDisplayName" data-i18n-placeholder="user.display_name_placeholder" placeholder="用户的展示名称"/></div>
+                    <div class="form-group" style="margin:0;"><label class="form-label" data-i18n="user.email">邮箱</label><input type="email"
+                                                                                                            class="form-input"
+                                                                                                            id="editEmail"
+                                                                                                            data-i18n-placeholder="user.email_placeholder"
+                                                                                                            placeholder="user@example.com"/>
                     </div>
-                    <div class="form-group" style="margin:0;"><label class="form-label">备注</label><textarea
-                            class="form-input" id="editRemark" rows="2" placeholder="仅管理员可见的备注信息"
+                    <div class="form-group" style="margin:0;"><label class="form-label" data-i18n="user.remark">备注</label><textarea
+                            class="form-input" id="editRemark" rows="2" data-i18n-placeholder="user.remark_placeholder" placeholder="仅管理员可见的备注信息"
                             style="resize:vertical;font-family:inherit;"></textarea></div>
                 </div>
             </div>
 
-            <!-- 权限设置区块 -->
             <div style="background:#eff6ff;border:1px solid var(--c-border);border-radius:12px;padding:20px;margin-bottom:20px;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;color:var(--c-text-primary);font-weight:600;font-size:15px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
-                    <span>权限设置</span>
+                    <span data-i18n="user.permission_settings">权限设置</span>
                 </div>
-                <p style="font-size:13px;color:var(--c-text-secondary);margin:0 0 16px 28px;">用户分组和额度管理</p>
+                <p style="font-size:13px;color:var(--c-text-secondary);margin:0 0 16px 28px;" data-i18n="user.permission_settings_desc">用户分组和额度管理</p>
                 <div style="display:grid;gap:12px;">
-                    <div class="form-group" style="margin:0;"><label class="form-label">角色</label>
+                    <div class="form-group" style="margin:0;"><label class="form-label" data-i18n="user.role">角色</label>
                         <select class="form-select" id="editRole">
-                            <option value="1">普通用户</option>
-                            <option value="10">管理员</option>
-                            <option value="100">超级管理员</option>
+                            <option value="1" data-i18n="user.role_user">普通用户</option>
+                            <option value="10" data-i18n="user.role_admin">管理员</option>
+                            <option value="100" data-i18n="user.role_super_admin">超级管理员</option>
                         </select>
                     </div>
-                    <div class="form-group" style="margin:0;"><label class="form-label">分组</label><input type="text"
-                                                                                                           class="form-input"
-                                                                                                           id="editGroup"
-                                                                                                           placeholder="default"/>
+                    <div class="form-group" style="margin:0;"><label class="form-label" data-i18n="user.group">分组</label><input type="text"
+                                                                                                            class="form-input"
+                                                                                                            id="editGroup"
+                                                                                                            placeholder="default"/>
                     </div>
                     <div class="form-group" style="margin:0;">
-                        <label class="form-label">金额</label>
+                        <label class="form-label" data-i18n="user.quota">金额</label>
                         <div style="display:flex;gap:8px;align-items:center;">
                             <input type="number" class="form-input" id="editQuota" placeholder="0" style="flex:1;"/>
                             <button type="button" class="btn btn-secondary btn-sm"
@@ -149,32 +148,29 @@
                                     <line x1="12" y1="5" x2="12" y2="19"/>
                                     <line x1="5" y1="12" x2="19" y2="12"/>
                                 </svg>
-                                调整额度
+                                <span data-i18n="user.quota_adjust">调整额度</span>
                             </button>
                         </div>
-                        <div style="font-size:12px;color:var(--c-text-secondary);margin-top:4px;">► 使用原生额度输入
-                        </div>
+                        <div style="font-size:12px;color:var(--c-text-secondary);margin-top:4px;" data-i18n="user.quota_hint">► 使用原生额度输入</div>
                     </div>
-                    <div class="form-group" style="margin:0;"><label class="form-label">状态</label>
+                    <div class="form-group" style="margin:0;"><label class="form-label" data-i18n="common.status">状态</label>
                         <select class="form-select" id="editStatus">
-                            <option value="1">正常</option>
-                            <option value="2">封禁</option>
+                            <option value="1" data-i18n="user.status_normal">正常</option>
+                            <option value="2" data-i18n="user.status_banned">封禁</option>
                         </select>
                     </div>
                 </div>
             </div>
 
-            <!-- 绑定信息区块 -->
             <div style="background:#eff6ff;border:1px solid var(--c-border);border-radius:12px;padding:20px;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;color:var(--c-text-primary);font-weight:600;font-size:15px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
                         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                     </svg>
-                    <span>绑定信息</span>
+                    <span data-i18n="user.binding_info">绑定信息</span>
                 </div>
-                <p style="font-size:13px;color:var(--c-text-secondary);margin:0 0 12px 28px;">
-                    管理用户已绑定的第三方账号，支持筛选与解绑</p>
+                <p style="font-size:13px;color:var(--c-text-secondary);margin:0 0 12px 28px;" data-i18n="user.binding_info_desc">管理用户已绑定的第三方账号，支持筛选与解绑</p>
                 <button type="button" class="btn btn-secondary" onclick="alert('绑定管理功能开发中')"
                         style="margin-left:28px;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -183,18 +179,18 @@
                         <line x1="12" y1="8" x2="12" y2="12"/>
                         <line x1="12" y1="16" x2="12.01" y2="16"/>
                     </svg>
-                    管理绑定
+                    <span data-i18n="user.manage_binding">管理绑定</span>
                 </button>
             </div>
         </div>
         <div class="modal-footer" style="padding:16px 24px;gap:12px;">
-            <button class="btn btn-secondary" onclick="closeUserModal()">取消</button>
+            <button class="btn btn-secondary" onclick="closeUserModal()" data-i18n="common.cancel">取消</button>
             <button class="btn btn-primary" onclick="saveUser()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                      style="margin-right:4px;">
                     <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                保存
+                <span data-i18n="common.save">保存</span>
             </button>
         </div>
     </div>
@@ -204,7 +200,7 @@
 <div class="modal-overlay hidden" id="topupModal">
     <div class="modal">
         <div class="modal-header">
-            <div class="modal-title">修改额度</div>
+            <div class="modal-title" data-i18n="user.modify_quota">修改额度</div>
             <button class="modal-close" onclick="closeTopupModal()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 6L6 18M6 6l12 12"/>
@@ -213,16 +209,17 @@
         </div>
         <div class="modal-body">
             <input type="hidden" id="topupUserId">
-            <div class="form-group"><label class="form-label">用户名</label><input type="text" class="form-input"
-                                                                                   id="topupUsername" readonly></div>
-            <div class="form-group"><label class="form-label">目标额度</label><input type="number" class="form-input"
-                                                                                     id="topupAmount"
-                                                                                     placeholder="想要修改的额度"
-                                                                                     value="500000"></div>
+            <div class="form-group"><label class="form-label" data-i18n="user.username">用户名</label><input type="text" class="form-input"
+                                                                                    id="topupUsername" readonly></div>
+            <div class="form-group"><label class="form-label" data-i18n="user.target_quota">目标额度</label><input type="number" class="form-input"
+                                                                                      id="topupAmount"
+                                                                                      data-i18n-placeholder="user.target_quota_desc"
+                                                                                      placeholder="想要修改的额度"
+                                                                                      value="500000"></div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeTopupModal()">取消</button>
-            <button class="btn btn-primary" onclick="doTopup()">确认修改</button>
+            <button class="btn btn-secondary" onclick="closeTopupModal()" data-i18n="common.cancel">取消</button>
+            <button class="btn btn-primary" onclick="doTopup()" data-i18n="common.submit">确认修改</button>
         </div>
     </div>
 </div>
@@ -231,28 +228,27 @@
     <aside class="sidebar" id="sidebar"></aside>
     <main class="main-content">
         <div class="page-header">
-            <div class="page-title">用户管理</div>
+            <div class="page-title" data-i18n="user.page_title">用户管理</div>
             <div class="page-actions">
                 <button class="btn btn-primary" onclick="openCreateUserModal()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="12" y1="5" x2="12" y2="19"/>
                         <line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
-                    创建用户
+                    <span data-i18n="user.create">创建用户</span>
                 </button>
             </div>
         </div>
         <div class="table-card">
-            <!-- 批量操作工具栏 -->
             <div id="userBatchBar"
                  style="display:none;align-items:center;gap:12px;padding:10px 16px;background:var(--c-primary-light,#eff6ff);border-bottom:1px solid var(--c-border);">
-                <span style="font-size:13px;color:var(--c-primary);font-weight:500;">已选 <strong
+                <span style="font-size:13px;color:var(--c-primary);font-weight:500;" data-i18n="common.selected_count">已选 <strong
                         id="userSelectedCount">0</strong> 项</span>
-                <button class="btn btn-secondary btn-sm" onclick="batchUnbanUsers()">批量解封</button>
-                <button class="btn btn-secondary btn-sm" onclick="batchBanUsers()">批量封禁</button>
-                <button class="btn btn-danger btn-sm" onclick="batchDeleteUsers()">批量删除</button>
+                <button class="btn btn-secondary btn-sm" onclick="batchUnbanUsers()" data-i18n="common.batch_enable">批量解封</button>
+                <button class="btn btn-secondary btn-sm" onclick="batchBanUsers()" data-i18n="common.batch_disable">批量封禁</button>
+                <button class="btn btn-danger btn-sm" onclick="batchDeleteUsers()" data-i18n="common.batch_delete">批量删除</button>
                 <button class="btn btn-secondary btn-sm"
-                        onclick="selectedUsers.clear();updateUserBatchBar();document.querySelectorAll('.u-checkbox').forEach(c=>c.checked=false)">
+                        onclick="selectedUsers.clear();updateUserBatchBar();document.querySelectorAll('.u-checkbox').forEach(c=>c.checked=false)" data-i18n="common.cancel_selection">
                     取消选择
                 </button>
             </div>
@@ -262,16 +258,16 @@
                         <svg viewBox="0 0 24 24">
                             <path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
                         </svg>
-                        <input type="text" class="search-input" id="userSearch" placeholder="搜索用户名或邮箱...">
+                        <input type="text" class="search-input" id="userSearch" data-i18n-placeholder="user.search_placeholder" placeholder="搜索用户名或邮箱...">
                     </div>
                     <select class="form-select" id="groupFilter" style="width:150px;margin-left:12px;">
-                        <option value="">所有分组</option>
+                        <option value="" data-i18n="user.all_groups">所有分组</option>
                     </select>
                     <select class="form-select" id="sortField" style="width:130px;margin-left:12px;">
                         <option value="id">ID排序</option>
                         <option value="username">用户名排序</option>
                     </select>
-                    <button class="btn btn-secondary" onclick="toggleSortOrder()" style="margin-left:8px;" id="sortOrderBtn" title="切换排序">
+                    <button class="btn btn-secondary" onclick="toggleSortOrder()" style="margin-left:8px;" id="sortOrderBtn" data-i18n-title="token.sort_toggle" title="切换排序">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" id="sortIcon">
                             <line x1="12" y1="5" x2="12" y2="19"/>
                             <polyline points="19 12 12 19 5 12"/>
@@ -285,11 +281,11 @@
                             <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
                             <path d="M3 21v-5h5"/>
                         </svg>
-                        重置
+                        <span data-i18n="common.refresh">重置</span>
                     </button>
                 </div>
                 <div class="table-toolbar-right">
-                    <button class="btn btn-secondary" onclick="loadUsers()">刷新</button>
+                    <button class="btn btn-secondary" onclick="loadUsers()"><span data-i18n="common.refresh">刷新</span></button>
                 </div>
             </div>
             <div class="table-wrap" style="overflow-x: auto;">
@@ -299,14 +295,14 @@
                         <th style="width:36px;text-align:center;"><input type="checkbox" onchange="toggleSelectAllUsers(this.checked)">
                         </th>
                         <th style="min-width:60px;text-align:center;">ID</th>
-                        <th style="min-width:100px;text-align:center;">用户名</th>
-                        <th style="min-width:80px;text-align:center;">分组</th>
-                        <th style="min-width:80px;text-align:center;">角色</th>
+                        <th style="min-width:100px;text-align:center;" data-i18n="user.table_username">用户名</th>
+                        <th style="min-width:80px;text-align:center;" data-i18n="user.table_group">分组</th>
+                        <th style="min-width:80px;text-align:center;" data-i18n="user.table_role">角色</th>
                         <th style="min-width:140px;text-align:center;">额度使用</th>
-                        <th style="min-width:150px;text-align:center;">注册时间</th>
+                        <th style="min-width:150px;text-align:center;" data-i18n="user.table_created_at">注册时间</th>
                         <th style="min-width:150px;text-align:center;">最后登录</th>
-                        <th style="min-width:80px;text-align:center;">状态</th>
-                        <th style="min-width:260px;text-align:center;">操作</th>
+                        <th style="min-width:80px;text-align:center;" data-i18n="user.table_status">状态</th>
+                        <th style="min-width:260px;text-align:center;" data-i18n="user.table_actions">操作</th>
                     </tr>
                     </thead>
                     <tbody id="userTableBody">
@@ -320,18 +316,17 @@
                     </tbody>
                 </table>
             </div>
-            <div class="pagination"><span id="userPageInfo">共 0 条</span>
+            <div class="pagination"><span id="userPageInfo" data-i18n="common.total_count">共 0 条</span>
                 <div class="pagination-pages" id="userPages"></div>
             </div>
         </div>
     </main>
 </div>
 
-<!-- 用户详情弹窗 -->
 <div class="modal-overlay hidden" id="userDetailModal">
     <div class="modal">
         <div class="modal-header">
-            <div class="modal-title">用户详情</div>
+            <div class="modal-title" data-i18n="user.page_title">用户详情</div>
             <button class="modal-close" onclick="closeUserDetail()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 6L6 18M6 6l12 12"/>
@@ -340,17 +335,16 @@
         </div>
         <div class="modal-body" id="userDetailContent"></div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeUserDetail()">关闭</button>
+            <button class="btn btn-secondary" onclick="closeUserDetail()" data-i18n="common.close">关闭</button>
         </div>
     </div>
 </div>
 
-<!-- 订阅管理对话框 -->
 <div class="modal-overlay hidden" id="subscriptionModal">
     <div class="modal" style="max-width:900px;">
         <div class="modal-header">
             <div class="modal-title">
-                <span>管理 - 用户订阅管理 </span>
+                <span data-i18n="user.manage_subscription">管理 - 用户订阅管理</span>
                 <strong id="subUsername" style="color:var(--c-primary);">-</strong>
                 <span id="subUserIdDisplay" style="color:var(--c-text-secondary);font-size:13px;"></span>
             </div>
@@ -363,12 +357,11 @@
         <div class="modal-body" style="padding:20px;">
             <input type="hidden" id="subUserId"/>
             
-            <!-- 新增订阅操作区 -->
             <div style="margin-bottom:20px;padding:16px;background:#eff6ff;border-radius:8px;display:flex;gap:12px;align-items:flex-end;">
                 <div style="flex:1;">
-                    <label class="form-label" style="margin-bottom:6px;">选择订阅套餐</label>
+                    <label class="form-label" style="margin-bottom:6px;" data-i18n="subscription.plan">选择订阅套餐</label>
                     <select class="form-select" id="subPlanSelect">
-                        <option value="">-- 请选择套餐 --</option>
+                        <option value="" data-i18n="subscription.plan">-- 请选择套餐 --</option>
                     </select>
                 </div>
                 <button class="btn btn-primary" onclick="addNewSubscription()">
@@ -376,22 +369,22 @@
                         <line x1="12" y1="5" x2="12" y2="19"/>
                         <line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
-                    新增订阅
+                    <span data-i18n="subscription.subscribe">新增订阅</span>
                 </button>
             </div>
             
             <div style="margin-bottom:16px;">
-                <h4 style="margin:0 0 12px 0;font-size:15px;font-weight:600;">当前订阅列表</h4>
+                <h4 style="margin:0 0 12px 0;font-size:15px;font-weight:600;" data-i18n="subscription.page_title">当前订阅列表</h4>
                 <div class="table-wrap">
                     <table style="font-size:13px;">
                         <thead>
                         <tr>
                             <th>ID</th>
-                            <th>套餐</th>
-                            <th>状态</th>
+                            <th data-i18n="subscription.plan">套餐</th>
+                            <th data-i18n="common.status">状态</th>
                             <th>有效期</th>
                             <th>总额度</th>
-                            <th>操作</th>
+                            <th data-i18n="common.actions">操作</th>
                         </tr>
                         </thead>
                         <tbody id="subTableBody">
@@ -406,7 +399,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeSubscriptionModal()">关闭</button>
+            <button class="btn btn-secondary" onclick="closeSubscriptionModal()" data-i18n="common.close">关闭</button>
         </div>
     </div>
 </div>
