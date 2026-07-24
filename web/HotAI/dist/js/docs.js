@@ -28,6 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const docsContent = document.querySelector('.docs-content');
     const docsAdminSection = document.getElementById('docsAdminSection');
 
+    // ========== 初始化 mermaid ==========
+    if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({ startOnLoad: false });
+    }
+
     // ========== 初始化 markdown-it ==========
     const md = markdownit({
         html: true,
@@ -91,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 渲染 mermaid 图表
             if (typeof mermaid !== 'undefined') {
                 try {
-                    mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
+                    mermaid.run({ nodes: document.querySelectorAll('.mermaid'), suppressErrors: true });
                 } catch (e) {
                     console.warn('mermaid 渲染失败:', e);
                 }
