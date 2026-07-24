@@ -30,7 +30,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ========== 初始化 mermaid ==========
     if (typeof mermaid !== 'undefined') {
-        mermaid.initialize({ startOnLoad: false });
+        mermaid.initialize({ startOnLoad: false, theme: 'default' });
+    }
+
+    // ========== 渲染 mermaid 图表 ==========
+    async function renderMermaidDiagrams() {
+        if (typeof mermaid === 'undefined') return;
+        const elements = document.querySelectorAll('.mermaid');
+        for (let i = 0; i < elements.length; i++) {
+            const el = elements[i];
+            const source = el.textContent.trim();
+            if (!source) continue;
+            try {
+                const id = 'mermaid-' + Date.now() + '-' + i;
+                const { svg } = await mermaid.render(id, source);
+                el.innerHTML = svg;
+            } catch (e) {
+                console.warn('mermaid render error:', e);
+                el.innerHTML = '<pre style="color:#ef4444;font-size:13px">⚠ mermaid 渲染失败</pre>';
+            }
+        }
     }
 
     // ========== 初始化 markdown-it ==========
@@ -94,13 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mdContent.innerHTML = htmlContent;
             
             // 渲染 mermaid 图表
-            if (typeof mermaid !== 'undefined') {
-                try {
-                    mermaid.run({ nodes: document.querySelectorAll('.mermaid'), suppressErrors: true });
-                } catch (e) {
-                    console.warn('mermaid 渲染失败:', e);
-                }
-            }
+            renderMermaidDiagrams();
             
             // 重新应用翻译到动态加载的文档内容
             if (typeof I18n !== 'undefined') {
