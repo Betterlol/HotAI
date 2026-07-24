@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 MODEL_ID_COLUMN = "模型ID"
 MODEL_INFO_IGNORED_COLUMNS = {"编号", MODEL_ID_COLUMN}
-MODEL_INFO_HEADER = "# 模型总览\n\n本平台提供的模型及其属性如下（共{count}款）："
+MODEL_INFO_HEADER = "# 模型总览\n\n本平台提供的模型及其属性如下（**共 {count} 款**）："
 
 CHECK_REQUIRED_FIELD_ALIASES = (
     ("模型ID", ("模型ID", "名称", "模型名", "模型名称")),

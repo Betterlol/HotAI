@@ -1,6 +1,6 @@
 # API 快速开始文档
 
-若您是第一次接入 HotAI API，可以先阅读前四小节，了解从准备 API Key 到完成首次调用的基本流程，用时约 3 分钟。
+若您是第一次接入图灵智算 API，可以先阅读前四小节，了解从准备 API Key 到完成首次调用的基本流程，用时约 3 分钟。
 后面小节的语言示例、流式输出和错误码说明，可在实际开发时按需参考。
 
 ## 一、操作步骤速览
@@ -14,7 +14,7 @@
 | 5 | 读取模型回复 | 看 `choices[0].message.content` |
 | 6 | 查看 Token 消耗 | 看 `usage.total_tokens` |
 
-最小调用示例：
+**最小调用示例：**
 
 ```bash
 curl https://api.example.com/v1/chat/completions \
@@ -25,17 +25,17 @@ curl https://api.example.com/v1/chat/completions \
     "messages": [
       {
         "role": "user",
-        "content": "请用一句话介绍一下 HotAI。"
+        "content": "请用一句话介绍一下图灵智算。"
       }
     ]
   }'
 ```
 
-把示例中的三项内容替换成你的真实信息即可：
+**把示例中的三项内容替换成你的真实信息即可：**
 
-- `https://api.example.com`：平台或管理员提供的 API 地址。
-- `sk-xxxxxxxx`：你在控制台创建或复制的 API Key。
-- `deepseek-v4-flash`：你要调用的模型 ID。
+- **`https://api.example.com`：** 平台或管理员提供的 API 地址。
+- **`sk-xxxxxxxx`：** 你在控制台创建或复制的 API Key。
+- **`deepseek-v4-flash`：** 你要调用的模型 ID。
 
 ## 二、准备调用信息
 
@@ -43,7 +43,7 @@ curl https://api.example.com/v1/chat/completions \
 
 | 项目 | 说明 | 示例 |
 | ---- | ---- | ---- |
-| Base URL | HotAI API 服务地址，由平台或管理员提供 | `https://api.example.com` |
+| Base URL | 图灵智算 API 服务地址，由平台或管理员提供 | `https://api.example.com` |
 | API Key | 在控制台的 Token Management / API token management 中创建或复制 | `sk-xxxxxxxx` |
 | 模型 ID | 需要调用的模型名称，可先用 `/v1/models` 查询 | `deepseek-v4-flash` |
 
@@ -76,7 +76,7 @@ deepseek-v4-flash
     {
       "message": {
         "role": "assistant",
-        "content": "HotAI 是一个聚合多种 AI 模型的 API 调用平台。"
+        "content": "图灵智算是一个聚合多种 AI 模型的 API 调用平台。"
       },
       "finish_reason": "stop"
     }
@@ -89,7 +89,7 @@ deepseek-v4-flash
 }
 ```
 
-常用字段：
+**常用字段：**
 
 | 字段 | 说明 |
 | ---- | ---- |
@@ -112,7 +112,7 @@ curl https://api.example.com/v1/chat/completions \
     "messages": [
       {
         "role": "user",
-        "content": "请用一句话介绍 HotAI。"
+        "content": "请用一句话介绍图灵智算。"
       }
     ],
     "stream": false,
@@ -139,7 +139,7 @@ response = requests.post(
         "messages": [
             {
                 "role": "user",
-                "content": "请用一句话介绍 HotAI。",
+                "content": "请用一句话介绍图灵智算。",
             }
         ],
         "stream": False,
@@ -153,7 +153,7 @@ data = response.json()
 print(data["choices"][0]["message"]["content"])
 ```
 
-如果本地没有安装 `requests`，可先执行：
+**如果本地没有安装 `requests`，可先执行：**
 
 ```bash
 python -m pip install requests
@@ -179,7 +179,7 @@ async function main() {
       messages: [
         {
           role: 'user',
-          content: '请用一句话介绍 HotAI。',
+          content: '请用一句话介绍图灵智算。',
         },
       ],
       stream: false,
@@ -240,7 +240,7 @@ curl https://api.example.com/v1/chat/completions \
 
 ## 八、接入检查清单
 
-上线或交付前，建议逐项确认：
+**上线或交付前，建议逐项确认：**
 
 - 已使用 `/v1/models` 验证 API Key 和模型列表。
 - 示例请求中的 Base URL、API Key、模型 ID 均已替换。

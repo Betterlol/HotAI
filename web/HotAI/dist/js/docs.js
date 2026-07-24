@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.querySelector('.docs-sidebar-left');
     const bottomBtns = document.querySelectorAll('.bottom-icon-btn');
     const docsContent = document.querySelector('.docs-content');
+    const docsAdminSection = document.getElementById('docsAdminSection');
 
     // ========== 初始化 markdown-it ==========
     const md = markdownit({
@@ -104,6 +105,23 @@ document.addEventListener('DOMContentLoaded', () => {
             tocList.innerHTML = '';
             showToast('文档加载失败', 'error');
         }
+    }
+
+    // ========== 管理员文档显隐 ==========
+    async function updateAdminSectionVisibility() {
+        if (!docsAdminSection) return;
+
+        try {
+            const result = await API.getUserInfo();
+            if (result.success && result.data && (result.data.role || 0) >= 10) {  // 用户属于管理员 (10) 或超管 (100)
+                docsAdminSection.classList.remove('hidden');  // 显示管理员文档
+                return;
+            }
+        } catch (error) {
+            console.warn('Failed to load user role for docs admin section:', error);
+        }
+
+        docsAdminSection.classList.add('hidden');  // 隐藏管理员文档
     }
 
     // ========== 生成目录 (TOC) ==========
@@ -392,6 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ========== 启动 ==========
+    updateAdminSectionVisibility();
     init();
     console.log('文档页面已加载 (Markdown 渲染模式)');
 });

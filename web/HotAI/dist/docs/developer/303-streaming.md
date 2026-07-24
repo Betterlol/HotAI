@@ -6,19 +6,19 @@
 
 ### 第一层：通用 SSE 扫描器
 
-位置：
+**位置：**
 
 ```text
 relay/helper/stream_scanner.go
 ```
 
-核心入口：
+**核心入口：**
 
 ```text
 StreamScannerHandler()
 ```
 
-职责：
+**职责：**
 
 - 从上游 HTTP 响应读取 SSE 行。
 - 解析 `data:` 前缀。
@@ -29,14 +29,14 @@ StreamScannerHandler()
 
 ### 第二层：OpenAI 格式流处理
 
-位置：
+**位置：**
 
 ```text
 relay/channel/openai/relay-openai.go
 relay/channel/openai/helper.go
 ```
 
-核心入口：
+**核心入口：**
 
 ```text
 OaiStreamHandler()
@@ -44,7 +44,7 @@ HandleStreamFormat()
 handleLastResponse()
 ```
 
-职责：
+**职责：**
 
 - 逐帧处理 `ChatCompletionsStreamResponse`。
 - 处理 reasoning/thinking content 和 `<think>` 标签转换。
@@ -55,13 +55,13 @@ handleLastResponse()
 
 ### 第三层：渠道专属适配器
 
-位置：
+**位置：**
 
 ```text
 relay/channel/<provider>/relay-<name>.go
 ```
 
-例如 Claude 走：
+**例如 Claude 走：**
 
 ```text
 relay/channel/claude/relay-claude.go
@@ -86,7 +86,7 @@ OpenAI 兼容流式请求可能失败并出现：
 stream_non_json_chunk
 ```
 
-客户端收到类似被截断的 JSON 前缀：
+**客户端收到类似被截断的 JSON 前缀：**
 
 ```text
 {"choices":[{"delta":{"reasoning_content":"...
@@ -98,7 +98,7 @@ stream_non_json_chunk
 
 relay 输出 `Content-Type: text/event-stream` 时没有声明 charset。
 
-一些客户端使用：
+**一些客户端使用：**
 
 ```python
 requests.iter_lines(decode_unicode=True)
@@ -110,46 +110,46 @@ requests.iter_lines(decode_unicode=True)
 
 ### 修复要求
 
-所有 SSE 响应统一使用：
+**所有 SSE 响应统一使用：**
 
 ```http
 Content-Type: text/event-stream; charset=utf-8
 ```
 
-需要覆盖两个可能写 SSE header 的位置：
+**需要覆盖两个可能写 SSE header 的位置：**
 
-- `relay/helper/common.go`：`SetEventStreamHeaders`
-- `common/custom-event.go`：`CustomEvent.WriteContentType`
+- **`relay/helper/common.go`：** `SetEventStreamHeaders`
+- **`common/custom-event.go`：** `CustomEvent.WriteContentType`
 
 共享 stream scanner 还需要在遇到格式异常的上游 continuation data 时，避免把物理拆分的 JSON data line 继续错误转发给客户端。
 
 ## 验证
 
-重建并启动本地后端：
+**重建并启动本地后端：**
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d --build new-api
 ```
 
-检查流式响应 header：
+**检查流式响应 header：**
 
 ```text
 Content-Type: text/event-stream; charset=utf-8
 ```
 
-确认每个 `data:` payload 都是合法 JSON，直到收到：
+**确认每个 `data:` payload 都是合法 JSON，直到收到：**
 
 ```text
 [DONE]
 ```
 
-运行 relay 单元测试：
+**运行 relay 单元测试：**
 
 ```bash
 go test ./relay/...
 ```
 
-如果需要跑外部 B 样例回归测试，确认生成结果中：
+**如果需要跑外部 B 样例回归测试，确认生成结果中：**
 
 ```json
 {

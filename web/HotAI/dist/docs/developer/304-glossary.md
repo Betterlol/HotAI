@@ -66,31 +66,31 @@
 
 ### 英语
 
-- `Prompt` 指模型输入内容。
-- `Completion` 指模型输出内容。
-- `Ratio` 用于计费倍率语境；`Multiplier` 可作为解释性同义词，但 UI 中优先使用 `Ratio`。
-- `Token` 需要结合上下文区分 API Token、文本 Token 和系统 Access Token。
+- **`Prompt`：** 指模型输入内容。
+- **`Completion`：** 指模型输出内容。
+- **`Ratio`：** 用于计费倍率语境；`Multiplier` 可作为解释性同义词，但 UI 中优先使用 `Ratio`。
+- **`Token`：** 需要结合上下文区分 API Token、文本 Token 和系统 Access Token。
 
 ### 法语
 
-- 用户体验和 LLM 交互语境使用 `Invite`。
-- 技术流程或计费语境使用 `Entrée`。
-- `Completion` 统一译为 `Complétion`，不要使用 `Achèvement` 或 `Finalisation`。
-- API 访问密钥使用 `Clé API`，不要译为 `Jeton API`。
-- 注意复数形式、语法一致性和技术术语性别。
+- **用户体验和 LLM 交互语境：** 使用 `Invite`。
+- **技术流程或计费语境：** 使用 `Entrée`。
+- **`Completion`：** 统一译为 `Complétion`，不要使用 `Achèvement` 或 `Finalisation`。
+- **API 访问密钥：** 使用 `Clé API`，不要译为 `Jeton API`。
+- **复数形式、语法一致性和技术术语性别：** 翻译时需要注意。
 
 ### 俄语
 
-- LLM 交互语境使用 `Промпт`。
-- 技术流程或计费语境使用 `Ввод`。
-- `Completion` 统一译为 `Вывод`，不要使用容易和完成动作混淆的译法。
-- API 访问密钥使用 `API ключ`，不要译为 `API токен`。
-- 注意复数形式、格变化和技术术语性别。
+- **LLM 交互语境：** 使用 `Промпт`。
+- **技术流程或计费语境：** 使用 `Ввод`。
+- **`Completion`：** 统一译为 `Вывод`，不要使用容易和完成动作混淆的译法。
+- **API 访问密钥：** 使用 `API ключ`，不要译为 `API токен`。
+- **复数形式、格变化和技术术语性别：** 翻译时需要注意。
 
 ## 术语选择说明
 
-- `Prompt` 在用户交互中可译为“提示”，在计费或技术数据流中可译为“输入”。
-- `Completion` 统一指模型输出。
-- `Ratio` 在计费语境中优先译为“倍率”。
-- `Quota` 指用户可用额度，也可能在部分上下文中表达为 credit。
-- `Token` 需要结合上下文区分 API Token、文本 Token 和系统 Access Token。
+- **`Prompt`：** 在用户交互中可译为“提示”，在计费或技术数据流中可译为“输入”。
+- **`Completion`：** 统一指模型输出。
+- **`Ratio`：** 在计费语境中优先译为“倍率”。
+- **`Quota`：** 指用户可用额度，也可能在部分上下文中表达为 credit。
+- **`Token`：** 需要结合上下文区分 API Token、文本 Token 和系统 Access Token。
