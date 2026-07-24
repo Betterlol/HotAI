@@ -29,27 +29,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const docsAdminSection = document.getElementById('docsAdminSection');
 
     // ========== 初始化 mermaid ==========
+    console.log('[docs] mermaid 库是否存在:', typeof mermaid);
     if (typeof mermaid !== 'undefined') {
+        console.log('[docs] mermaid 版本:', mermaid.version);
         mermaid.initialize({ startOnLoad: false, theme: 'default' });
+        console.log('[docs] mermaid 初始化完成');
+    } else {
+        console.warn('[docs] mermaid 库未加载');
     }
 
     // ========== 渲染 mermaid 图表 ==========
     async function renderMermaidDiagrams() {
-        if (typeof mermaid === 'undefined') return;
+        console.log('[docs] renderMermaidDiagrams 被调用');
+        if (typeof mermaid === 'undefined') {
+            console.warn('[docs] mermaid 未定义，跳过渲染');
+            return;
+        }
         const elements = document.querySelectorAll('.mermaid');
+        console.log('[docs] 找到 .mermaid 元素数量:', elements.length);
         for (let i = 0; i < elements.length; i++) {
             const el = elements[i];
             const source = el.textContent.trim();
-            if (!source) continue;
+            console.log(`[docs] mermaid[${i}] 源码长度:`, source.length, '内容预览:', source.slice(0, 80));
+            if (!source) {
+                console.warn(`[docs] mermaid[${i}] 源码为空，跳过`);
+                continue;
+            }
             try {
                 const id = 'mermaid-' + Date.now() + '-' + i;
-                const { svg } = await mermaid.render(id, source);
-                el.innerHTML = svg;
+                console.log(`[docs] mermaid[${i}] 开始渲染, id:`, id);
+                const result = await mermaid.render(id, source);
+                console.log(`[docs] mermaid[${i}] 渲染成功, SVG 长度:`, result.svg.length);
+                el.innerHTML = result.svg;
             } catch (e) {
-                console.warn('mermaid render error:', e);
-                el.innerHTML = '<pre style="color:#ef4444;font-size:13px">⚠ mermaid 渲染失败</pre>';
+                console.error('[docs] mermaid render error:', e);
+                el.innerHTML = '<pre style="color:#ef4444;font-size:13px">⚠ mermaid 渲染失败: ' + e.message + '</pre>';
             }
         }
+        console.log('[docs] renderMermaidDiagrams 完成');
     }
 
     // ========== 初始化 markdown-it ==========
