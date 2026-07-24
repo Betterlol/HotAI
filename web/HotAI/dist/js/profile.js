@@ -68,6 +68,10 @@ async function loadUserData() {
     }
 
     currentUser = res.data;
+    localStorage.setItem('user', JSON.stringify(currentUser));
+    if (typeof updateNavbarUserIdentity === 'function') {
+        updateNavbarUserIdentity(currentUser);
+    }
     updateUI();
     loadBindings();
     loadUserSettings();

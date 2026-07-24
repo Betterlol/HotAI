@@ -191,7 +191,7 @@
         <div class="table-card">
             <!-- 批量操作工具栏 -->
             <div id="tokenBatchBar" style="display:none;align-items:center;gap:12px;padding:10px 16px;background:var(--c-primary-light,#eff6ff);border-bottom:1px solid var(--c-border);">
-                <span style="font-size:13px;color:var(--c-primary);font-weight:500;">已选 <strong id="tokenSelectedCount">0</strong> 项</span>
+                <span id="tokenSelectedText" data-no-i18n style="font-size:13px;color:var(--c-primary);font-weight:500;">已选 0 项</span>
                 <button class="btn btn-secondary btn-sm" onclick="batchEnableTokens()">批量启用</button>
                 <button class="btn btn-secondary btn-sm" onclick="batchDisableTokens()">批量禁用</button>
                 <button class="btn btn-danger btn-sm" onclick="batchDeleteTokens()">批量删除</button>
@@ -240,7 +240,7 @@
                             <th style="width:36px;text-align:center;"><input type="checkbox" onchange="toggleSelectAllTokens(this.checked)"></th>
                             <th style="min-width:120px;text-align:center;">名称</th>
                             <th style="min-width:80px;text-align:center;">分组</th>
-                            <th style="min-width:80px;text-align:center;">状态</th>
+                            <th style="min-width:80px;text-align:center;" data-i18n="common.status">状态</th>
                             <th style="min-width:160px;text-align:center;">额度使用</th>
                             <th style="min-width:120px;text-align:center;">可用模型</th>
                             <th style="min-width:100px;text-align:center;">IP限制</th>

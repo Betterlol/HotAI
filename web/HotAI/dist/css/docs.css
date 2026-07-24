@@ -364,13 +364,17 @@ body {
 
 #md-content .manual-screenshot {
     display: block;
-    width: min(100%, 760px);
+    width: min(100%, 800px);
     border: 1px solid var(--c-border);
     box-shadow: var(--shadow-card);
 }
 
 #md-content .manual-screenshot-wide {
-    width: min(100%, 860px);
+    width: min(100%, 1000px);
+}
+
+#md-content .manual-screenshot-narrow {
+    width: min(100%, 500px);
 }
 
 #md-content hr {

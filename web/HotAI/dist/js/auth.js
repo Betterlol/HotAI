@@ -71,12 +71,21 @@ const Auth = {
 };
 
 // 初始化导航栏用户菜单（接收认证状态和用户数据作为参数）
+function updateNavbarUserIdentity(userData) {
+    const navUserAvatar = document.getElementById('navUserAvatar');
+    const navUsername = document.getElementById('navUsername');
+    const displayName = userData ? (userData.display_name || userData.username || '') : '';
+
+    if (!displayName) return;
+
+    if (navUsername) navUsername.textContent = displayName;
+    if (navUserAvatar) navUserAvatar.textContent = displayName.charAt(0).toUpperCase();
+}
+
 function initNavbarUserMenu(isAuth, userData) {
     const navLoginBtn = document.getElementById('navLoginBtn');
     const navSignupBtn = document.getElementById('navSignupBtn');
     const navUserMenu = document.getElementById('navUserMenu');
-    const navUserAvatar = document.getElementById('navUserAvatar');
-    const navUsername = document.getElementById('navUsername');
     const navUserDropdown = document.getElementById('navUserDropdown');
     const navLogoutBtn = document.getElementById('navLogoutBtn');
     
@@ -89,11 +98,8 @@ function initNavbarUserMenu(isAuth, userData) {
         navSignupBtn.classList.add('hidden');
         navUserMenu.classList.remove('hidden');
         
-        // 更新用户名和头像
-        if (userData.username) {
-            if (navUsername) navUsername.textContent = userData.username;
-            if (navUserAvatar) navUserAvatar.textContent = userData.username.charAt(0).toUpperCase();
-        }
+        // 更新显示名称和头像
+        updateNavbarUserIdentity(userData);
         
         // 更新余额显示
         const navUserBalance = document.getElementById('navUserBalance');
@@ -284,4 +290,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 });
-

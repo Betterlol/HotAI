@@ -389,6 +389,7 @@ const I18n = {
             'common.search': '搜索',
             'common.filter': '筛选',
             'common.sort': '排序',
+            'common.status': '状态',
             'common.refresh': '刷新',
             'common.close': '关闭'
         },
@@ -772,6 +773,7 @@ const I18n = {
             'common.search': 'Search',
             'common.filter': 'Filter',
             'common.sort': 'Sort',
+            'common.status': 'Status',
             'common.refresh': 'Refresh',
             'common.close': 'Close'
         }

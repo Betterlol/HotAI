@@ -516,9 +516,9 @@ function toggleSelectAllTokens(checked) {
 
 function updateTokenBatchActions() {
     const bar = document.getElementById('tokenBatchBar');
-    const count = document.getElementById('tokenSelectedCount');
+    const selectedText = document.getElementById('tokenSelectedText');
     if (bar) bar.style.display = selectedTokens.size > 0 ? 'flex' : 'none';
-    if (count) count.textContent = selectedTokens.size;
+    if (selectedText) selectedText.textContent = `已选 ${selectedTokens.size} 项`;
 }
 
 async function batchEnableTokens() {
