@@ -240,45 +240,31 @@ Prometheus (实时)          ─┘
 | **企业微信机器人** | ❌ 新增 | Webhook URL 配置 |
 | **Slack Webhook** | ❌ 新增 | Webhook URL 配置 |
 
-### 4.5 配置管理
+### 4.5 已实现的告警配置（A-01 / A-02）
 
 ```go
 // setting/operation_setting/alert_setting.go
 type AlertSetting struct {
-    // 规则开关
-    SuccessRateDropEnabled      bool    // A-01
-    ModelUnavailableEnabled     bool    // A-02
-    ChannelTimeoutRateEnabled   bool    // A-03
-    DailyCostOverBudgetEnabled  bool    // A-04
-    BalanceLowEnabled           bool    // A-05, A-06
-    RequestVolumeAnomalyEnabled bool    // A-07
-    LatencySpikeEnabled         bool    // A-08
-
-    // 阈值
-    SuccessRateThreshold        float64 // 默认 95
-    ChannelTimeoutRateThreshold float64 // 默认 30 (%)
-    DailyBudgetUSD              float64 // 日预算
-    LowBalanceThresholdUSD      float64 // 默认 10
-    CriticalBalanceThresholdUSD float64 // 默认 1
-
-    // 通知
-    NotifyChannels              []string // email, webhook, bark, gotify, feishu, dingtalk, wecom, slack
+    Enabled                 bool      // 总开关（默认 false）
+    SuccessRateDropEnabled  bool      // A-01：成功率下降
+    ModelUnavailableEnabled bool      // A-02：模型全面不可用
+    SuccessRateThreshold    float64   // A-01 阈值（默认 95，百分比）
 }
 ```
 
-## 5. 修改文件清单
+> 其余规则（A-03 ~ A-08）的字段为预留设计，待后续实现。A-05/A-06 余额告警已在 `balance_warning_setting` 中独立实现。
+
+## 5. 修改文件清单（已实现）
 
 | 文件 | 改动 |
 |------|------|
-| `go.mod` | 新增依赖: `prometheus/client_golang`, `hdrhistogram-go` |
-| `controller/metrics.go` | 新增：Prometheus handler |
+| `pkg/prometheus_metrics/metrics.go` | 新增：Prometheus 指标定义（counter/histogram/gauge） |
+| `controller/metrics.go` | 新增：`/api/metrics` 端点（Prometheus HTTP handler） |
+| `controller/health.go` | 新增：`/api/health` 健康检查端点 |
 | `pkg/perf_metrics/types.go` | 修改：`BucketPoint` 增加 P50/P90/P95/P99 |
-| `pkg/perf_metrics/metrics.go` | 修改：`Record()` 增加 HdrHistogram 记录 |
-| `pkg/perf_metrics/percentile.go` | 新增：HdrHistogram 包装器 |
-| `controller/alert_check.go` | 新增：告警检查定时任务 |
-| `controller/alert_notify.go` | 新增：告警通知格式化与分发 |
-| `controller/channel-test.go` | 修改：扩展余额检查 |
-| `router/relay-router.go` | 修改：注册 `/api/metrics` 路由 |
+| `pkg/perf_metrics/metrics.go` | 修改：`Record()` 增加百分位记录 |
+| `controller/alert_check.go` | 新增：A-01/A-02 告警检查定时任务 |
 | `setting/operation_setting/alert_setting.go` | 新增：告警配置项 |
-| `model/log.go` | 可能修改：增加成本记录字段 |
-| `common/init.go` | 修改：启动告警检查协程 |
+| `setting/operation_setting/balance_warning_setting.go` | 新增：余额告警配置 |
+| `controller/channel-billing.go` | 修改：`checkBalanceWarning` + `AutomaticallyUpdateChannels` 余额监控 |
+| `router/relay-router.go` | 修改：注册 `/api/metrics` 和 `/api/health` 路由 |

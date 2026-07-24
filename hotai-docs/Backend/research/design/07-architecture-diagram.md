@@ -50,7 +50,7 @@ graph TB
     end
 
     subgraph 后台与监控["后台任务 & 监控"]
-        BG["ChannelTest / CacheSync / OptionsSync<br/>PolicySync / PerfFlush / QuotaData"]
+        BG["ChannelTest / CacheSync / OptionsSync<br/>PolicySync / PerfFlush / QuotaData<br/>AlertCheck"]
         MGMT["PerfMetrics / LogAPI / DataAPI<br/>Pyroscope / pprof"]
     end
 

@@ -231,15 +231,18 @@ ChannelScore = Weight × LatencyScore^α × CostScore^β × SuccessRate^γ
   α, β, γ         = 可配置指数（控制各维度影响力，默认 α=0.3, β=0.2, γ=2.0）
 ```
 
-## 8. 修改文件清单
+## 8. 修改文件清单（已实现）
 
 | 文件 | 改动 |
 |------|------|
-| `pkg/circuitbreaker/breaker.go` | 新增：滑动窗口熔断器实现 |
-| `pkg/circuitbreaker/window.go` | 新增：滑动窗口桶 |
-| `model/channel_cache.go` | 修改：`GetRandomSatisfiedChannel()` 增加熔断过滤 + 延迟/成本加权 |
+| `pkg/circuitbreaker/` | 新增：滑动窗口熔断器（CLOSED/OPEN/HALF-OPEN） |
+| `pkg/channel_limiter/` | 新增：渠道级并发限流器 |
+| `pkg/channel_successrate/` | 新增：滑动窗口成功率追踪（5 分钟，最少 10 样本） |
+| `pkg/routing/` | 新增：路由评分引擎（延迟/成本/成功率加权评分） |
 | `model/ability.go` | 修改：新增 `PricePerToken`, `PricePerRequest` 字段 |
-| `controller/relay.go` | 修改：成功/失败时通知 breaker |
-| `service/channel.go` | 修改：`ShouldDisableChannel()` 与 breaker 集成 |
-| `setting/operation_setting/` | 新增：熔断/延迟路由/成本路由的 Option 配置 |
-| `common/init.go` | 修改：初始化 breaker + 加载配置 |
+| `model/channel_cache.go` | 修改：`CacheGetRandomSatisfiedChannel()` 集成熔断过滤 + 评分引擎 |
+| `controller/relay.go` | 修改：成功/失败时通知 breaker 和成功率追踪 |
+| `setting/operation_setting/circuit_breaker_setting.go` | 新增：熔断器配置（窗口/阈值/超时） |
+| `setting/operation_setting/latency_routing_setting.go` | 新增：延迟感知路由配置 |
+| `setting/operation_setting/cost_routing_setting.go` | 新增：成本感知路由配置 |
+| `setting/operation_setting/success_rate_routing_setting.go` | 新增：成功率动态权重配置 |
